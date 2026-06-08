@@ -14,7 +14,7 @@ from mjlab.utils.spec_config import CollisionCfg
 ##
 
 RL_BOY_XML: Path = (
-  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "RL_BOY" / "RL_BOY.xml"
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "RL_BOY" / "rlboy2.xml"
 )
 assert RL_BOY_XML.exists()
 
@@ -43,10 +43,10 @@ EFFORT_LIMIT_WAIST = 60 # TODO: 根据实际电机型号确定
 #           right_shoulder_pitch, right_shoulder_roll, right_shoulder_yaw, right_elbow_pitch
 RL_BOY_ACTUATOR_ARM = BuiltinPositionActuatorCfg(
   target_names_expr=(
-    ".*_shoulder_pitch",
-    ".*_shoulder_roll",
-    ".*_shoulder_yaw",
-    ".*_elbow_pitch",
+    ".*_shoulder_pitch_joint",
+    ".*_shoulder_roll_joint",
+    ".*_shoulder_yaw_joint",
+    ".*_elbow_pitch_joint",
   ),
   stiffness=STIFFNESS_ARM,
   damping=DAMPING_ARM,
@@ -101,10 +101,10 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
     ".*_hip_yaw_joint": 0,
     ".*_hip_roll_joint": 0, 
     # 手臂关节初始位置
-    ".*_shoulder_pitch": 0,  # TODO: 根据实际机器人调整
-    ".*_elbow_pitch": 0,  # TODO: 根据实际机器人调整
-    "left_shoulder_roll": 1.3,  # TODO: 根据实际机器人调整
-    "right_shoulder_roll": -1.3,  # TODO: 根据实际机器人调整
+    ".*_shoulder_pitch_joint": 0,  # TODO: 根据实际机器人调整
+    ".*_elbow_pitch_joint": 0,  # TODO: 根据实际机器人调整
+    "left_shoulder_roll_joint": 1.3,  # TODO: 根据实际机器人调整
+    "right_shoulder_roll_joint": -1.3,  # TODO: 根据实际机器人调整
   },
   joint_vel={".*": 0.0},
 )

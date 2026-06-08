@@ -22,24 +22,23 @@ from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 
-# RL_BOY 机器人脚部 site 名称（已在 XML 的 ankle body 下添加 left_foot / right_foot）
-_SITE_NAMES = ("left_foot", "right_foot")
-
-# RL_BOY 脚部碰撞 geom 名称
-# 根据 XML 结构，脚部 geom 名称为 left_ankle_pitch_link 和 right_ankle_pitch_link
-_GEOM_NAMES = tuple(
-  f"{side}_ankle_pitch_link" for side in ("left", "right")
-)
-
-
 def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create RL Boy rough terrain velocity configuration."""
   cfg = make_velocity_env_cfg()
+  assert cfg is not None 
 
   # 仿真参数
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.contact_sensor_maxmatch = 500
   cfg.sim.nconmax = 70
+  from mjlab.utils.nan_guard import NanGuardCfg
+
+  cfg.sim.nan_guard = NanGuardCfg(
+  enabled=True,
+  buffer_size=100,      # 保留 NaN 前多少步
+  output_dir="/tmp/mjlab/nan_dumps",
+  max_envs_to_dump=5,   # 最多导出的 env 数量
+  ) 
 
   # 替换机器人实体
   cfg.scene.entities = {"robot": get_rlboy_robot_cfg()}
@@ -55,11 +54,19 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 足端高度扫描绑定到左右脚踝 site
   # 注意: RL_BOY 只有 ankle_pitch，没有 ankle_roll
   # 需要在 XML 中添加 foot site，或者使用现有的 ankle link
+  # RL_BOY 机器人脚部 site 名称（已在 XML 的 ankle body 下添加 left_foot / right_foot）
+  SITE_NAMES = ("left_foot", "right_foot")
+
+# RL_BOY 脚部碰撞 geom 名称
+# 根据 XML 结构，脚部 geom 名称为 left_ankle_pitch_link 和 right_ankle_pitch_link
+  GEOM_NAMES = tuple(
+  f"{side}_ankle_pitch_link" for side in ("left", "right")
+)
   for sensor in cfg.scene.sensors or ():
     if sensor.name == "foot_height_scan":
       assert isinstance(sensor, TerrainHeightSensorCfg)
       sensor.frame = tuple(
-        ObjRef(type="body", name=s, entity="robot") for s in ("left_ankle_pitch_link", "right_ankle_pitch_link")
+        ObjRef(type="body", name=s, entity="robot") for s in GEOM_NAMES
       )
       # 使用更小的 ring radius 因为 RL_BOY 的脚较小
       sensor.pattern = RingPatternCfg.single_ring(radius=0.02, num_samples=6)
@@ -117,7 +124,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # 事件配置 - 摩擦随机化
   # RL_BOY 脚部 geom 名称
-  cfg.events["foot_friction"].params["asset_cfg"].geom_names = _GEOM_NAMES
+  cfg.events["foot_friction"].params["asset_cfg"].geom_names = GEOM_NAMES
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
 
   # 姿态奖励标准差配置
@@ -136,11 +143,11 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     # 注意: RL_BOY 没有 ankle_roll 关节
     # 腰部关节
     r".*waist_yaw.*": 0.2,
-    # 手臂关节 (无 _joint 后缀)
-    r".*shoulder_pitch": 0.15,
-    r".*shoulder_roll": 0.15,
-    r".*shoulder_yaw": 0.1,
-    r".*elbow_pitch": 0.15,
+    # 手臂关节 
+    r".*shoulder_pitch.*": 0.15,
+    r".*shoulder_roll.*": 0.15,
+    r".*shoulder_yaw.*": 0.1,
+    r".*elbow_pitch.*": 0.15,
   }
   cfg.rewards["pose"].params["std_running"] = {
     # 腿部关节
@@ -151,11 +158,11 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*ankle_pitch.*": 0.35,
     # 腰部关节
     r".*waist_yaw.*": 0.3,
-    # 手臂关节 (无 _joint 后缀)
-    r".*shoulder_pitch": 0.5,
-    r".*shoulder_roll": 0.2,
-    r".*shoulder_yaw": 0.15,
-    r".*elbow_pitch": 0.35,
+    # 手臂关节 
+    r".*shoulder_pitch.*": 0.5, 
+    r".*shoulder_roll.*": 0.2,
+    r".*shoulder_yaw.*": 0.15,
+    r".*elbow_pitch.*": 0.35,
   }
 
   # 躯干直立奖励主体
@@ -166,7 +173,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 足部清洁和滑动奖励
   # 注意: RL_BOY 没有 ankle_roll，使用 ankle_pitch 作为脚部参考
   for reward_name in ["foot_clearance", "foot_slip"]:
-    cfg.rewards[reward_name].params["asset_cfg"].site_names = _SITE_NAMES
+    cfg.rewards[reward_name].params["asset_cfg"].site_names = SITE_NAMES
 
   # 奖励权重调整
   cfg.rewards["body_ang_vel"].weight = -0.05
@@ -206,6 +213,8 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
 
 def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+
+
   """Create RL Boy flat terrain velocity configuration."""
   cfg = rlboy_rough_env_cfg(play=play)
 
@@ -237,5 +246,6 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     # TODO: 根据 RL_BOY 的实际能力调整速度范围
     twist_cmd.ranges.lin_vel_x = (-1.0, 1.5)
     twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
+
 
   return cfg
