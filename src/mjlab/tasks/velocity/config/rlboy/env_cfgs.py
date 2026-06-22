@@ -7,8 +7,10 @@ from mjlab.asset_zoo.robots import (
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -124,6 +126,42 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # RL_BOY 脚部 geom 名称
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = foot_geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
+
+  # ===== 新增域随机化 (DR) =====
+  # 1) PD 增益随机化 ±10%：让策略适应电机响应的实物差异
+  #    asset_cfg 不指定 actuator_names 时默认 actuator_ids=slice(None)，覆盖所有 20 个执行器
+  cfg.events["pd_gains"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pd_gains,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "operation": "scale",
+      "kp_range": (0.9, 1.1),
+      "kd_range": (0.9, 1.1),
+    },
+  )
+  # 2) 全身 link 质量随机化 ±5%（pseudo_inertia 同步缩放 mass+inertia，物理上一致）
+  #    alpha = log(density_ratio), ±5% 质量变化 ≈ alpha_range = (-0.05, 0.05)
+  cfg.events["link_mass"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pseudo_inertia,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "alpha_range": (-0.05, 0.05),
+    },
+  )
+  # 3) 负载随机化：在 base_link 上叠加 0~2 kg 质量
+  #    注：body_mass 单独使用时不修改 inertia，docstring 明确指出仅适用于「在 COM 添加点质量」的场景
+  cfg.events["base_payload"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.body_mass,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
+      "operation": "add",
+      "ranges": (0.0, 2.0),
+    },
+  )
+  # ===== 新增域随机化结束 =====
 
   # 姿态奖励标准差配置
   # RL_BOY 关节结构:
@@ -241,6 +279,47 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # 禁用地形课程
   cfg.curriculum.pop("terrain_levels", None)
+
+  # 定制速度指令课程学习
+  # 从小范围开始，逐步提升线速度与角速度指令范围
+  # step 单位为环境步(decimation 后的步进), 24 = 4096 envs 跑一个 iteration 的近似步数
+  # 经验值参考: 0, ~120k, ~300k, ~600k 步切换
+  cfg.curriculum["command_vel"] = CurriculumTermCfg(
+    func=mdp.commands_vel,
+    params={
+      "command_name": "twist",
+      "velocity_stages": [
+        # 阶段 0: 起步 —— 小范围、低速
+        {
+          "step": 0,
+          "lin_vel_x": (-0.6, 0.8),
+          "lin_vel_y": (-0.3, 0.3),
+          "ang_vel_z": (-0.4, 0.4),
+        },
+        # 阶段 1: 提升 x 方向速度上限
+        {
+          "step": 5000 * 24,
+          "lin_vel_x": (-1.0, 1.2),
+          "lin_vel_y": (-0.5, 0.5),
+          "ang_vel_z": (-0.6, 0.6),
+        },
+        # 阶段 2: 进一步提速并扩大侧向与偏航
+        {
+          "step": 10000 * 24,
+          "lin_vel_x": (-1.5, 1.8),
+          "lin_vel_y": (-0.7, 0.7),
+          "ang_vel_z": (-0.8, 0.8),
+        },
+        # 阶段 3: 接近最终能力上限
+        {
+          "step": 20000 * 24,
+          "lin_vel_x": (-2.0, 2.5),
+          "lin_vel_y": (-1.0, 1.0),
+          "ang_vel_z": (-1.0, 1.0),
+        },
+      ],
+    },
+  )
 
   if play:
     twist_cmd = cfg.commands["twist"]

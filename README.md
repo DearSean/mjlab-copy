@@ -49,7 +49,7 @@ uv run train Mjlab-Velocity-Flat-RL_BOY --env.scene.num-envs 4096
 **Multi-GPU Training:** Scale to multiple GPUs using `--gpu-ids`:
 
 ```bash
-uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+uv run train Mjlab-Velocity-Flat-RL_BOY \
   --gpu-ids "[0, 1]" \
   --env.scene.num-envs 4096
 ```

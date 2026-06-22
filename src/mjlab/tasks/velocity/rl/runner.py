@@ -1,4 +1,5 @@
 import wandb
+from pathlib import Path
 
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import (
@@ -25,3 +26,14 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         wandb.save(str(onnx_path), base_path=str(policy_dir))
     except Exception as e:
       print(f"[WARN] ONNX export failed (training continues): {e}")
+
+    # 额外保存 TorchScript JIT 格式策略（policy.pt）
+    jit_filename = Path(filename).with_suffix(".pt").name
+    try:
+      self.export_policy_to_jit(str(policy_dir), jit_filename)
+      if self.logger.logger_type in ["wandb"] and self.cfg["upload_model"]:
+        wandb.save(
+          str(policy_dir / jit_filename), base_path=str(policy_dir)
+        )
+    except Exception as e:
+      print(f"[WARN] JIT export failed (training continues): {e}")
