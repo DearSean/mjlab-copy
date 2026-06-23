@@ -27,7 +27,7 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create RL Boy rough terrain velocity configuration."""
   cfg = make_velocity_env_cfg()
-  assert cfg is not None 
+  assert cfg is not None
 
   # 仿真参数
   cfg.sim.mujoco.ccd_iterations = 500
@@ -36,11 +36,11 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   from mjlab.utils.nan_guard import NanGuardCfg
 
   cfg.sim.nan_guard = NanGuardCfg(
-  enabled=True,
-  buffer_size=100,      # 保留 NaN 前多少步
-  output_dir="/tmp/mjlab/nan_dumps",
-  max_envs_to_dump=5,   # 最多导出的 env 数量
-  ) 
+    enabled=True,
+    buffer_size=100,  # 保留 NaN 前多少步
+    output_dir="/tmp/mjlab/nan_dumps",
+    max_envs_to_dump=5,  # 最多导出的 env 数量
+  )
 
   # 替换机器人实体
   cfg.scene.entities = {"robot": get_rlboy_robot_cfg()}
@@ -146,19 +146,22 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     mode="startup",
     func=envs_mdp.dr.pseudo_inertia,
     params={
-      "asset_cfg": SceneEntityCfg("robot"),
+      "asset_cfg": SceneEntityCfg(
+        "robot",
+        body_names=r"^(?!left_wrist_link$|right_wrist_link$).+",
+      ),
       "alpha_range": (-0.05, 0.05),
     },
   )
-  # 3) 负载随机化：在 base_link 上叠加 0~2 kg 质量
+  # 3) 负载随机化：课程按阶段扩大范围，每个 episode 重新采样
   #    注：body_mass 单独使用时不修改 inertia，docstring 明确指出仅适用于「在 COM 添加点质量」的场景
   cfg.events["base_payload"] = EventTermCfg(
-    mode="startup",
+    mode="reset",
     func=envs_mdp.dr.body_mass,
     params={
       "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
       "operation": "add",
-      "ranges": (0.0, 2.0),
+      "ranges": (0.0, 0.25),
     },
   )
   # ===== 新增域随机化结束 =====
@@ -181,7 +184,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*waist_yaw.*": 0.2,
     # 头部关节（锁定，不主动运动）
     r".*head_yaw.*": 0.05,
-    # 手臂关节 
+    # 手臂关节
     r".*shoulder_pitch.*": 0.15,
     r".*shoulder_roll.*": 0.15,
     r".*shoulder_yaw.*": 0.1,
@@ -198,8 +201,8 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*waist_yaw.*": 0.3,
     # 头部关节（锁定，不主动运动）
     r".*head_yaw.*": 0.05,
-    # 手臂关节 
-    r".*shoulder_pitch.*": 0.5, 
+    # 手臂关节
+    r".*shoulder_pitch.*": 0.5,
     r".*shoulder_roll.*": 0.2,
     r".*shoulder_yaw.*": 0.15,
     r".*elbow_pitch.*": 0.35,
@@ -253,8 +256,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
 
 def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-
-
   """Create RL Boy flat terrain velocity configuration."""
   cfg = rlboy_rough_env_cfg(play=play)
 
@@ -288,6 +289,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     func=mdp.commands_vel,
     params={
       "command_name": "twist",
+      "payload_event_name": "base_payload",
       "velocity_stages": [
         # 阶段 0: 起步 —— 小范围、低速
         {
@@ -295,6 +297,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
           "lin_vel_x": (-0.6, 0.8),
           "lin_vel_y": (-0.3, 0.3),
           "ang_vel_z": (-0.4, 0.4),
+          "payload_range": (0.0, 0.25),
         },
         # 阶段 1: 提升 x 方向速度上限
         {
@@ -302,6 +305,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
           "lin_vel_x": (-1.0, 1.2),
           "lin_vel_y": (-0.5, 0.5),
           "ang_vel_z": (-0.6, 0.6),
+          "payload_range": (0.0, 0.5),
         },
         # 阶段 2: 进一步提速并扩大侧向与偏航
         {
@@ -309,6 +313,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
           "lin_vel_x": (-1.5, 1.8),
           "lin_vel_y": (-0.7, 0.7),
           "ang_vel_z": (-0.8, 0.8),
+          "payload_range": (0.0, 1.0),
         },
         # 阶段 3: 接近最终能力上限
         {
@@ -316,6 +321,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
           "lin_vel_x": (-2.0, 2.5),
           "lin_vel_y": (-1.0, 1.0),
           "ang_vel_z": (-1.0, 1.0),
+          "payload_range": (0.0, 2.0),
         },
       ],
     },
@@ -327,6 +333,5 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     # TODO: 根据 RL_BOY 的实际能力调整速度范围
     twist_cmd.ranges.lin_vel_x = (-1.0, 1.5)
     twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
-
 
   return cfg

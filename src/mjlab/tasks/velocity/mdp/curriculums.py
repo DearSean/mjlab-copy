@@ -20,6 +20,7 @@ class VelocityStage(TypedDict):
   lin_vel_x: tuple[float, float] | None
   lin_vel_y: tuple[float, float] | None
   ang_vel_z: tuple[float, float] | None
+  payload_range: tuple[float, float] | None
 
 
 def terrain_levels_vel(
@@ -85,11 +86,17 @@ def commands_vel(
   env_ids: torch.Tensor,
   command_name: str,
   velocity_stages: list[VelocityStage],
+  payload_event_name: str | None = None,
 ) -> dict[str, torch.Tensor]:
   del env_ids  # Unused.
   command_term = env.command_manager.get_term(command_name)
   assert command_term is not None
   cfg = cast(UniformVelocityCommandCfg, command_term.cfg)
+  payload_cfg = (
+    env.event_manager.get_term_cfg(payload_event_name)
+    if payload_event_name is not None
+    else None
+  )
   for stage in velocity_stages:
     if env.common_step_counter >= stage["step"]:
       if "lin_vel_x" in stage and stage["lin_vel_x"] is not None:
@@ -98,7 +105,13 @@ def commands_vel(
         cfg.ranges.lin_vel_y = stage["lin_vel_y"]
       if "ang_vel_z" in stage and stage["ang_vel_z"] is not None:
         cfg.ranges.ang_vel_z = stage["ang_vel_z"]
-  return {
+      if (
+        payload_cfg is not None
+        and "payload_range" in stage
+        and stage["payload_range"] is not None
+      ):
+        payload_cfg.params["ranges"] = stage["payload_range"]
+  state = {
     "lin_vel_x_min": torch.tensor(cfg.ranges.lin_vel_x[0]),
     "lin_vel_x_max": torch.tensor(cfg.ranges.lin_vel_x[1]),
     "lin_vel_y_min": torch.tensor(cfg.ranges.lin_vel_y[0]),
@@ -106,3 +119,8 @@ def commands_vel(
     "ang_vel_z_min": torch.tensor(cfg.ranges.ang_vel_z[0]),
     "ang_vel_z_max": torch.tensor(cfg.ranges.ang_vel_z[1]),
   }
+  if payload_cfg is not None:
+    payload_range = cast(tuple[float, float], payload_cfg.params["ranges"])
+    state["payload_min"] = torch.tensor(payload_range[0])
+    state["payload_max"] = torch.tensor(payload_range[1])
+  return state
