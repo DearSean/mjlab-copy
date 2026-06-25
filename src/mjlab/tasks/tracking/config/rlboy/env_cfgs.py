@@ -8,13 +8,15 @@ from mjlab.asset_zoo.robots import (
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg
 from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.sensor.contact_sensor import ContactSensor
+from mjlab.tasks.tracking import mdp
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.tracking_env_cfg import make_tracking_env_cfg
-
 
 def feet_air_time_jump(
   env,
@@ -116,6 +118,9 @@ def rlboy_flat_tracking_env_cfg(
   ].geom_names = r"^(left|right)_foot[1-7]_collision$"
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
 
+  # 跌倒/躺倒姿态随机化：训练 2000 轮迭代后，以 0.01 的概率在 reset 时
+  # 从仰卧、俯卧、左侧卧、右侧卧中随机采样一个姿态，并叠加随机 z 轴旋转。
+  # 按当前 runner 的 num_steps_per_env=24 计算，2000 轮 = 48000 环境步。
   cfg.terminations["ee_body_pos"].params["body_names"] = (
     "left_ankle_pitch_link",
     "right_ankle_pitch_link",

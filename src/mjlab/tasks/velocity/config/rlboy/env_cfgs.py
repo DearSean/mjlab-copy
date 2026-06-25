@@ -1,5 +1,10 @@
 """RL Boy velocity environment configurations."""
 
+import math
+from typing import TYPE_CHECKING
+
+import torch
+
 from mjlab.asset_zoo.robots import (
   RL_BOY_ACTION_SCALE,
   get_rlboy_robot_cfg,
@@ -11,6 +16,7 @@ from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -20,8 +26,149 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.velocity import mdp
+from mjlab.tasks.tracking.mdp.events import randomize_initial_root_pose
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
+
+_FALLEN_POSES = [
+  {
+    "pos": (0.0, 0.0, 0.06),
+    "quat": (0.70710678, 0.0, -0.70710678, 0.0),
+  },
+  {
+    "pos": (0.0, 0.0, 0.06),
+    "quat": (0.70710678, 0.0, 0.70710678, 0.0),
+  },
+  {
+    "pos": (0.0, 0.0, 0.08),
+    "quat": (0.70710678, 0.70710678, 0.0, 0.0),
+  },
+  {
+    "pos": (0.0, 0.0, 0.08),
+    "quat": (0.70710678, -0.70710678, 0.0, 0.0),
+  },
+]
+
+if TYPE_CHECKING:
+  from mjlab.entity import Entity
+  from mjlab.envs import ManagerBasedRlEnv
+
+
+def bad_orientation_with_tolerance(
+  env: "ManagerBasedRlEnv",
+  limit_angle: float,
+  tolerance_prob: float = 0.005,
+  asset_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+  if asset_cfg is None:
+    asset_cfg = SceneEntityCfg("robot")
+  fell = envs_mdp.bad_orientation(env, limit_angle, asset_cfg)
+  if tolerance_prob > 0.0 and bool(fell.any()):
+    # 对每个本来要终止的 env, 有 tolerance_prob 的概率放它继续探索
+    keep_mask = (
+      torch.rand(env.num_envs, device=env.device) < tolerance_prob
+    )
+    fell = fell & ~keep_mask
+  return fell
+
+
+def base_height_penalty_recovery(
+  env: "ManagerBasedRlEnv",
+  min_height: float = 0.38,
+  recover_height: float = 0.24,
+  scale_near: float = 10.0,
+  scale_far: float = 3.0,
+  max_penalty: float = 4.0,
+  asset_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+  """按 base height 惩罚，鼓励策略在跌倒前主动恢复。
+
+  惩罚曲线（base_height 越低惩罚越大）：
+  - height >= min_height: 无惩罚
+  - recover_height <= height < min_height: 温和的指数惩罚（给策略恢复梯度）
+  - height < recover_height: 陡峭的线性惩罚，平滑饱和到 max_penalty
+
+  返回 POSITIVE cost，RewardTermCfg 中需配 NEGATIVE weight 才会变成惩罚。
+  """
+  if asset_cfg is None:
+    asset_cfg = SceneEntityCfg("robot")
+  asset: "Entity" = env.scene[asset_cfg.name]
+  base_height = asset.data.root_link_pos_w[:, 2]
+
+  # 高度介于 [recover_height, min_height] 之间的小幅下沉（指数区）
+  near_error = torch.clamp(
+    min_height - torch.clamp(base_height, min=recover_height),
+    min=0.0,
+  )
+  # 跌至 recover_height 之下的严重下沉（线性区）
+  far_error = torch.clamp(recover_height - base_height, min=0.0)
+
+  near_penalty = torch.exp(scale_near * near_error) - 1.0
+  far_penalty = scale_far * far_error
+  raw_penalty = near_penalty + far_penalty
+
+  # 平滑饱和：raw -> 0 时 penalty -> 0；raw -> inf 时 penalty -> max_penalty
+  penalty = max_penalty * raw_penalty / (raw_penalty + max_penalty)
+  return penalty
+
+
+class fallen_duration_penalty:
+  """指数惩罚倒地时长，base_height < threshold 时持续累计，200 步饱和。
+
+  与 base_height_penalty_recovery 的区别：
+  - base_height_penalty_recovery：按瞬时高度惩罚（height 越低越惩罚）
+  - fallen_duration_penalty：按**连续倒地步数**惩罚（倒得越久越惩罚）
+
+  两项配合使用：前者提供恢复梯度，后者惩罚拖延不恢复。
+  """
+
+  def __init__(
+    self,
+    cfg: RewardTermCfg,
+    env: "ManagerBasedRlEnv",
+    threshold: float = 0.38,
+    tau: float = 50.0,
+    max_penalty: float = 1.0,
+    asset_cfg: SceneEntityCfg | None = None,
+  ):
+    self.env = env
+    self.threshold = threshold
+    self.tau = tau
+    self.max_penalty = max_penalty
+    self.asset_cfg = asset_cfg or SceneEntityCfg("robot")
+    self.fallen_steps = torch.zeros(
+      env.num_envs, device=env.device, dtype=torch.float32
+    )
+
+  def reset(self, env_ids: torch.Tensor) -> None:
+    """episode 重置时清零对应 env 的倒地步数计数器。"""
+    self.fallen_steps[env_ids] = 0.0
+
+  def __call__(
+    self,
+    env: "ManagerBasedRlEnv",
+    threshold: float,
+    tau: float,
+    max_penalty: float,
+    asset_cfg,  # intentionally unused: self.asset_cfg from __init__ is used
+  ) -> torch.Tensor:
+    asset: "Entity" = env.scene[self.asset_cfg.name]
+    base_height = asset.data.root_link_pos_w[:, 2]
+    is_fallen = base_height < threshold
+
+    # 仅对倒地的 env 累加步数
+    self.fallen_steps = torch.where(
+      is_fallen,
+      self.fallen_steps + 1.0,
+      0.0,
+    )
+
+    # 指数增长，平滑饱和
+    # tau=50: step=50 → raw≈1.72; step=200 → raw≈54.6, penalty→max_penalty
+    raw = torch.exp(self.fallen_steps / tau) - 1.0
+    penalty = max_penalty * raw / (raw + max_penalty)
+
+    return penalty * is_fallen.float()
 
 
 def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -164,6 +311,18 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       "ranges": (0.0, 0.25),
     },
   )
+
+  cfg.events["randomize_fallen_pose"] = EventTermCfg(
+    func=randomize_initial_root_pose,
+    mode="reset",
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "poses": _FALLEN_POSES,
+      "probability": 0.01,
+      "min_step_count": 48000,
+    },
+  )
+
   # ===== 新增域随机化结束 =====
 
   # 姿态奖励标准差配置
@@ -223,11 +382,46 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.rewards["angular_momentum"].weight = -0.02
   cfg.rewards["air_time"].weight = 0.2
 
+  # base height 恢复奖励
+  # 在策略接近跌倒时提供早期梯度,鼓励主动恢复姿态
+  cfg.rewards["base_height_recovery"] = RewardTermCfg(
+    func=base_height_penalty_recovery,
+    weight=-0.5,
+    params={
+      # RL_BOY 站立时 base_link 高度约 0.45m
+      "min_height": 0.38,
+      # 跌至 0.24m 以下视为不可恢复(严重跌倒)
+      "recover_height": 0.24,
+      "scale_near": 10.0,
+      "scale_far": 3.0,
+      "max_penalty": 4.0,
+    },
+  )
+
+  # 倒地时长惩罚：base_height < 0.38 时持续累加，200 步饱和
+  # 与 base_height_recovery 配合：瞬时高度惩罚 + 拖延不恢复的额外惩罚
+  cfg.rewards["fallen_duration"] = RewardTermCfg(
+    func=fallen_duration_penalty,
+    weight=-0.05,
+    params={
+      "threshold": 0.38,
+      "tau": 50.0,  # step=50 → raw≈1.72，step=200 → penalty→max_penalty
+      "max_penalty": 1.0,
+    },
+  )
+
   # 自碰撞惩罚
   cfg.rewards["self_collisions"] = RewardTermCfg(
     func=mdp.self_collision_cost,
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
+  )
+
+  # 替换 fell_over 终止条件：让 0.5% 的濒倒 env 继续探索
+  # 避免策略学到"主动摔倒以规避负奖励" 的失败模式
+  cfg.terminations["fell_over"] = TerminationTermCfg(
+    func=bad_orientation_with_tolerance,
+    params={"limit_angle": math.radians(70.0), "tolerance_prob": 0.005},
   )
 
   # Play 模式覆盖
