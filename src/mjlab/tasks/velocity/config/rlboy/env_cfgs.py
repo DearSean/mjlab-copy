@@ -25,7 +25,7 @@ from mjlab.sensor import (
   RingPatternCfg,
   TerrainHeightSensorCfg,
 )
-from mjlab.tasks.tracking.mdp.events import randomize_initial_root_pose
+from mjlab.tasks.tracking.mdp.events import _quat_mul
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
@@ -48,6 +48,8 @@ _FALLEN_POSES = [
     "quat": (0.70710678, -0.70710678, 0.0, 0.0),
   },
 ]
+_FALLEN_RECOVERY_GRACE_STEPS = 250
+_FALLEN_RECOVERY_GRACE_ATTR = "_rlboy_fallen_recovery_grace_steps"
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -58,18 +60,101 @@ def bad_orientation_with_tolerance(
   env: "ManagerBasedRlEnv",
   limit_angle: float,
   tolerance_prob: float = 0.005,
+  tolerance_grace_steps: int = _FALLEN_RECOVERY_GRACE_STEPS,
+  recovery_grace_attr: str = _FALLEN_RECOVERY_GRACE_ATTR,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
   if asset_cfg is None:
     asset_cfg = SceneEntityCfg("robot")
   fell = envs_mdp.bad_orientation(env, limit_angle, asset_cfg)
+
+  grace_steps = getattr(env, recovery_grace_attr, None)
+  if grace_steps is not None:
+    grace_active = grace_steps > 0
+    fell = fell & ~grace_active
+    grace_steps[grace_active] -= 1
+
   if tolerance_prob > 0.0 and bool(fell.any()):
     # 对每个本来要终止的 env, 有 tolerance_prob 的概率放它继续探索
     keep_mask = (
       torch.rand(env.num_envs, device=env.device) < tolerance_prob
     )
+    recovered_by_tolerance = fell & keep_mask
+    if bool(recovered_by_tolerance.any()):
+      if grace_steps is None:
+        grace_steps = torch.zeros(env.num_envs, device=env.device, dtype=torch.long)
+        setattr(env, recovery_grace_attr, grace_steps)
+      grace_steps[recovered_by_tolerance] = tolerance_grace_steps
     fell = fell & ~keep_mask
   return fell
+
+
+def randomize_fallen_root_pose_with_grace(
+  env: "ManagerBasedRlEnv",
+  env_ids: torch.Tensor | slice | None,
+  asset_cfg: SceneEntityCfg,
+  poses: list[dict[str, tuple[float, ...]]],
+  probability: float,
+  min_step_count: int,
+  grace_steps: int = _FALLEN_RECOVERY_GRACE_STEPS,
+  recovery_grace_attr: str = _FALLEN_RECOVERY_GRACE_ATTR,
+  z_rotation_range: tuple[float, float] = (0.0, 2.0 * math.pi),
+) -> None:
+  """Randomize fallen root poses and suppress bad-orientation termination briefly."""
+  if env_ids is None or isinstance(env_ids, slice):
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+
+  grace = getattr(env, recovery_grace_attr, None)
+  if grace is None:
+    grace = torch.zeros(env.num_envs, device=env.device, dtype=torch.long)
+    setattr(env, recovery_grace_attr, grace)
+  grace[env_ids] = 0
+
+  if env.common_step_counter < min_step_count or probability <= 0.0 or not poses:
+    return
+
+  mask = torch.rand(len(env_ids), device=env.device) < probability
+  selected = env_ids[mask]
+  n = len(selected)
+  if n == 0:
+    return
+
+  asset: "Entity" = env.scene[asset_cfg.name]
+  device = env.device
+
+  root_pos = torch.tensor(
+    [pose["pos"] for pose in poses], device=device, dtype=torch.float32
+  )
+  root_quat = torch.tensor(
+    [pose["quat"] for pose in poses], device=device, dtype=torch.float32
+  )
+
+  pose_indices = torch.randint(len(poses), (n,), device=device)
+  selected_root_pos = root_pos[pose_indices]
+  selected_root_quat = root_quat[pose_indices]
+
+  selected_root_pos += env.scene.env_origins[selected]
+
+  angles = torch.rand(n, device=device) * (z_rotation_range[1] - z_rotation_range[0])
+  angles += z_rotation_range[0]
+  half_angles = angles * 0.5
+  z_quats = torch.stack(
+    [
+      torch.cos(half_angles),
+      torch.zeros_like(angles),
+      torch.zeros_like(angles),
+      torch.sin(half_angles),
+    ],
+    dim=-1,
+  )
+  selected_root_quat = _quat_mul(z_quats, selected_root_quat)
+
+  root_state = torch.zeros(n, 13, device=device, dtype=torch.float32)
+  root_state[:, 0:3] = selected_root_pos
+  root_state[:, 3:7] = selected_root_quat
+
+  asset.write_root_state_to_sim(root_state, env_ids=selected)
+  grace[selected] = grace_steps
 
 
 def base_height_penalty_recovery(
@@ -315,13 +400,14 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   )
 
   cfg.events["randomize_fallen_pose"] = EventTermCfg(
-    func=randomize_initial_root_pose,
+    func=randomize_fallen_root_pose_with_grace,
     mode="reset",
     params={
       "asset_cfg": SceneEntityCfg("robot"),
       "poses": _FALLEN_POSES,
       "probability": 0.01,
       "min_step_count": 48000,
+      "grace_steps": _FALLEN_RECOVERY_GRACE_STEPS,
     },
   )
 
@@ -424,7 +510,12 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 避免策略学到"主动摔倒以规避负奖励" 的失败模式
   cfg.terminations["fell_over"] = TerminationTermCfg(
     func=bad_orientation_with_tolerance,
-    params={"limit_angle": math.radians(70.0), "tolerance_prob": 0.005},
+    params={
+      "limit_angle": math.radians(70.0),
+      "tolerance_prob": 0.005,
+      "tolerance_grace_steps": _FALLEN_RECOVERY_GRACE_STEPS,
+      "recovery_grace_attr": _FALLEN_RECOVERY_GRACE_ATTR,
+    },
   )
 
   # Play 模式覆盖
