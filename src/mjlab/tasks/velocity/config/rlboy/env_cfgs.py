@@ -25,26 +25,26 @@ from mjlab.sensor import (
   RingPatternCfg,
   TerrainHeightSensorCfg,
 )
-from mjlab.tasks.velocity import mdp
 from mjlab.tasks.tracking.mdp.events import randomize_initial_root_pose
+from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 _FALLEN_POSES = [
   {
-    "pos": (0.0, 0.0, 0.06),
+    "pos": (0.0, 0.0, 0.09),
     "quat": (0.70710678, 0.0, -0.70710678, 0.0),
   },
   {
-    "pos": (0.0, 0.0, 0.06),
+    "pos": (0.0, 0.0, 0.09),
     "quat": (0.70710678, 0.0, 0.70710678, 0.0),
   },
   {
-    "pos": (0.0, 0.0, 0.08),
+    "pos": (0.0, 0.0, 0.09),
     "quat": (0.70710678, 0.70710678, 0.0, 0.0),
   },
   {
-    "pos": (0.0, 0.0, 0.08),
+    "pos": (0.0, 0.0, 0.09),
     "quat": (0.70710678, -0.70710678, 0.0, 0.0),
   },
 ]
@@ -150,8 +150,9 @@ class fallen_duration_penalty:
     threshold: float,
     tau: float,
     max_penalty: float,
-    asset_cfg,  # intentionally unused: self.asset_cfg from __init__ is used
+    asset_cfg: SceneEntityCfg | None = None,
   ) -> torch.Tensor:
+    del asset_cfg  # self.asset_cfg from __init__ is used.
     asset: "Entity" = env.scene[self.asset_cfg.name]
     base_height = asset.data.root_link_pos_w[:, 2]
     is_fallen = base_height < threshold
@@ -273,6 +274,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # RL_BOY 脚部 geom 名称
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = foot_geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
+  cfg.events.pop("reset_robot_joints", None)
 
   # ===== 新增域随机化 (DR) =====
   # 1) PD 增益随机化 ±10%：让策略适应电机响应的实物差异
@@ -378,6 +380,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
 
   # 奖励权重调整
+  cfg.rewards["pose"].weight = 0.5
   cfg.rewards["body_ang_vel"].weight = -0.05
   cfg.rewards["angular_momentum"].weight = -0.02
   cfg.rewards["air_time"].weight = 0.2
@@ -413,7 +416,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 自碰撞惩罚
   cfg.rewards["self_collisions"] = RewardTermCfg(
     func=mdp.self_collision_cost,
-    weight=-1.0,
+    weight=-0.3,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
 
