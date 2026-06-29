@@ -25,8 +25,20 @@ from mjlab.sensor import (
   RingPatternCfg,
   TerrainHeightSensorCfg,
 )
-from mjlab.tasks.tracking.mdp.events import _quat_mul
 from mjlab.tasks.velocity import mdp
+from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
+  RECOVERY_ASSIST_EVENT_NAME,
+  RlBoyRecoveryAssist,
+  normal_group_payload,
+  normal_randomization_curriculum,
+  prepare_recovery_group,
+  push_normal_group,
+  recovery_assist_curriculum,
+  recovery_bad_orientation,
+  recovery_mask,
+  recovery_succeeded,
+  recovery_timed_out,
+)
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
@@ -48,113 +60,60 @@ _FALLEN_POSES = [
     "quat": (0.70710678, -0.70710678, 0.0, 0.0),
   },
 ]
-_FALLEN_RECOVERY_GRACE_STEPS = 250
-_FALLEN_RECOVERY_GRACE_ATTR = "_rlboy_fallen_recovery_grace_steps"
+
+_NORMAL_RANDOMIZATION_STAGES = [
+  {
+    "step": 0,
+    "payload_range": (0.0, 0.0),
+    "velocity_range": {},
+    "push_interval_s": (8.0, 12.0),
+  },
+  {
+    "step": 1200 * 24,
+    "payload_range": (0.0, 0.25),
+    "velocity_range": {},
+    "push_interval_s": (8.0, 12.0),
+  },
+  {
+    "step": 2000 * 24,
+    "payload_range": (0.0, 0.5),
+    "velocity_range": {
+      "x": (-0.1, 0.1),
+      "y": (-0.1, 0.1),
+      "yaw": (-0.1, 0.1),
+    },
+    "push_interval_s": (8.0, 12.0),
+  },
+  {
+    "step": 2800 * 24,
+    "payload_range": (0.0, 1.0),
+    "velocity_range": {
+      "x": (-0.25, 0.25),
+      "y": (-0.25, 0.25),
+      "roll": (-0.1, 0.1),
+      "pitch": (-0.1, 0.1),
+      "yaw": (-0.2, 0.2),
+    },
+    "push_interval_s": (6.0, 10.0),
+  },
+  {
+    "step": 3400 * 24,
+    "payload_range": (0.0, 2.0),
+    "velocity_range": {
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "z": (-0.4, 0.4),
+      "roll": (-0.52, 0.52),
+      "pitch": (-0.52, 0.52),
+      "yaw": (-0.78, 0.78),
+    },
+    "push_interval_s": (1.0, 3.0),
+  },
+]
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
-
-
-def bad_orientation_with_tolerance(
-  env: "ManagerBasedRlEnv",
-  limit_angle: float,
-  tolerance_prob: float = 0.005,
-  tolerance_grace_steps: int = _FALLEN_RECOVERY_GRACE_STEPS,
-  recovery_grace_attr: str = _FALLEN_RECOVERY_GRACE_ATTR,
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  fell = envs_mdp.bad_orientation(env, limit_angle, asset_cfg)
-
-  grace_steps = getattr(env, recovery_grace_attr, None)
-  if grace_steps is not None:
-    grace_active = grace_steps > 0
-    fell = fell & ~grace_active
-    grace_steps[grace_active] -= 1
-
-  if tolerance_prob > 0.0 and bool(fell.any()):
-    # 对每个本来要终止的 env, 有 tolerance_prob 的概率放它继续探索
-    keep_mask = (
-      torch.rand(env.num_envs, device=env.device) < tolerance_prob
-    )
-    recovered_by_tolerance = fell & keep_mask
-    if bool(recovered_by_tolerance.any()):
-      if grace_steps is None:
-        grace_steps = torch.zeros(env.num_envs, device=env.device, dtype=torch.long)
-        setattr(env, recovery_grace_attr, grace_steps)
-      grace_steps[recovered_by_tolerance] = tolerance_grace_steps
-    fell = fell & ~keep_mask
-  return fell
-
-
-def randomize_fallen_root_pose_with_grace(
-  env: "ManagerBasedRlEnv",
-  env_ids: torch.Tensor | slice | None,
-  asset_cfg: SceneEntityCfg,
-  poses: list[dict[str, tuple[float, ...]]],
-  probability: float,
-  min_step_count: int,
-  grace_steps: int = _FALLEN_RECOVERY_GRACE_STEPS,
-  recovery_grace_attr: str = _FALLEN_RECOVERY_GRACE_ATTR,
-  z_rotation_range: tuple[float, float] = (0.0, 2.0 * math.pi),
-) -> None:
-  """Randomize fallen root poses and suppress bad-orientation termination briefly."""
-  if env_ids is None or isinstance(env_ids, slice):
-    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.long)
-
-  grace = getattr(env, recovery_grace_attr, None)
-  if grace is None:
-    grace = torch.zeros(env.num_envs, device=env.device, dtype=torch.long)
-    setattr(env, recovery_grace_attr, grace)
-  grace[env_ids] = 0
-
-  if env.common_step_counter < min_step_count or probability <= 0.0 or not poses:
-    return
-
-  mask = torch.rand(len(env_ids), device=env.device) < probability
-  selected = env_ids[mask]
-  n = len(selected)
-  if n == 0:
-    return
-
-  asset: "Entity" = env.scene[asset_cfg.name]
-  device = env.device
-
-  root_pos = torch.tensor(
-    [pose["pos"] for pose in poses], device=device, dtype=torch.float32
-  )
-  root_quat = torch.tensor(
-    [pose["quat"] for pose in poses], device=device, dtype=torch.float32
-  )
-
-  pose_indices = torch.randint(len(poses), (n,), device=device)
-  selected_root_pos = root_pos[pose_indices]
-  selected_root_quat = root_quat[pose_indices]
-
-  selected_root_pos += env.scene.env_origins[selected]
-
-  angles = torch.rand(n, device=device) * (z_rotation_range[1] - z_rotation_range[0])
-  angles += z_rotation_range[0]
-  half_angles = angles * 0.5
-  z_quats = torch.stack(
-    [
-      torch.cos(half_angles),
-      torch.zeros_like(angles),
-      torch.zeros_like(angles),
-      torch.sin(half_angles),
-    ],
-    dim=-1,
-  )
-  selected_root_quat = _quat_mul(z_quats, selected_root_quat)
-
-  root_state = torch.zeros(n, 13, device=device, dtype=torch.float32)
-  root_state[:, 0:3] = selected_root_pos
-  root_state[:, 3:7] = selected_root_quat
-
-  asset.write_root_state_to_sim(root_state, env_ids=selected)
-  grace[selected] = grace_steps
 
 
 def base_height_penalty_recovery(
@@ -195,6 +154,36 @@ def base_height_penalty_recovery(
   # 平滑饱和：raw -> 0 时 penalty -> 0；raw -> inf 时 penalty -> max_penalty
   penalty = max_penalty * raw_penalty / (raw_penalty + max_penalty)
   return penalty
+
+
+def base_height_recovery_reward(
+  env: "ManagerBasedRlEnv",
+  fallen_height: float = 0.05,
+  target_height: float = 0.38,
+  upright_std: float = math.sqrt(0.2),
+  upright_floor: float = 0.2,
+  recovery_event_name: str = RECOVERY_ASSIST_EVENT_NAME,
+  asset_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+  """Reward standing-height recovery only in fallen-recovery environments."""
+  if asset_cfg is None:
+    asset_cfg = SceneEntityCfg("robot")
+  asset: "Entity" = env.scene[asset_cfg.name]
+
+  active = recovery_mask(env, recovery_event_name)
+
+  base_height = asset.data.root_link_pos_w[:, 2]
+  height_score = torch.clamp(
+    (base_height - fallen_height) / (target_height - fallen_height),
+    min=0.0,
+    max=1.0,
+  )
+  projected_gravity = asset.data.projected_gravity_b
+  upright_error = torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
+  upright_score = torch.exp(-upright_error / upright_std**2)
+  upright_factor = upright_floor + (1.0 - upright_floor) * upright_score
+
+  return active.float() * height_score * upright_factor
 
 
 class fallen_duration_penalty:
@@ -399,18 +388,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     },
   )
 
-  cfg.events["randomize_fallen_pose"] = EventTermCfg(
-    func=randomize_fallen_root_pose_with_grace,
-    mode="reset",
-    params={
-      "asset_cfg": SceneEntityCfg("robot"),
-      "poses": _FALLEN_POSES,
-      "probability": 0.01,
-      "min_step_count": 48000,
-      "grace_steps": _FALLEN_RECOVERY_GRACE_STEPS,
-    },
-  )
-
   # ===== 新增域随机化结束 =====
 
   # 姿态奖励标准差配置
@@ -467,6 +444,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # 奖励权重调整
   cfg.rewards["pose"].weight = 0.5
+  cfg.rewards["action_rate_l2"].weight = -0.05
   cfg.rewards["body_ang_vel"].weight = -0.05
   cfg.rewards["angular_momentum"].weight = -0.02
   cfg.rewards["air_time"].weight = 0.2
@@ -506,16 +484,10 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
 
-  # 替换 fell_over 终止条件：让 0.5% 的濒倒 env 继续探索
-  # 避免策略学到"主动摔倒以规避负奖励" 的失败模式
+  # Rough terrain keeps the ordinary deterministic fall termination.
   cfg.terminations["fell_over"] = TerminationTermCfg(
-    func=bad_orientation_with_tolerance,
-    params={
-      "limit_angle": math.radians(70.0),
-      "tolerance_prob": 0.005,
-      "tolerance_grace_steps": _FALLEN_RECOVERY_GRACE_STEPS,
-      "recovery_grace_attr": _FALLEN_RECOVERY_GRACE_ATTR,
-    },
+    func=envs_mdp.bad_orientation,
+    params={"limit_angle": math.radians(70.0)},
   )
 
   # Play 模式覆盖
@@ -569,6 +541,98 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 禁用地形课程
   cfg.curriculum.pop("terrain_levels", None)
 
+  if not play:
+    # Recovery episodes are a separate population. Normal walking episodes neither
+    # receive assistance nor contribute to the recovery curriculum.
+    cfg.events[RECOVERY_ASSIST_EVENT_NAME] = EventTermCfg(
+      func=RlBoyRecoveryAssist,
+      mode="step",
+      params={
+        "asset_cfg": SceneEntityCfg("robot", body_names=("head_yaw_link",)),
+        "command_name": "twist",
+        "poses": _FALLEN_POSES,
+        "recovery_probability": 0.3,
+        "force_levels": (50.0, 40.0, 30.0, 20.0, 10.0, 5.0, 0.0),
+        "upright_height": 0.38,
+        "upright_angle": math.radians(15.0),
+        "ramp_duration_s": 0.75,
+        "independent_hold_s": 2.0,
+        "recovery_timeout_s": 5.0,
+      },
+    )
+    cfg.events["push_robot"] = EventTermCfg(
+      func=push_normal_group,
+      mode="interval",
+      interval_range_s=(8.0, 12.0),
+      params={
+        "event_name": RECOVERY_ASSIST_EVENT_NAME,
+        "stages": _NORMAL_RANDOMIZATION_STAGES,
+        "asset_cfg": SceneEntityCfg("robot"),
+      },
+    )
+    cfg.events["base_payload"] = EventTermCfg(
+      func=normal_group_payload,
+      mode="reset",
+      params={
+        "event_name": RECOVERY_ASSIST_EVENT_NAME,
+        "stages": _NORMAL_RANDOMIZATION_STAGES,
+        "asset_cfg": SceneEntityCfg("robot", body_names=("base_link",)),
+      },
+    )
+    cfg.events = {
+      "prepare_recovery_group": EventTermCfg(
+        func=prepare_recovery_group,
+        mode="reset",
+        params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+      ),
+      **cfg.events,
+    }
+    cfg.rewards["base_height_recovery_success"] = RewardTermCfg(
+      func=base_height_recovery_reward,
+      weight=1.0,
+      params={
+        "fallen_height": 0.05,
+        "target_height": 0.38,
+        "upright_std": math.sqrt(0.2),
+        "upright_floor": 0.2,
+        "recovery_event_name": RECOVERY_ASSIST_EVENT_NAME,
+      },
+    )
+    cfg.terminations["fell_over"] = TerminationTermCfg(
+      func=recovery_bad_orientation,
+      params={
+        "limit_angle": math.radians(70.0),
+        "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      },
+    )
+    cfg.terminations["recovery_succeeded"] = TerminationTermCfg(
+      func=recovery_succeeded,
+      time_out=True,
+      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+    )
+    cfg.terminations["recovery_timed_out"] = TerminationTermCfg(
+      func=recovery_timed_out,
+      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+    )
+    cfg.curriculum["recovery_assist"] = CurriculumTermCfg(
+      func=recovery_assist_curriculum,
+      params={
+        "event_name": RECOVERY_ASSIST_EVENT_NAME,
+        "window_size": 200,
+        "success_threshold": 0.8,
+        "direction_threshold": 0.7,
+        "min_direction_attempts": 30,
+        "failure_threshold": 0.4,
+      },
+    )
+    cfg.curriculum["normal_randomization"] = CurriculumTermCfg(
+      func=normal_randomization_curriculum,
+      params={
+        "push_event_name": "push_robot",
+        "stages": _NORMAL_RANDOMIZATION_STAGES,
+      },
+    )
+
   # 定制速度指令课程学习
   # 从小范围开始，逐步提升线速度与角速度指令范围
 
@@ -576,7 +640,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     func=mdp.commands_vel,
     params={
       "command_name": "twist",
-      "payload_event_name": "base_payload",
+      "payload_event_name": None,
       "velocity_stages": [
         # 阶段 0: 起步 —— 小范围、低速
         {
@@ -588,7 +652,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         },
         # 阶段 1: 提升 x 方向速度上限
         {
-          "step": 2000 * 24,
+          "step": 800 * 24,
           "lin_vel_x": (-1.0, 1.2),
           "lin_vel_y": (-0.5, 0.5),
           "ang_vel_z": (-0.6, 0.6),
@@ -596,7 +660,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         },
         # 阶段 2: 进一步提速并扩大侧向与偏航
         {
-          "step": 4000 * 24,
+          "step": 1600 * 24,
           "lin_vel_x": (-1.5, 1.8),
           "lin_vel_y": (-0.7, 0.7),
           "ang_vel_z": (-0.8, 0.8),
@@ -604,7 +668,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         },
         # 阶段 3: 接近最终能力上限
         {
-          "step": 8000 * 24,
+          "step": 3200 * 24,
           "lin_vel_x": (-2.0, 2.5),
           "lin_vel_y": (-1.0, 1.0),
           "ang_vel_z": (-1.0, 1.0),

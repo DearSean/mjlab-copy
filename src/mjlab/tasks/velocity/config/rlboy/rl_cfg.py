@@ -47,5 +47,5 @@ def rlboy_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     experiment_name="rlboy_velocity",
     save_interval=50,
     num_steps_per_env=24,
-    max_iterations=10_000,
+    max_iterations=4_000,
   )

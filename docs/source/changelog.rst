@@ -8,6 +8,13 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a fallen-recovery assistance curriculum to
+  ``Mjlab-Velocity-Flat-RL_BOY``. Dedicated recovery environments receive a
+  staged upward force at the head, and only successful unassisted recovery
+  attempts advance the curriculum. The RL_BOY velocity training schedule now
+  spans 4,000 PPO iterations, with its command stages scaled proportionally.
+  Payload and push randomization are introduced in later stages for normal
+  episodes while recovery episodes remain free of both disturbances.
 - Added ``--log-root`` CLI option to ``train``, ``play``, and ``evaluate``
   scripts for choosing where training logs are stored. Defaults to
   ``logs/rsl_rl`` (unchanged behavior). Useful for directing outputs to a
