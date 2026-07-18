@@ -13,6 +13,10 @@ from mjlab.envs import mdp as envs_mdp
 from mjlab.managers.event_manager import RecomputeLevel, requires_model_fields
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.tasks.velocity.mdp.posture_phase import (
+  PosturePhaseEstimator,
+  PosturePhaseEstimatorCfg,
+)
 from mjlab.utils.string import resolve_expr
 
 if TYPE_CHECKING:
@@ -127,10 +131,7 @@ class RlBoyRecoveryAssist:
     self._force_ranges = torch.tensor(
       params["force_ranges"], device=env.device, dtype=torch.float32
     )
-    self._upright_height: float = params["upright_height"]
-    self._upright_angle: float = params["upright_angle"]
-    self._fall_height: float = params["fall_height"]
-    self._fall_angle: float = params["fall_angle"]
+    self._posture_estimator = PosturePhaseEstimator(params["posture_cfg"])
     self._fall_confirm_s: float = params["fall_confirm_s"]
     self._upright_hold_s: float = params["upright_hold_s"]
     self._force_ramp_up_s: float = params["force_ramp_up_s"]
@@ -180,6 +181,7 @@ class RlBoyRecoveryAssist:
     self.assist_active = torch.zeros_like(self.starts_fallen)
     self.fallen_detected = torch.zeros_like(self.starts_fallen)
     self.succeeded = torch.zeros_like(self.starts_fallen)
+    self.just_succeeded = torch.zeros_like(self.starts_fallen)
     self.elapsed_s = torch.zeros(env.num_envs, device=env.device)
     self.fall_confirm_s = torch.zeros_like(self.elapsed_s)
     self.upright_hold_s = torch.zeros_like(self.elapsed_s)
@@ -273,6 +275,7 @@ class RlBoyRecoveryAssist:
       env_ids = torch.arange(
         self._env.num_envs, device=self._env.device, dtype=torch.long
       )
+    self.just_succeeded[env_ids] = False
 
     recovery_ids = env_ids[self.starts_fallen[env_ids]]
     if len(recovery_ids) > 0:
@@ -416,6 +419,7 @@ class RlBoyRecoveryAssist:
     self.fallen_detected[env_ids] = False
     self.fallen_detected[recovery_ids] = True
     self.succeeded[env_ids] = False
+    self.just_succeeded[env_ids] = False
     self.elapsed_s[env_ids] = 0.0
     self.fall_confirm_s[env_ids] = 0.0
     self.upright_hold_s[env_ids] = 0.0
@@ -452,10 +456,7 @@ class RlBoyRecoveryAssist:
     csv_joint_names: tuple[str, ...],
     pose_stage_source_weights: tuple[tuple[float, ...], ...],
     force_ranges: tuple[tuple[float, float], ...],
-    upright_height: float,
-    upright_angle: float,
-    fall_height: float,
-    fall_angle: float,
+    posture_cfg: PosturePhaseEstimatorCfg,
     fall_confirm_s: float,
     upright_hold_s: float,
     force_ramp_up_s: float,
@@ -468,6 +469,7 @@ class RlBoyRecoveryAssist:
     joint_velocity_ranges: dict[str, tuple[float, float]],
   ) -> None:
     dt = env.step_dt
+    self.just_succeeded.zero_()
     del (
       env_ids,
       asset_cfg,
@@ -486,10 +488,7 @@ class RlBoyRecoveryAssist:
       csv_joint_names,
       pose_stage_source_weights,
       force_ranges,
-      upright_height,
-      upright_angle,
-      fall_height,
-      fall_angle,
+      posture_cfg,
       fall_confirm_s,
       upright_hold_s,
       force_ramp_up_s,
@@ -502,11 +501,8 @@ class RlBoyRecoveryAssist:
       joint_velocity_ranges,
     )
 
-    height = self._asset.data.root_link_pos_w[:, 2]
-    gravity_z = -self._asset.data.projected_gravity_b[:, 2].clamp(-1.0, 1.0)
-    tilt = torch.acos(gravity_z)
-
-    fallen = (height < self._fall_height) | (tilt > self._fall_angle)
+    posture = self._posture_estimator.estimate(self._env)
+    fallen = posture.needs_recovery
     self.fallen_detected.copy_(fallen)
     confirming = fallen & ~self.assist_active
     self.fall_confirm_s = torch.where(
@@ -525,7 +521,7 @@ class RlBoyRecoveryAssist:
 
     active = self.assist_active & ~self.succeeded
     self.elapsed_s[active] += dt
-    upright = (height >= self._upright_height) & (tilt <= self._upright_angle)
+    upright = posture.is_ready
 
     desired_force = torch.where(
       active & ~upright, self.sampled_force, torch.zeros_like(self.sampled_force)
@@ -553,6 +549,7 @@ class RlBoyRecoveryAssist:
       & (self.applied_force <= 1e-3)
     )
     self.succeeded[newly_succeeded] = True
+    self.just_succeeded[newly_succeeded] = True
     self.assist_active[newly_succeeded] = False
     self.applied_force[newly_succeeded] = 0.0
 
@@ -868,6 +865,14 @@ def recovery_failure_penalty(
 ) -> torch.Tensor:
   """Return a one-shot failure cost corrected for reward-rate dt scaling."""
   return recovery_timed_out(env, event_name).float() / env.step_dt
+
+
+def recovery_success_bonus(
+  env: ManagerBasedRlEnv,
+  event_name: str,
+) -> torch.Tensor:
+  """Return a one-shot success reward corrected for reward-rate dt scaling."""
+  return _get_assist(env, event_name).just_succeeded.float() / env.step_dt
 
 
 def recovery_mask(env: ManagerBasedRlEnv, event_name: str) -> torch.Tensor:

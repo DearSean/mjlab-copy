@@ -81,6 +81,13 @@ Added
 Changed
 ^^^^^^^
 
+- Simplified flat RL_BOY fallen-recovery shaping to a bounded height/upright
+  potential difference, a small active-recovery time cost, and one-shot success
+  and failure signals. A 90-degree-or-worse roll or pitch now receives zero
+  upright score, and the ordinary low-base-height penalty is disabled while
+  recovery assistance is active. Recovery phase and walking readiness now use a
+  shared morphology-normalized posture estimator instead of RL_BOY-specific
+  height and tilt thresholds.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -116,6 +123,8 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed flat RL_BOY play mode re-enabling the training velocity curriculum and
+  overwriting its configured command range on reset.
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.

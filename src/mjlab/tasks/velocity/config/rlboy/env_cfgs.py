@@ -40,7 +40,9 @@ from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
   recovery_assist_curriculum,
   recovery_assist_reward_weight_curriculum,
   recovery_failure_penalty,
+  recovery_mask,
   recovery_succeeded,
+  recovery_success_bonus,
   recovery_timed_out,
 )
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
@@ -107,13 +109,9 @@ _PEAK_TORQUE_LIMIT_BY_ACTUATOR = {
 }
 _TORQUE_FEEDBACK_HISTORY_LENGTH = 4
 
-_RECOVERY_GATE_PARAMS = {
-  "height_low": 0.24,
-  "height_high": 0.38,
-  "tilt_low": math.radians(15.0),
-  "tilt_high": math.radians(35.0),
-}
 _DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
+_POSTURE_PHASE_CFG = mdp.PosturePhaseEstimatorCfg()
+_POSTURE_PHASE_ESTIMATOR = mdp.PosturePhaseEstimator(_POSTURE_PHASE_CFG)
 
 _KNOCKDOWN_STAGES = [
   {
@@ -334,6 +332,7 @@ def base_height_penalty_recovery(
   scale_near: float = 10.0,
   scale_far: float = 3.0,
   max_penalty: float = 4.0,
+  recovery_event_name: str | None = None,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
   """按 base height 惩罚，鼓励策略在跌倒前主动恢复。
@@ -364,90 +363,48 @@ def base_height_penalty_recovery(
 
   # 平滑饱和：raw -> 0 时 penalty -> 0；raw -> inf 时 penalty -> max_penalty
   penalty = max_penalty * raw_penalty / (raw_penalty + max_penalty)
+  if recovery_event_name is not None:
+    penalty *= ~recovery_mask(env, recovery_event_name)
   return penalty
 
 
-def base_height_recovery_reward(
+def recovery_state_potential(
   env: "ManagerBasedRlEnv",
-  fallen_height: float = 0.05,
-  target_height: float = 0.38,
-  upright_std: float = math.sqrt(0.2),
-  upright_floor: float = 0.2,
-  gate_height_low: float = 0.24,
-  gate_height_high: float = 0.38,
-  gate_tilt_low: float = math.radians(15.0),
-  gate_tilt_high: float = math.radians(35.0),
+  height_weight: float,
+  upright_weight: float,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
-  """Reward absolute recovery state for any robot that is currently fallen."""
+  """Return a bounded recovery potential from independent height and tilt scores."""
   if asset_cfg is None:
     asset_cfg = SceneEntityCfg("robot")
-  asset: "Entity" = env.scene[asset_cfg.name]
+  if height_weight < 0.0 or upright_weight < 0.0:
+    raise ValueError("Recovery potential weights cannot be negative.")
+  if not math.isclose(height_weight + upright_weight, 1.0):
+    raise ValueError("Recovery potential weights must sum to one.")
 
-  walk_gate = recovery_walk_gate(
-    env,
-    height_low=gate_height_low,
-    height_high=gate_height_high,
-    tilt_low=gate_tilt_low,
-    tilt_high=gate_tilt_high,
-    asset_cfg=asset_cfg,
-  )
-
-  base_height = asset.data.root_link_pos_w[:, 2]
-  height_score = torch.clamp(
-    (base_height - fallen_height) / (target_height - fallen_height),
-    min=0.0,
-    max=1.0,
-  )
-  projected_gravity = asset.data.projected_gravity_b
-  upright_error = torch.sum(torch.square(projected_gravity[:, :2]), dim=1)
-  upright_score = torch.exp(-upright_error / upright_std**2)
-  upright_factor = upright_floor + (1.0 - upright_floor) * upright_score
-
-  return (1.0 - walk_gate) * height_score * upright_factor
-
-
-def _smoothstep(
-  value: torch.Tensor,
-  low: float,
-  high: float,
-) -> torch.Tensor:
-  """Return a smooth transition from zero at ``low`` to one at ``high``."""
-  if high <= low:
-    raise ValueError(f"smoothstep requires high > low, got low={low}, high={high}")
-  ratio = ((value - low) / (high - low)).clamp(0.0, 1.0)
-  return ratio * ratio * (3.0 - 2.0 * ratio)
+  state = _POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg)
+  # Height remains an independently weighted signal, but only inside the
+  # upright hemisphere. This makes the complete potential exactly zero at a
+  # 90-degree-or-worse roll/pitch without introducing an angle threshold.
+  height_score = state.height * state.uprightness
+  return height_weight * height_score + upright_weight * state.uprightness
 
 
 def recovery_walk_gate(
   env: "ManagerBasedRlEnv",
-  height_low: float,
-  height_high: float,
-  tilt_low: float,
-  tilt_high: float,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
   """Measure continuous confidence that the robot is ready for walking."""
   if asset_cfg is None:
     asset_cfg = SceneEntityCfg("robot")
-  asset: "Entity" = env.scene[asset_cfg.name]
-  base_height = asset.data.root_link_pos_w[:, 2]
-  gravity_z = -asset.data.projected_gravity_b[:, 2].clamp(-1.0, 1.0)
-  tilt = torch.acos(gravity_z)
-  height_gate = _smoothstep(base_height, height_low, height_high)
-  upright_gate = 1.0 - _smoothstep(tilt, tilt_low, tilt_high)
-  return height_gate * upright_gate
+  return _POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg).walk_gate
 
 
 def _reward_gate_scale(
   env: "ManagerBasedRlEnv",
   min_scale: float,
-  height_low: float,
-  height_high: float,
-  tilt_low: float,
-  tilt_high: float,
 ) -> torch.Tensor:
-  walk_gate = recovery_walk_gate(env, height_low, height_high, tilt_low, tilt_high)
+  walk_gate = recovery_walk_gate(env)
   return min_scale + (1.0 - min_scale) * walk_gate
 
 
@@ -455,18 +412,12 @@ def gated_track_linear_velocity(
   env: "ManagerBasedRlEnv",
   std: float,
   command_name: str,
-  height_low: float,
-  height_high: float,
-  tilt_low: float,
-  tilt_high: float,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
   """Fade linear-velocity tracking in as height and orientation recover."""
   if asset_cfg is None:
     asset_cfg = SceneEntityCfg("robot")
-  gate = recovery_walk_gate(
-    env, height_low, height_high, tilt_low, tilt_high, asset_cfg
-  )
+  gate = recovery_walk_gate(env, asset_cfg)
   return gate * mdp.track_linear_velocity(env, std, command_name, asset_cfg)
 
 
@@ -474,18 +425,12 @@ def gated_track_angular_velocity(
   env: "ManagerBasedRlEnv",
   std: float,
   command_name: str,
-  height_low: float,
-  height_high: float,
-  tilt_low: float,
-  tilt_high: float,
   asset_cfg: SceneEntityCfg | None = None,
 ) -> torch.Tensor:
   """Fade angular-velocity tracking in as height and orientation recover."""
   if asset_cfg is None:
     asset_cfg = SceneEntityCfg("robot")
-  gate = recovery_walk_gate(
-    env, height_low, height_high, tilt_low, tilt_high, asset_cfg
-  )
+  gate = recovery_walk_gate(env, asset_cfg)
   return gate * mdp.track_angular_velocity(env, std, command_name, asset_cfg)
 
 
@@ -499,19 +444,11 @@ class gated_upright(mdp.upright):
     asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
     terrain_sensor_names: tuple[str, ...] | None = None,
     gate_min_scale: float = 0.5,
-    gate_height_low: float = 0.24,
-    gate_height_high: float = 0.38,
-    gate_tilt_low: float = math.radians(15.0),
-    gate_tilt_high: float = math.radians(35.0),
   ) -> torch.Tensor:
     reward = super().__call__(env, std, asset_cfg, terrain_sensor_names)
     scale = _reward_gate_scale(
       env,
       gate_min_scale,
-      gate_height_low,
-      gate_height_high,
-      gate_tilt_low,
-      gate_tilt_high,
     )
     return reward * scale
 
@@ -530,10 +467,6 @@ class gated_variable_posture(mdp.variable_posture):
     walking_threshold: float = 0.5,
     running_threshold: float = 1.5,
     gate_min_scale: float = 0.1,
-    gate_height_low: float = 0.24,
-    gate_height_high: float = 0.38,
-    gate_tilt_low: float = math.radians(15.0),
-    gate_tilt_high: float = math.radians(35.0),
   ) -> torch.Tensor:
     reward = super().__call__(
       env,
@@ -548,10 +481,6 @@ class gated_variable_posture(mdp.variable_posture):
     scale = _reward_gate_scale(
       env,
       gate_min_scale,
-      gate_height_low,
-      gate_height_high,
-      gate_tilt_low,
-      gate_tilt_high,
     )
     return reward * scale
 
@@ -560,19 +489,11 @@ def gated_body_angular_velocity_penalty(
   env: "ManagerBasedRlEnv",
   asset_cfg: SceneEntityCfg,
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   penalty = mdp.body_angular_velocity_penalty(env, asset_cfg)
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return penalty * scale
 
@@ -581,19 +502,11 @@ def gated_angular_momentum_penalty(
   env: "ManagerBasedRlEnv",
   sensor_name: str,
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   penalty = mdp.angular_momentum_penalty(env, sensor_name)
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return penalty * scale
 
@@ -601,19 +514,11 @@ def gated_angular_momentum_penalty(
 def gated_action_rate_l2(
   env: "ManagerBasedRlEnv",
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   penalty = envs_mdp.action_rate_l2(env)
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return penalty * scale
 
@@ -626,10 +531,6 @@ def gated_feet_air_time(
   command_name: str,
   command_threshold: float,
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   reward = mdp.feet_air_time(
     env,
@@ -642,10 +543,6 @@ def gated_feet_air_time(
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return reward * scale
 
@@ -658,10 +555,6 @@ def gated_feet_clearance(
   command_threshold: float,
   asset_cfg: SceneEntityCfg,
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   penalty = mdp.feet_clearance(
     env,
@@ -674,10 +567,6 @@ def gated_feet_clearance(
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return penalty * scale
 
@@ -694,10 +583,6 @@ class gated_feet_swing_height(mdp.feet_swing_height):
     command_name: str,
     command_threshold: float,
     gate_min_scale: float = 0.0,
-    gate_height_low: float = 0.24,
-    gate_height_high: float = 0.38,
-    gate_tilt_low: float = math.radians(15.0),
-    gate_tilt_high: float = math.radians(35.0),
   ) -> torch.Tensor:
     penalty = super().__call__(
       env,
@@ -710,10 +595,6 @@ class gated_feet_swing_height(mdp.feet_swing_height):
     scale = _reward_gate_scale(
       env,
       gate_min_scale,
-      gate_height_low,
-      gate_height_high,
-      gate_tilt_low,
-      gate_tilt_high,
     )
     return penalty * scale
 
@@ -725,25 +606,17 @@ def gated_feet_slip(
   command_threshold: float,
   asset_cfg: SceneEntityCfg,
   gate_min_scale: float,
-  gate_height_low: float,
-  gate_height_high: float,
-  gate_tilt_low: float,
-  gate_tilt_high: float,
 ) -> torch.Tensor:
   penalty = mdp.feet_slip(env, sensor_name, command_name, command_threshold, asset_cfg)
   scale = _reward_gate_scale(
     env,
     gate_min_scale,
-    gate_height_low,
-    gate_height_high,
-    gate_tilt_low,
-    gate_tilt_high,
   )
   return penalty * scale
 
 
-class recovery_progress_reward:
-  """Reward upward/upright progress and penalize regression during recovery."""
+class recovery_potential_progress:
+  """Reward changes in a bounded recovery potential while assistance is active."""
 
   def __init__(
     self,
@@ -754,125 +627,45 @@ class recovery_progress_reward:
   ):
     del cfg
     self.asset_cfg = asset_cfg or SceneEntityCfg("robot")
-    asset: "Entity" = env.scene[self.asset_cfg.name]
-    self.previous_height = asset.data.root_link_pos_w[:, 2].clone()
-    gravity_z = -asset.data.projected_gravity_b[:, 2].clamp(-1.0, 1.0)
-    self.previous_tilt = torch.acos(gravity_z)
-    self.initialized = torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
+    self.previous_potential = torch.zeros(env.num_envs, device=env.device)
+    self.was_active = torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
 
   def reset(self, env_ids: torch.Tensor) -> None:
-    self.initialized[env_ids] = False
+    self.was_active[env_ids] = False
 
   def __call__(
     self,
     env: "ManagerBasedRlEnv",
-    max_height_rate: float,
-    max_drop_rate: float,
-    max_tilt_rate: float,
-    max_tilt_regress_rate: float,
-    height_progress_scale: float,
-    upright_progress_scale: float,
-    height_drop_scale: float,
-    upright_regress_scale: float,
-    gate_height_low: float,
-    gate_height_high: float,
-    gate_tilt_low: float,
-    gate_tilt_high: float,
+    event_name: str,
+    height_weight: float,
+    upright_weight: float,
     asset_cfg: SceneEntityCfg | None = None,
   ) -> torch.Tensor:
-    del asset_cfg
-    asset: "Entity" = env.scene[self.asset_cfg.name]
-    height = asset.data.root_link_pos_w[:, 2]
-    gravity_z = -asset.data.projected_gravity_b[:, 2].clamp(-1.0, 1.0)
-    tilt = torch.acos(gravity_z)
-
-    height_rate = (height - self.previous_height) / env.step_dt
-    tilt_rate = (self.previous_tilt - tilt) / env.step_dt
-    height_progress = height_rate.clamp(0.0, max_height_rate)
-    height_drop = (-height_rate).clamp(0.0, max_drop_rate)
-    upright_progress = tilt_rate.clamp(0.0, max_tilt_rate)
-    upright_regress = (-tilt_rate).clamp(0.0, max_tilt_regress_rate)
-
-    progress = (
-      height_progress_scale * height_progress
-      + upright_progress_scale * upright_progress
-      - height_drop_scale * height_drop
-      - upright_regress_scale * upright_regress
-    )
-    walk_gate = recovery_walk_gate(
+    del asset_cfg  # The resolved asset config from __init__ is used.
+    potential = recovery_state_potential(
       env,
-      gate_height_low,
-      gate_height_high,
-      gate_tilt_low,
-      gate_tilt_high,
+      height_weight,
+      upright_weight,
       self.asset_cfg,
     )
-    reward = (1.0 - walk_gate) * progress * self.initialized.float()
-
-    self.previous_height.copy_(height)
-    self.previous_tilt.copy_(tilt)
-    self.initialized.fill_(True)
-    return reward
-
-
-class fallen_duration_penalty:
-  """指数惩罚倒地时长，base_height < threshold 时持续累计，200 步饱和。
-
-  与 base_height_penalty_recovery 的区别：
-  - base_height_penalty_recovery：按瞬时高度惩罚（height 越低越惩罚）
-  - fallen_duration_penalty：按**连续倒地步数**惩罚（倒得越久越惩罚）
-
-  两项配合使用：前者提供恢复梯度，后者惩罚拖延不恢复。
-  """
-
-  def __init__(
-    self,
-    cfg: RewardTermCfg,
-    env: "ManagerBasedRlEnv",
-    threshold: float = 0.38,
-    tau: float = 50.0,
-    max_penalty: float = 1.0,
-    asset_cfg: SceneEntityCfg | None = None,
-  ):
-    self.env = env
-    self.threshold = threshold
-    self.tau = tau
-    self.max_penalty = max_penalty
-    self.asset_cfg = asset_cfg or SceneEntityCfg("robot")
-    self.fallen_steps = torch.zeros(
-      env.num_envs, device=env.device, dtype=torch.float32
+    active = recovery_mask(env, event_name)
+    continuing = active & self.was_active
+    delta = torch.where(
+      continuing,
+      potential - self.previous_potential,
+      torch.zeros_like(potential),
     )
+    self.previous_potential.copy_(potential)
+    self.was_active.copy_(active)
+    return delta / env.step_dt
 
-  def reset(self, env_ids: torch.Tensor) -> None:
-    """episode 重置时清零对应 env 的倒地步数计数器。"""
-    self.fallen_steps[env_ids] = 0.0
 
-  def __call__(
-    self,
-    env: "ManagerBasedRlEnv",
-    threshold: float,
-    tau: float,
-    max_penalty: float,
-    asset_cfg: SceneEntityCfg | None = None,
-  ) -> torch.Tensor:
-    del asset_cfg  # self.asset_cfg from __init__ is used.
-    asset: "Entity" = env.scene[self.asset_cfg.name]
-    base_height = asset.data.root_link_pos_w[:, 2]
-    is_fallen = base_height < threshold
-
-    # 仅对倒地的 env 累加步数
-    self.fallen_steps = torch.where(
-      is_fallen,
-      self.fallen_steps + 1.0,
-      0.0,
-    )
-
-    # 指数增长，平滑饱和
-    # tau=50: step=50 → raw≈1.72; step=200 → raw≈54.6, penalty→max_penalty
-    raw = torch.exp(self.fallen_steps / tau) - 1.0
-    penalty = max_penalty * raw / (raw + max_penalty)
-
-    return penalty * is_fallen.float()
+def recovery_time_penalty(
+  env: "ManagerBasedRlEnv",
+  event_name: str,
+) -> torch.Tensor:
+  """Return a constant per-second cost while a recovery attempt is active."""
+  return recovery_mask(env, event_name).float()
 
 
 def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -1092,7 +885,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     ("track_angular_velocity", gated_track_angular_velocity),
   ):
     cfg.rewards[reward_name].func = reward_func
-    cfg.rewards[reward_name].params.update(_RECOVERY_GATE_PARAMS)
 
   gated_reward_cfgs = {
     "upright": (gated_upright, 0.5),
@@ -1110,7 +902,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.rewards[reward_name].params.update(
       {
         "gate_min_scale": min_scale,
-        **{f"gate_{key}": value for key, value in _RECOVERY_GATE_PARAMS.items()},
       }
     )
 
@@ -1127,17 +918,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       "scale_near": 10.0,
       "scale_far": 3.0,
       "max_penalty": 4.0,
-    },
-  )
-
-  # 倒地时长指标：保留日志项，但不惩罚拖延起身，避免鼓励过猛恢复。
-  cfg.rewards["fallen_duration"] = RewardTermCfg(
-    func=fallen_duration_penalty,
-    weight=0.0,
-    params={
-      "threshold": 0.38,
-      "tau": 50.0,  # step=50 → raw≈1.72，step=200 → penalty→max_penalty
-      "max_penalty": 1.0,
     },
   )
 
@@ -1243,10 +1023,7 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
           (0.0, 5.0),
           (0.0, 0.0),
         ),
-        "upright_height": 0.38,
-        "upright_angle": math.radians(15.0),
-        "fall_height": 0.24,
-        "fall_angle": math.radians(60.0),
+        "posture_cfg": _POSTURE_PHASE_CFG,
         "fall_confirm_s": 0.12,
         "upright_hold_s": 0.5,
         "force_ramp_up_s": 0.3,
@@ -1313,37 +1090,27 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       ),
       **cfg.events,
     }
-    cfg.rewards["base_height_recovery_success"] = RewardTermCfg(
-      func=base_height_recovery_reward,
-      weight=1.0,
+    cfg.rewards["base_height_recovery"].params["recovery_event_name"] = (
+      RECOVERY_ASSIST_EVENT_NAME
+    )
+    cfg.rewards["recovery_potential_progress"] = RewardTermCfg(
+      func=recovery_potential_progress,
+      weight=2.0,
       params={
-        "fallen_height": 0.05,
-        "target_height": 0.38,
-        "upright_std": math.sqrt(0.2),
-        "upright_floor": 0.2,
-        "gate_height_low": _RECOVERY_GATE_PARAMS["height_low"],
-        "gate_height_high": _RECOVERY_GATE_PARAMS["height_high"],
-        "gate_tilt_low": _RECOVERY_GATE_PARAMS["tilt_low"],
-        "gate_tilt_high": _RECOVERY_GATE_PARAMS["tilt_high"],
+        "event_name": RECOVERY_ASSIST_EVENT_NAME,
+        "height_weight": 0.6,
+        "upright_weight": 0.4,
       },
     )
-    cfg.rewards["recovery_progress"] = RewardTermCfg(
-      func=recovery_progress_reward,
+    cfg.rewards["recovery_time"] = RewardTermCfg(
+      func=recovery_time_penalty,
+      weight=-0.05,
+      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+    )
+    cfg.rewards["recovery_success"] = RewardTermCfg(
+      func=recovery_success_bonus,
       weight=1.0,
-      params={
-        "max_height_rate": 1.0,
-        "max_drop_rate": 1.0,
-        "max_tilt_rate": 4.0,
-        "max_tilt_regress_rate": 4.0,
-        "height_progress_scale": 1.0,
-        "upright_progress_scale": 0.25,
-        "height_drop_scale": 0.5,
-        "upright_regress_scale": 0.1,
-        "gate_height_low": _RECOVERY_GATE_PARAMS["height_low"],
-        "gate_height_high": _RECOVERY_GATE_PARAMS["height_high"],
-        "gate_tilt_low": _RECOVERY_GATE_PARAMS["tilt_low"],
-        "gate_tilt_high": _RECOVERY_GATE_PARAMS["tilt_high"],
-      },
+      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
     )
     cfg.rewards["recovery_failure"] = RewardTermCfg(
       func=recovery_failure_penalty,
@@ -1410,51 +1177,50 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       },
     )
 
-  # 定制速度指令课程学习
-  # 从小范围开始，逐步提升线速度与角速度指令范围
-
-  cfg.curriculum["command_vel"] = CurriculumTermCfg(
-    func=mdp.commands_vel,
-    log=False,
-    params={
-      "command_name": "twist",
-      "payload_event_name": None,
-      "velocity_stages": [
-        # 阶段 0: 起步 —— 小范围、低速
-        {
-          "step": 0,
-          "lin_vel_x": (-0.6, 0.8),
-          "lin_vel_y": (-0.3, 0.3),
-          "ang_vel_z": (-0.4, 0.4),
-          "payload_range": (0.0, 0.25),
-        },
-        # 阶段 1: 提升 x 方向速度上限
-        {
-          "step": 800 * 24,
-          "lin_vel_x": (-1.0, 1.2),
-          "lin_vel_y": (-0.5, 0.5),
-          "ang_vel_z": (-0.6, 0.6),
-          "payload_range": (0.0, 0.5),
-        },
-        # 阶段 2: 进一步提速并扩大侧向与偏航
-        {
-          "step": 1600 * 24,
-          "lin_vel_x": (-1.5, 1.8),
-          "lin_vel_y": (-0.7, 0.7),
-          "ang_vel_z": (-0.8, 0.8),
-          "payload_range": (0.0, 1.0),
-        },
-        # 阶段 3: 接近最终能力上限
-        {
-          "step": 3200 * 24,
-          "lin_vel_x": (-2.0, 2.5),
-          "lin_vel_y": (-1.0, 1.0),
-          "ang_vel_z": (-1.0, 1.0),
-          "payload_range": (0.0, 2.0),
-        },
-      ],
-    },
-  )
+  if not play:
+    # 定制速度指令课程学习。Play 模式保留下方手工设置的指令范围。
+    cfg.curriculum["command_vel"] = CurriculumTermCfg(
+      func=mdp.commands_vel,
+      log=False,
+      params={
+        "command_name": "twist",
+        "payload_event_name": None,
+        "velocity_stages": [
+          # 阶段 0: 起步 —— 小范围、低速
+          {
+            "step": 0,
+            "lin_vel_x": (-0.6, 0.8),
+            "lin_vel_y": (-0.3, 0.3),
+            "ang_vel_z": (-0.4, 0.4),
+            "payload_range": (0.0, 0.25),
+          },
+          # 阶段 1: 提升 x 方向速度上限
+          {
+            "step": 800 * 24,
+            "lin_vel_x": (-1.0, 1.2),
+            "lin_vel_y": (-0.5, 0.5),
+            "ang_vel_z": (-0.6, 0.6),
+            "payload_range": (0.0, 0.5),
+          },
+          # 阶段 2: 进一步提速并扩大侧向与偏航
+          {
+            "step": 1600 * 24,
+            "lin_vel_x": (-1.5, 1.8),
+            "lin_vel_y": (-0.7, 0.7),
+            "ang_vel_z": (-0.8, 0.8),
+            "payload_range": (0.0, 1.0),
+          },
+          # 阶段 3: 接近最终能力上限
+          {
+            "step": 3200 * 24,
+            "lin_vel_x": (-2.0, 2.5),
+            "lin_vel_y": (-1.0, 1.0),
+            "ang_vel_z": (-1.0, 1.0),
+            "payload_range": (0.0, 2.0),
+          },
+        ],
+      },
+    )
 
   # Falling is never terminal in the flat task. Dedicated recovery episodes still
   # use their own success and timeout conditions during training.

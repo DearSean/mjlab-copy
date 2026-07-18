@@ -1,5 +1,6 @@
 """Tests for the RL_BOY fallen-recovery assistance curriculum."""
 
+import inspect
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -8,12 +9,13 @@ import torch
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.tasks.velocity.config.rlboy.env_cfgs import (
-  _smoothstep,
   gated_track_angular_velocity,
   gated_track_linear_velocity,
   gated_upright,
   gated_variable_posture,
-  recovery_progress_reward,
+  recovery_potential_progress,
+  recovery_state_potential,
+  recovery_time_penalty,
   rlboy_flat_env_cfg,
 )
 from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
@@ -22,8 +24,11 @@ from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
   actuator_torque_limit_excess_penalty,
   recovery_assist_curriculum,
   recovery_assist_reward_weight_curriculum,
+  recovery_success_bonus,
 )
 from mjlab.tasks.velocity.config.rlboy.rl_cfg import rlboy_ppo_runner_cfg
+from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.mdp.posture_phase import PosturePhaseEstimatorCfg
 
 
 def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
@@ -33,6 +38,8 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assist_cfg = train_cfg.events[RECOVERY_ASSIST_EVENT_NAME]
   assert assist_cfg.func is RlBoyRecoveryAssist
   assert assist_cfg.mode == "step"
+  call_params = inspect.signature(RlBoyRecoveryAssist.__call__).parameters
+  assert set(assist_cfg.params) <= set(call_params)
   assert assist_cfg.params["asset_cfg"].body_names == ("waist_yaw_link",)
   assert assist_cfg.params["force_ranges"] == (
     (50.0, 50.0),
@@ -45,7 +52,7 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
     (0.0, 5.0),
     (0.0, 0.0),
   )
-  assert assist_cfg.params["upright_height"] == 0.38
+  assert assist_cfg.params["posture_cfg"] == PosturePhaseEstimatorCfg()
   assert assist_cfg.params["frame_files"] == (
     "getup*.csv",
     "fall*.csv",
@@ -64,9 +71,13 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assert assist_cfg.params["recovery_probability_min_attempts"] == 50
   assert assist_cfg.params["frame_dir"].endswith("motions72/motions/getup_frame_data")
   assert len(assist_cfg.params["csv_joint_names"]) == 20
-  assert assist_cfg.params["upright_angle"] == torch.deg2rad(torch.tensor(15.0))
-  assert assist_cfg.params["fall_height"] == 0.24
-  assert assist_cfg.params["fall_angle"] == torch.deg2rad(torch.tensor(60.0))
+  for removed_param in (
+    "upright_height",
+    "upright_angle",
+    "fall_height",
+    "fall_angle",
+  ):
+    assert removed_param not in assist_cfg.params
   assert assist_cfg.params["fall_confirm_s"] == 0.12
   assert assist_cfg.params["upright_hold_s"] == 0.5
   assert assist_cfg.params["force_ramp_up_s"] == 0.3
@@ -118,7 +129,18 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
     train_cfg.rewards["track_angular_velocity"].func is gated_track_angular_velocity
   )
   assert train_cfg.rewards["action_rate_l2"].weight == -0.03
-  assert train_cfg.rewards["recovery_progress"].func is recovery_progress_reward
+  potential_cfg = train_cfg.rewards["recovery_potential_progress"]
+  assert potential_cfg.func is recovery_potential_progress
+  assert potential_cfg.weight == 2.0
+  assert potential_cfg.params == {
+    "event_name": RECOVERY_ASSIST_EVENT_NAME,
+    "height_weight": 0.6,
+    "upright_weight": 0.4,
+  }
+  assert train_cfg.rewards["recovery_time"].func is recovery_time_penalty
+  assert train_cfg.rewards["recovery_time"].weight == -0.05
+  assert train_cfg.rewards["recovery_success"].func is recovery_success_bonus
+  assert train_cfg.rewards["recovery_success"].weight == 1.0
   assert train_cfg.rewards["upright"].func is gated_upright
   assert train_cfg.rewards["upright"].params["gate_min_scale"] == 0.5
   assert train_cfg.rewards["pose"].func is gated_variable_posture
@@ -126,14 +148,15 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assert train_cfg.rewards["action_rate_l2"].params["gate_min_scale"] == 0.3
   assert train_cfg.rewards["air_time"].params["gate_min_scale"] == 0.0
   assert train_cfg.rewards["foot_slip"].params["gate_min_scale"] == 0.1
-  assert (
-    train_cfg.rewards["base_height_recovery_success"].params["gate_height_low"] == 0.24
+  assert train_cfg.rewards["base_height_recovery"].params["recovery_event_name"] == (
+    RECOVERY_ASSIST_EVENT_NAME
   )
-  assert (
-    "recovery_event_name"
-    not in train_cfg.rewards["base_height_recovery_success"].params
-  )
-  assert "recovery_event_name" not in train_cfg.rewards["recovery_progress"].params
+  for removed_reward in (
+    "base_height_recovery_success",
+    "recovery_progress",
+    "fallen_duration",
+  ):
+    assert removed_reward not in train_cfg.rewards
   assert train_cfg.rewards["recovery_failure"].weight == -2.0
   assert train_cfg.rewards["recovery_failure"].params == {
     "event_name": RECOVERY_ASSIST_EVENT_NAME
@@ -155,17 +178,121 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assert "base_payload" in train_cfg.events
   assert RECOVERY_ASSIST_EVENT_NAME not in play_cfg.events
   assert "recovery_assist" not in play_cfg.curriculum
+  assert "command_vel" not in play_cfg.curriculum
+  play_twist = play_cfg.commands["twist"]
+  assert isinstance(play_twist, UniformVelocityCommandCfg)
+  assert play_twist.ranges.lin_vel_x == (-1.0, 1.5)
+  assert play_twist.ranges.ang_vel_z == (-0.5, 0.5)
   assert "fell_over" not in play_cfg.terminations
   assert set(play_cfg.terminations) == {"time_out"}
 
 
-def test_recovery_gate_smoothstep_is_bounded_and_smooth() -> None:
-  values = torch.tensor((0.1, 0.24, 0.31, 0.38, 0.5))
-  result = _smoothstep(values, 0.24, 0.38)
+def _make_recovery_reward_env(
+  heights: torch.Tensor,
+  projected_gravity: torch.Tensor,
+  active: torch.Tensor,
+) -> tuple[Any, RlBoyRecoveryAssist]:
+  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist.assist_active = active
+  assist.just_succeeded = torch.zeros_like(active)
+  asset = SimpleNamespace(
+    data=SimpleNamespace(
+      root_link_pos_w=torch.stack(
+        (torch.zeros_like(heights), torch.zeros_like(heights), heights), dim=1
+      ),
+      projected_gravity_b=projected_gravity,
+      default_root_state=torch.tensor(((0.0, 0.0, 0.41, 1.0, 0.0, 0.0, 0.0),)).repeat(
+        len(heights), 1
+      ),
+    )
+  )
+  env = SimpleNamespace(
+    num_envs=len(heights),
+    device="cpu",
+    step_dt=0.02,
+    scene={"robot": asset},
+    event_manager=SimpleNamespace(
+      get_term_cfg=lambda _name: SimpleNamespace(func=assist)
+    ),
+  )
+  return cast(Any, env), assist
 
-  assert torch.equal(result[[0, 1]], torch.zeros(2))
-  assert torch.equal(result[[-2, -1]], torch.ones(2))
-  assert torch.isclose(result[2], torch.tensor(0.5))
+
+def test_recovery_upright_score_is_zero_at_roll_or_pitch_90_degrees() -> None:
+  env, _ = _make_recovery_reward_env(
+    heights=torch.full((4,), 0.10),
+    projected_gravity=torch.tensor(
+      (
+        (0.0, 0.0, -1.0),  # Upright.
+        (0.0, -1.0, 0.0),  # 90-degree roll.
+        (1.0, 0.0, 0.0),  # 90-degree pitch.
+        (0.0, 0.0, 1.0),  # Upside down.
+      )
+    ),
+    active=torch.ones(4, dtype=torch.bool),
+  )
+
+  upright_score = recovery_state_potential(
+    env,
+    height_weight=0.6,
+    upright_weight=0.4,
+  )
+
+  expected_upright = 0.6 * (0.10 / 0.41) + 0.4
+  torch.testing.assert_close(
+    upright_score, torch.tensor((expected_upright, 0.0, 0.0, 0.0))
+  )
+
+
+def test_recovery_potential_progress_has_no_activation_spike() -> None:
+  env, assist = _make_recovery_reward_env(
+    heights=torch.tensor((0.10,)),
+    projected_gravity=torch.tensor(((0.0, -1.0, 0.0),)),
+    active=torch.ones(1, dtype=torch.bool),
+  )
+  params = {
+    "event_name": RECOVERY_ASSIST_EVENT_NAME,
+    "height_weight": 0.6,
+    "upright_weight": 0.4,
+  }
+  cfg = RewardTermCfg(func=recovery_potential_progress, weight=2.0, params=params)
+  progress = recovery_potential_progress(cfg, env)
+
+  assert progress(env, **params) == 0.0
+
+  env.scene["robot"].data.root_link_pos_w[:, 2] = 0.24
+  env.scene["robot"].data.projected_gravity_b[:, 2] = -0.5
+  improvement = progress(env, **params)
+  assert improvement > 0.0
+
+  env.scene["robot"].data.root_link_pos_w[:, 2] = 0.10
+  env.scene["robot"].data.projected_gravity_b[:, 2] = 0.0
+  regression = progress(env, **params)
+  torch.testing.assert_close(regression, -improvement)
+
+  assist.assist_active[:] = False
+  assert progress(env, **params) == 0.0
+  assist.assist_active[:] = True
+  env.scene["robot"].data.root_link_pos_w[:, 2] = 0.38
+  assert progress(env, **params) == 0.0
+
+
+def test_recovery_time_and_success_terms_use_assist_state() -> None:
+  env, assist = _make_recovery_reward_env(
+    heights=torch.full((2,), 0.10),
+    projected_gravity=torch.tensor(((0.0, -1.0, 0.0), (1.0, 0.0, 0.0))),
+    active=torch.tensor((True, False)),
+  )
+  assist.just_succeeded[:] = torch.tensor((False, True))
+
+  torch.testing.assert_close(
+    recovery_time_penalty(env, RECOVERY_ASSIST_EVENT_NAME),
+    torch.tensor((1.0, 0.0)),
+  )
+  torch.testing.assert_close(
+    recovery_success_bonus(env, RECOVERY_ASSIST_EVENT_NAME),
+    torch.tensor((0.0, 50.0)),
+  )
 
 
 def test_recovery_pose_stages_advance_before_assistance_level() -> None:
@@ -399,7 +526,7 @@ def test_recovery_angle_noise_is_disabled_then_smoothly_enabled() -> None:
 
 def test_recovery_csv_quaternion_is_reordered_and_normalized() -> None:
   assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
-  assist._env = type("Env", (), {"device": "cpu"})()
+  assist._env = cast(Any, SimpleNamespace(device="cpu"))
   assist.sample_source = torch.tensor((0,))
   assist._csv_frames = (
     torch.tensor([[0.0, 0.0, 0.2, 1.0, 2.0, 3.0, 4.0, *([0.0] * 20)]]),
