@@ -1245,3 +1245,25 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
 
   return cfg
+
+
+def rlboy_flat_gru_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create the flat RL Boy environment for an actor-GRU policy.
+
+  The recurrent actor receives only signals that are intended to be available
+  on the robot. The MLP critic keeps the complete privileged observation set.
+  Both groups use current-frame observations; temporal state is represented by
+  the actor GRU instead of explicit observation stacking.
+  """
+  cfg = rlboy_flat_env_cfg(play=play)
+
+  for group_cfg in cfg.observations.values():
+    group_cfg.history_length = None
+    for term_cfg in group_cfg.terms.values():
+      term_cfg.history_length = 0
+
+  actor_terms = cfg.observations["actor"].terms
+  del actor_terms["base_lin_vel"]
+  del actor_terms["applied_torque_peak_ratio"]
+
+  return cfg

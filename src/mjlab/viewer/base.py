@@ -115,6 +115,8 @@ class EnvProtocol(Protocol):
 class PolicyProtocol(Protocol):
   def __call__(self, obs: torch.Tensor) -> torch.Tensor: ...
 
+  def reset(self, dones: torch.Tensor | None = None) -> None: ...
+
 
 @dataclass(frozen=True)
 class ViewerStatus:
@@ -288,7 +290,11 @@ class BaseViewer(ABC):
       with torch.no_grad():
         obs = self.env.get_observations()
         actions = self.policy(obs)
-        self.env.step(actions)
+        step_result = self.env.step(actions)
+        dones = step_result[2]
+        reset_fn = getattr(self.policy, "reset", None)
+        if reset_fn is not None:
+          reset_fn(dones)
         self._step_count += 1
         self._stats_steps += 1
         return True
@@ -338,13 +344,28 @@ class BaseViewer(ABC):
 
   def reset_environment(self) -> None:
     self.env.reset()
-    reset_fn = getattr(self.policy, "reset", None)
-    if reset_fn is not None:
-      reset_fn()
+    self._reset_policy()
     self._step_count = 0
     self._sim_budget = 0.0
     self._last_error = None
     self._last_tick_time = time.perf_counter()
+
+  def _reset_policy(self, env_ids: torch.Tensor | None = None) -> None:
+    """Reset all or selected recurrent-policy hidden states."""
+    reset_fn = getattr(self.policy, "reset", None)
+    if reset_fn is None:
+      return
+    if env_ids is None:
+      reset_fn()
+      return
+
+    dones = torch.zeros(
+      self.env.num_envs,
+      dtype=torch.long,
+      device=self.env.device,
+    )
+    dones[env_ids] = 1
+    reset_fn(dones)
 
   def _process_actions(self) -> None:
     """Drain action queue. Runs on the main loop thread."""

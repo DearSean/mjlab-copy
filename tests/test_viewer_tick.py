@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
+import torch
+
 from mjlab.viewer.base import BaseViewer
 
 
@@ -197,6 +199,30 @@ def test_reset_without_policy_reset():
   v.policy = lambda obs: obs  # plain callable, no reset attribute
 
   v.reset_environment()  # should not raise
+
+
+def test_execute_step_resets_done_recurrent_states():
+  v = FakeViewer(step_dt=0.01)
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
+  v.env.get_observations.return_value = torch.zeros(2, 3)
+  v.policy = MagicMock(return_value=torch.zeros(2, 1))
+  dones = torch.tensor([0, 1])
+  v.env.step.return_value = (MagicMock(), MagicMock(), dones, {})
+
+  assert v._execute_step()
+  v.policy.reset.assert_called_once_with(dones)
+
+
+def test_reset_policy_can_target_selected_environments():
+  v = FakeViewer(step_dt=0.01)
+  v.env.num_envs = 3
+  v.env.device = "cpu"
+  v.policy = MagicMock()
+
+  v._reset_policy(torch.tensor([0, 2]))
+
+  reset_dones = v.policy.reset.call_args.args[0]
+  assert torch.equal(reset_dones, torch.tensor([1, 0, 1]))
 
 
 # Formatting and status.

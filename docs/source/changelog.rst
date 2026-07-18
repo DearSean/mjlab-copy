@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``Mjlab-Velocity-Flat-RL_BOY-GRU`` with a GRU actor and MLP critic.
+  The actor uses current-frame deployable observations without privileged base
+  linear velocity or the redundant applied peak-torque ratio, while the critic
+  retains the complete current-frame privileged observation set. Viewer episode
+  and partial resets now also clear the corresponding recurrent hidden states.
 - Added a fallen-recovery assistance curriculum to
   ``Mjlab-Velocity-Flat-RL_BOY``. Dedicated recovery environments receive a
   staged upward force at the waist, sampled once per episode from the active
