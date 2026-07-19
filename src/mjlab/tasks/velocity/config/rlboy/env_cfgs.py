@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from mjlab.actuator import IdealPdActuator
 from mjlab.asset_zoo.robots import (
   RL_BOY_ACTION_SCALE,
   get_rlboy_robot_cfg,
@@ -238,25 +239,41 @@ class max_abs_applied_actuator_torque_ratio(_ActuatorLimitTerm):
 
 
 class requested_actuator_torque_ratio(_ActuatorLimitTerm):
-  """Unclipped position-actuator torque request normalized by actuator limit."""
+  """Unclipped explicit-actuator effort request normalized by actuator limit."""
 
   def __init__(self, cfg, env: "ManagerBasedRlEnv"):
     super().__init__(cfg, env)
-    actuator_names = _selected_names(
-      self._asset.actuator_names, self._asset_cfg.actuator_ids
-    )
-    joint_id_by_name = {name: i for i, name in enumerate(self._asset.joint_names)}
-    try:
-      joint_ids = [joint_id_by_name[name] for name in actuator_names]
-    except KeyError as exc:
+    all_ctrl_ids = list(range(self._asset.num_actuators))
+    if isinstance(self._asset_cfg.actuator_ids, slice):
+      selected_ctrl_ids = all_ctrl_ids[self._asset_cfg.actuator_ids]
+    else:
+      selected_ctrl_ids = self._asset_cfg.actuator_ids
+    selected_ctrl_id_set = set(selected_ctrl_ids)
+    covered_ctrl_ids: set[int] = set()
+    self._explicit_actuators: list[IdealPdActuator] = []
+    for actuator in self._asset.actuators:
+      actuator_ctrl_ids = set(actuator.ctrl_ids.tolist())
+      selected_for_actuator = selected_ctrl_id_set & actuator_ctrl_ids
+      if not selected_for_actuator:
+        continue
+      if not isinstance(actuator, IdealPdActuator):
+        names = [
+          self._asset.actuator_names[index] for index in sorted(selected_for_actuator)
+        ]
+        raise ValueError(
+          "requested_actuator_torque_ratio requires explicit PD/DC actuators; "
+          f"unsupported actuator(s): {names}"
+        )
+      self._explicit_actuators.append(actuator)
+      covered_ctrl_ids.update(selected_for_actuator)
+    if covered_ctrl_ids != selected_ctrl_id_set:
+      missing = [
+        self._asset.actuator_names[index]
+        for index in sorted(selected_ctrl_id_set - covered_ctrl_ids)
+      ]
       raise ValueError(
-        "requested_actuator_torque_ratio only supports joint position actuators "
-        "whose actuator names match their joint names."
-      ) from exc
-    self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
-    self._global_ctrl_ids = self._asset.indexing.ctrl_ids[
-      self._asset_cfg.actuator_ids
-    ].long()
+        f"Missing explicit actuator effort feedback for actuator(s): {missing}"
+      )
 
   def __call__(
     self,
@@ -264,16 +281,12 @@ class requested_actuator_torque_ratio(_ActuatorLimitTerm):
     asset_cfg: SceneEntityCfg,
     limit_by_actuator: dict[str, float],
   ) -> torch.Tensor:
-    del asset_cfg, limit_by_actuator
-    target = self._asset.data.joint_pos_target[:, self._joint_ids]
-    pos = self._asset.data.joint_pos[:, self._joint_ids]
-    vel = self._asset.data.joint_vel[:, self._joint_ids]
-
-    gain = env.sim.model.actuator_gainprm[:, self._global_ctrl_ids, 0]
-    bias = env.sim.model.actuator_biasprm[:, self._global_ctrl_ids, :]
-    requested = gain * target + bias[:, :, 0] + bias[:, :, 1] * pos
-    requested += bias[:, :, 2] * vel
-    return requested / self._limits
+    del env, asset_cfg, limit_by_actuator
+    requested = torch.zeros_like(self._asset.data.actuator_force)
+    for actuator in self._explicit_actuators:
+      assert actuator.computed_effort is not None
+      requested[:, actuator.ctrl_ids] = actuator.computed_effort
+    return requested[:, self._asset_cfg.actuator_ids] / self._limits
 
 
 def _set_feedback_observation_history(cfg: ManagerBasedRlEnvCfg) -> None:
@@ -1127,14 +1140,14 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         "log_prefix": "continuous_torque_excess",
       },
     )
-    cfg.rewards["peak_torque_saturation"] = RewardTermCfg(
+    cfg.rewards["peak_torque_usage"] = RewardTermCfg(
       func=actuator_torque_limit_excess_penalty,
       weight=0.0,
       params={
         "asset_cfg": SceneEntityCfg("robot"),
         "limit_by_actuator": _PEAK_TORQUE_LIMIT_BY_ACTUATOR,
         "threshold_ratio": 0.85,
-        "log_prefix": "peak_torque_saturation",
+        "log_prefix": "peak_torque_usage",
       },
     )
     cfg.terminations["recovery_succeeded"] = TerminationTermCfg(
@@ -1161,11 +1174,11 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         "assist_level": 6,
         "assist_weights": {
           "continuous_torque_excess": -0.02,
-          "peak_torque_saturation": -0.01,
+          "peak_torque_usage": -0.01,
         },
         "complete_weights": {
           "continuous_torque_excess": -0.05,
-          "peak_torque_saturation": -0.02,
+          "peak_torque_usage": -0.02,
         },
       },
     )

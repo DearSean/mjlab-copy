@@ -203,6 +203,8 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
     # Reshape and scale output torques.
     computed_torques = torques_flat.reshape(num_envs, num_joints)
     computed_torques = computed_torques * self.cfg.torque_scale
+    assert self.computed_effort is not None
+    self.computed_effort.copy_(computed_torques)
 
     # Clip using DC motor limits from parent class.
     return self._clip_effort(computed_torques)

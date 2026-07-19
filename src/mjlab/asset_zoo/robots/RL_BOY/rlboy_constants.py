@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.actuator import DcMotorActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import (
   ElectricActuator,
@@ -93,7 +93,9 @@ ACTUATOR_J8006 = ElectricActuator(
 )
 
 NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz 固有角频率,腿软时增大
-DAMPING_RATIO = 1.8
+DAMPING_RATIO_J3507 = 2.0
+DAMPING_RATIO_J6006 = 2.0
+DAMPING_RATIO_J8006 = 1.2
 
 # 刚度计算: K = J_ref * ω_n²
 STIFFNESS_J3507 = ARMATURE_J3507 * (NATURAL_FREQ**2)
@@ -101,11 +103,11 @@ STIFFNESS_J6006 = ARMATURE_J6006 * (NATURAL_FREQ**2)
 STIFFNESS_J8006 = ARMATURE_J8006 * (NATURAL_FREQ**2)
 
 # 阻尼计算: D = 2*ζ*J_ref*ω_n
-DAMPING_J3507 = 2.0 * DAMPING_RATIO * ARMATURE_J3507 * NATURAL_FREQ
-DAMPING_J6006 = 2.0 * DAMPING_RATIO * ARMATURE_J6006 * NATURAL_FREQ
-DAMPING_J8006 = 2.0 * DAMPING_RATIO * ARMATURE_J8006 * NATURAL_FREQ
+DAMPING_J3507 = 2.0 * DAMPING_RATIO_J3507 * ARMATURE_J3507 * NATURAL_FREQ
+DAMPING_J6006 = 2.0 * DAMPING_RATIO_J6006 * ARMATURE_J6006 * NATURAL_FREQ
+DAMPING_J8006 = 2.0 * DAMPING_RATIO_J8006 * ARMATURE_J8006 * NATURAL_FREQ
 
-RL_BOY_ACTUATOR_ARM = BuiltinPositionActuatorCfg(
+RL_BOY_ACTUATOR_ARM = DcMotorActuatorCfg(
   target_names_expr=(
     ".*_shoulder_pitch_joint",
     ".*_shoulder_roll_joint",
@@ -115,9 +117,11 @@ RL_BOY_ACTUATOR_ARM = BuiltinPositionActuatorCfg(
   stiffness=STIFFNESS_J3507,
   damping=DAMPING_J3507,
   effort_limit=ACTUATOR_J3507.effort_limit,
+  saturation_effort=ACTUATOR_J3507.effort_limit,
+  velocity_limit=ACTUATOR_J3507.velocity_limit,
   armature=ACTUATOR_J3507.reflected_inertia,
 )
-RL_BOY_ACTUATOR_LEG = BuiltinPositionActuatorCfg(
+RL_BOY_ACTUATOR_LEG = DcMotorActuatorCfg(
   target_names_expr=(
     ".*_hip_yaw_joint",
     ".*_hip_roll_joint",
@@ -127,11 +131,13 @@ RL_BOY_ACTUATOR_LEG = BuiltinPositionActuatorCfg(
   stiffness=STIFFNESS_J8006,
   damping=DAMPING_J8006,
   effort_limit=ACTUATOR_J8006.effort_limit,
+  saturation_effort=ACTUATOR_J8006.effort_limit,
+  velocity_limit=ACTUATOR_J8006.velocity_limit,
   armature=ACTUATOR_J8006.reflected_inertia,
 )
 
 # 腰部和脚部执行器配置
-RL_BOY_ACTUATOR_WAIST_FOOT = BuiltinPositionActuatorCfg(
+RL_BOY_ACTUATOR_WAIST_FOOT = DcMotorActuatorCfg(
   target_names_expr=(
     "waist_yaw_joint",
     "head_yaw_joint",
@@ -140,6 +146,8 @@ RL_BOY_ACTUATOR_WAIST_FOOT = BuiltinPositionActuatorCfg(
   stiffness=STIFFNESS_J6006,
   damping=DAMPING_J6006,
   effort_limit=ACTUATOR_J6006.effort_limit,
+  saturation_effort=ACTUATOR_J6006.effort_limit,
+  velocity_limit=ACTUATOR_J6006.velocity_limit,
   armature=ACTUATOR_J6006.reflected_inertia,
 )
 
@@ -221,17 +229,21 @@ def get_rlboy_robot_cfg() -> EntityCfg:
   )
 
 
-# 动作缩放表
-# 计算方式: scale = 0.25 * effort_limit / stiffness
+# 动作缩放表。每个关节组使用独立权重：腿部 0.7，手臂和腰/脚踝 0.5。
+_ACTION_SCALE_GROUPS = (
+  (RL_BOY_ACTUATOR_ARM, 0.5),
+  (RL_BOY_ACTUATOR_LEG, 0.7),
+  (RL_BOY_ACTUATOR_WAIST_FOOT, 0.5),
+)
 RL_BOY_ACTION_SCALE: dict[str, float] = {}
-for a in RL_BOY_ARTICULATION.actuators:
-  assert isinstance(a, BuiltinPositionActuatorCfg)
+for a, weight in _ACTION_SCALE_GROUPS:
+  assert isinstance(a, DcMotorActuatorCfg)
   e = a.effort_limit
   s = a.stiffness
   names = a.target_names_expr
   assert e is not None
   for n in names:
-    RL_BOY_ACTION_SCALE[n] = 0.25 * e / s
+    RL_BOY_ACTION_SCALE[n] = weight * e / s
 
 # Lock the head: the policy still outputs an action dimension for it, but the
 # target position is always the default position, so the head stays still.

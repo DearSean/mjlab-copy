@@ -3,6 +3,7 @@
 import onnx
 import torch
 
+from mjlab.actuator import IdealPdActuator
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
@@ -34,25 +35,28 @@ def get_base_metadata(
   robot: Entity = env.scene["robot"]
   joint_action = env.action_manager.get_term("joint_pos")
   assert isinstance(joint_action, JointPositionAction)
-  # Build mapping from joint name to actuator ID for natural joint order.
-  # Each spec actuator controls exactly one joint (via its target field).
-  joint_name_to_ctrl_id = {}
-  for actuator in robot.spec.actuators:
-    joint_name = actuator.target.split("/")[-1]
-    joint_name_to_ctrl_id[joint_name] = actuator.id
-  # Get actuator IDs in natural joint order (same order as robot.joint_names).
-  ctrl_ids_natural = [
-    joint_name_to_ctrl_id[jname]
-    for jname in robot.joint_names  # global joint order
-    if jname in joint_name_to_ctrl_id  # skip non-actuated joints
-  ]
-  joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids_natural, 0]
-  joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids_natural, 2]
+  joint_gains: dict[str, tuple[float, float]] = {}
+  for actuator in robot.actuators:
+    if isinstance(actuator, IdealPdActuator):
+      assert actuator.default_stiffness is not None
+      assert actuator.default_damping is not None
+      stiffness = actuator.default_stiffness[0].cpu().tolist()
+      damping = actuator.default_damping[0].cpu().tolist()
+    else:
+      global_ctrl_ids = actuator.global_ctrl_ids.cpu().tolist()
+      stiffness = env.sim.mj_model.actuator_gainprm[global_ctrl_ids, 0].tolist()
+      damping = (-env.sim.mj_model.actuator_biasprm[global_ctrl_ids, 2]).tolist()
+    for name, kp, kd in zip(actuator.target_names, stiffness, damping, strict=True):
+      joint_gains[name] = (kp, kd)
+
+  actuated_joint_names = [name for name in robot.joint_names if name in joint_gains]
+  joint_stiffness = [joint_gains[name][0] for name in actuated_joint_names]
+  joint_damping = [joint_gains[name][1] for name in actuated_joint_names]
   return {
     "run_path": run_path,
     "joint_names": list(robot.joint_names),
-    "joint_stiffness": joint_stiffness.tolist(),
-    "joint_damping": joint_damping.tolist(),
+    "joint_stiffness": joint_stiffness,
+    "joint_damping": joint_damping,
     "default_joint_pos": robot.data.default_joint_pos[0].cpu().tolist(),
     "command_names": list(env.command_manager.active_terms),
     "observation_names": env.observation_manager.active_terms["actor"],

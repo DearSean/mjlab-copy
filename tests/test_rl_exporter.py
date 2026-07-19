@@ -8,7 +8,7 @@ import onnx
 import pytest
 from conftest import get_test_device
 
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.actuator import DcMotorActuatorCfg, XmlActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -179,5 +179,57 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert isinstance(damping_meta, list)
   assert len(stiffness_meta) == len(robot.spec.actuators)
   assert len(damping_meta) == len(robot.spec.actuators)
+
+  env.close()
+
+
+def test_get_base_metadata_uses_explicit_dc_gains(device):
+  """DC actuator metadata contains its explicit PD gains, not motor passthrough gains."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        DcMotorActuatorCfg(
+          target_names_expr=("joint2",),
+          stiffness=42.0,
+          damping=3.0,
+          effort_limit=10.0,
+          saturation_effort=10.0,
+          velocity_limit=20.0,
+        ),
+      )
+    ),
+  )
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos
+          ),
+        },
+      ),
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale=1.0
+      )
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["joint_stiffness"] == [42.0]
+  assert metadata["joint_damping"] == [3.0]
 
   env.close()

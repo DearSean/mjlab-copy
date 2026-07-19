@@ -53,6 +53,7 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     self.stiffness: torch.Tensor | None = None
     self.damping: torch.Tensor | None = None
     self.force_limit: torch.Tensor | None = None
+    self.computed_effort: torch.Tensor | None = None
     self.default_stiffness: torch.Tensor | None = None
     self.default_damping: torch.Tensor | None = None
     self.default_force_limit: torch.Tensor | None = None
@@ -91,6 +92,9 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     self.force_limit = torch.full(
       (num_envs, num_joints), self.cfg.effort_limit, dtype=torch.float, device=device
     )
+    self.computed_effort = torch.zeros(
+      (num_envs, num_joints), dtype=torch.float, device=device
+    )
 
     self.default_stiffness = self.stiffness.clone()
     self.default_damping = self.damping.clone()
@@ -106,8 +110,19 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     computed_torques = self.stiffness * pos_error
     computed_torques += self.damping * vel_error
     computed_torques += cmd.effort_target
+    assert self.computed_effort is not None
+    self.computed_effort.copy_(computed_torques)
 
     return self._clip_effort(computed_torques)
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    """Reset the last computed, unclipped effort for specified environments."""
+    super().reset(env_ids)
+    assert self.computed_effort is not None
+    if env_ids is None:
+      self.computed_effort.zero_()
+    else:
+      self.computed_effort[env_ids] = 0.0
 
   def _clip_effort(self, effort: torch.Tensor) -> torch.Tensor:
     assert self.force_limit is not None

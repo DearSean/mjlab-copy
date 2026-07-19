@@ -162,3 +162,11 @@ def test_ideal_pd_effort_clamping(device, robot_xml):
   assert torch.allclose(
     ideal_ctrl, torch.tensor([effort_limit, -effort_limit], device=device)
   )
+  actuator = ideal_entity.actuators[0]
+  assert actuator.computed_effort is not None
+  assert torch.allclose(
+    actuator.computed_effort[0], torch.tensor([100.0, -100.0], device=device)
+  )
+
+  ideal_entity.reset()
+  assert torch.count_nonzero(actuator.computed_effort) == 0

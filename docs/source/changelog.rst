@@ -48,7 +48,8 @@ Added
   peak-limit torque ratio, and requested peak-limit torque ratio with four-step
   history on torque, joint-state, and previous-action feedback. The RL_BOY
   velocity training log also tracks applied continuous-limit torque ratio as a
-  metric.
+  metric. Requested torque feedback now reads the explicit actuator's unclipped
+  effort, so it remains correct with DC motor actuators.
 - Added ``--log-root`` CLI option to ``train``, ``play``, and ``evaluate``
   scripts for choosing where training logs are stored. Defaults to
   ``logs/rsl_rl`` (unchanged behavior). Useful for directing outputs to a
@@ -86,6 +87,18 @@ Added
 Changed
 ^^^^^^^
 
+- Renamed the RL_BOY recovery reward ``peak_torque_saturation`` to
+  ``peak_torque_usage`` to reflect that it penalizes absolute applied torque
+  near the configured peak limit. ONNX policy export now also records explicit
+  PD/DC stiffness and damping instead of the passthrough MuJoCo motor gains.
+
+- Changed RL_BOY's J3507, J6006, and J8006 actuator models from MuJoCo
+  built-in position actuators to explicit DC motor actuators. The existing
+  3/11/20 N·m peak torque limits now also define the saturation torque, while
+  the existing 40/23/20 rad/s limits provide velocity-dependent torque rolloff.
+  RL_BOY now uses damping ratios of 1.2 for the leg joints and 2.0 for the arm,
+  waist, ankle, and locked head joints. Position-action scale weights are 0.7
+  for the legs, 0.5 for the arms, waist, and ankles, and zero for the head.
 - Simplified flat RL_BOY fallen-recovery shaping to a bounded height/upright
   potential difference, a small active-recovery time cost, and one-shot success
   and failure signals. A 90-degree-or-worse roll or pitch now receives zero
