@@ -6,17 +6,16 @@ from mjlab.asset_zoo.robots import (
   RL_BOY_ACTION_SCALE,
   get_rlboy_robot_cfg,
 )
+from mjlab.asset_zoo.robots.RL_BOY.rlboy_constants import RL_BOY_JOINT_POS_LIMITS
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
-from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg
 from mjlab.managers.reward_manager import RewardTermCfg
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.sensor.contact_sensor import ContactSensor
-from mjlab.tasks.tracking import mdp
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.tracking_env_cfg import make_tracking_env_cfg
+
 
 def feet_air_time_jump(
   env,
@@ -92,6 +91,7 @@ def rlboy_flat_tracking_env_cfg(
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
   joint_pos_action.scale = RL_BOY_ACTION_SCALE
+  joint_pos_action.clip = RL_BOY_JOINT_POS_LIMITS
 
   motion_cmd = cfg.commands["motion"]
   assert isinstance(motion_cmd, MotionCommandCfg)

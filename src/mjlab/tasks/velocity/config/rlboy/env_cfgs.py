@@ -11,6 +11,12 @@ from mjlab.asset_zoo.robots import (
   RL_BOY_ACTION_SCALE,
   get_rlboy_robot_cfg,
 )
+from mjlab.asset_zoo.robots.RL_BOY.rlboy_constants import (
+  DOWN_LYING_KEYFRAME,
+  LEFT_LYING_KEYFRAME,
+  RL_BOY_JOINT_POS_LIMITS,
+  UP_LYING_KEYFRAME,
+)
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
@@ -50,24 +56,14 @@ from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 from mjlab.utils.string import resolve_expr
 
-_FALLEN_POSES = [
-  {
-    "pos": (0.0, 0.0, 0.09),
-    "quat": (0.70710678, 0.0, -0.70710678, 0.0),
-  },
-  {
-    "pos": (0.0, 0.0, 0.09),
-    "quat": (0.70710678, 0.0, 0.70710678, 0.0),
-  },
-  {
-    "pos": (0.0, 0.0, 0.09),
-    "quat": (0.70710678, 0.70710678, 0.0, 0.0),
-  },
-  {
-    "pos": (0.0, 0.0, 0.09),
-    "quat": (0.70710678, -0.70710678, 0.0, 0.0),
-  },
-]
+_FALLEN_POSES = tuple(
+  {"pos": keyframe.pos, "quat": keyframe.rot}
+  for keyframe in (
+    UP_LYING_KEYFRAME,
+    DOWN_LYING_KEYFRAME,
+    LEFT_LYING_KEYFRAME,
+  )
+)
 _RECOVERY_FRAME_DIR = (
   Path(__file__).resolve().parents[6] / "motions72" / "motions" / "getup_frame_data"
 )
@@ -777,6 +773,7 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
   joint_pos_action.scale = RL_BOY_ACTION_SCALE
+  joint_pos_action.clip = RL_BOY_JOINT_POS_LIMITS
 
   # 设置 Viewer 视角主体
   # RL_BOY 有 base_link 作为视觉参考点

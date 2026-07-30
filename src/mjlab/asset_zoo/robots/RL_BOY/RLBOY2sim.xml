@@ -91,7 +91,7 @@
 
             <body name="left_knee_pitch_link" pos="0 0 -0.14738">
               <inertial pos="0.00028337 -2.3039E-05 -0.08296" quat="1 0 0 0" mass="0.62182839" diaginertia="0.00152529 0.00167204 0.00032342"/>
-              <joint name="left_knee_pitch_joint" axis="0 1 0" range="0 2.2" armature="0.00414"/>
+              <joint name="left_knee_pitch_joint" axis="0 1 0" range="-0.1 2.2" armature="0.00414"/>
               <geom class="visual" rgba="1 1 1 1" mesh="left_knee_pitch_link"/>
 
               <body name="left_ankle_pitch_link" pos="0.00012432 0.026 -0.14055">
@@ -133,7 +133,7 @@
 
             <body name="right_knee_pitch_link" pos="-0.0077589 -0.00042926 -0.14717">
               <inertial pos="0.000126592107821219 -0.00132176879731324 -0.0951083898058556" quat="1 0 0 0" mass="0.62182825" diaginertia="0.00152506 0.00167104 0.00032448"/>
-              <joint name="right_knee_pitch_joint" axis="0 1 0" range="0 2.2" armature="0.00414"/>
+              <joint name="right_knee_pitch_joint" axis="0 1 0" range="-0.1 2.2" armature="0.00414"/>
               <geom class="visual" rgba="1 1 1 1" mesh="right_knee_pitch_link"/>
 
               <body name="right_ankle_pitch_link" pos="-0.00039541 -0.024909 -0.14005">
@@ -175,7 +175,7 @@
 
           <body name="left_shoulder_roll_link" pos="0.021603 0.027929 0.00039063">
             <inertial pos="-0.0158815168816101 0.000149139681466764 -0.0407115407833609" quat="1 0 0 0" mass="0.186" diaginertia="8.304e-05 9.062e-05 5.939e-05"/>
-            <joint name="left_shoulder_roll_joint" axis="1 0 0" range="-0.2 1.5" armature="0.0004263"/>
+            <joint name="left_shoulder_roll_joint" axis="1 0 0" range="-0.2 2.0" armature="0.0004263"/>
             <geom class="visual" rgba="1 1 1 1" mesh="left_shoulder_roll_link"/>
             <geom name="left_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045" axisangle="0 1 0 1.57"/>
             <geom name="left_shoulder_roll_collision2" class="collision" type="sphere" size="0.03" pos="-0.02 0 0.005"/>
@@ -208,7 +208,7 @@
 
           <body name="right_shoulder_roll_link" pos="0.021603 -0.027929 0.00039063">
             <inertial pos="-0.0158403302802371 -9.23318084443958E-05 -0.0407116397577024" quat="1 0 0 0" mass="0.186" diaginertia="8.325e-05 9.036e-05 5.935e-05"/>
-            <joint name="right_shoulder_roll_joint" axis="1 0 0" range="-1.5 0.2" armature="0.0004263"/>
+            <joint name="right_shoulder_roll_joint" axis="1 0 0" range="-2.0 0.2" armature="0.0004263"/>
             <geom class="visual" rgba="1 1 1 1" mesh="right_shoulder_roll_link"/>
             <geom name="right_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045" axisangle="0 1 0 1.57"/>
             <geom name="right_shoulder_roll_collision2" class="collision" type="sphere" size="0.03" pos="-0.02 0 0.005"/>

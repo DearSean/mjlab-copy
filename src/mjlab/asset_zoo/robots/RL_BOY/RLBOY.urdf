@@ -148,7 +148,7 @@
     <parent link="left_hip_pitch_link" />
     <child link="left_knee_pitch_link" />
     <axis xyz="0 1 0" />
-    <limit lower="0" upper="2.2" effort="21" velocity="21" />
+    <limit lower="-0.1" upper="2.2" effort="21" velocity="21" />
   </joint>
   <link name="left_ankle_pitch_link">
     <inertial>
@@ -293,8 +293,8 @@
     <parent link="right_hip_pitch_link" />
     <child link="right_knee_pitch_link" />
     <axis xyz="0 1 0" />
-    <limit lower="0" upper="2.2" effort="21" velocity="21" />
-    <safety_controller soft_upper_limit="2.2" soft_lower_limit="0" k_position="21" k_velocity="21" />
+    <limit lower="-0.1" upper="2.2" effort="21" velocity="21" />
+    <safety_controller soft_upper_limit="2.2" soft_lower_limit="-0.05" k_position="21" k_velocity="21" />
   </joint>
   <link name="right_ankle_pitch_link">
     <inertial>
@@ -411,7 +411,7 @@
     <parent link="left_shoulder_pitch_link" />
     <child link="left_shoulder_roll_link" />
     <axis xyz="1 0 0" />
-    <limit lower="-0.2" upper="1.5" effort="5" velocity="21" />
+    <limit lower="-0.2" upper="2.0" effort="5" velocity="21" />
   </joint>
   <link name="left_shoulder_yaw_link">
     <inertial>
@@ -535,7 +535,7 @@
     <parent link="right_shoulder_pitch_link" />
     <child link="right_shoulder_roll_link" />
     <axis xyz="1 0 0" />
-    <limit lower="-1.5" upper="0.2" effort="5" velocity="21" />
+    <limit lower="-2.0" upper="0.2" effort="5" velocity="21" />
   </joint>
   <link name="right_shoulder_yaw_link">
     <inertial>
