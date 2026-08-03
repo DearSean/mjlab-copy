@@ -8,13 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
-- Added ``Mjlab-Velocity-Flat-RL_BOY-GRU`` with a GRU actor and MLP critic.
-  The actor uses current-frame deployable observations without privileged base
-  linear velocity or the redundant applied peak-torque ratio, while the critic
-  retains the complete current-frame privileged observation set. Viewer episode
-  and partial resets now also clear the corresponding recurrent hidden states.
 - Added a fallen-recovery assistance curriculum to
-  ``Mjlab-Velocity-Flat-RL_BOY``. Dedicated recovery environments receive a
+  ``Mjlab-Velocity-Flat-Recovery``. Dedicated recovery environments receive a
   staged upward force at the waist, sampled once per episode from the active
   force range, and only recovery attempts that reach the target standing height
   advance the curriculum. The RL_BOY velocity training
@@ -87,6 +82,24 @@ Added
 Changed
 ^^^^^^^
 
+- Added the ``Mjlab-Velocity-Flat-QLmini2.0`` task and configured its 19
+  actuators as RS06, RS00, RS02, and EL05 groups using the supplied motor
+  manuals. The temporary ``0.01`` joint armature was removed because the
+  manuals do not specify rotor inertia.
+- Simplified the RL_BOY velocity registry to ``Mjlab-Velocity-Flat``,
+  ``Mjlab-Velocity-Rough``, and their ``-Recovery`` variants, while retaining
+  the Unitree G1 flat/rough configurations under their robot-suffixed task IDs.
+  Removed the recurrent GRU velocity branch.
+- Moved fallen-recovery assistance, curricula, reward terms, and recovery-to-walk
+  gates from the RL_BOY task package into the reusable velocity MDP package.
+  Recovery CSV schemas now derive their column count from the configured joint
+  names, and robots without motion files can use canonical fallen poses alone.
+- Removed the Unitree quadruped asset, velocity tasks, examples, benchmarks,
+  documentation, and tests. The built-in velocity task collection now targets
+  bipedal humanoid robots.
+- Removed the absolute-height ``base_height_recovery`` penalty from RL_BOY
+  velocity tasks. Fallen recovery continues to use the morphology-normalized
+  posture potential, time cost, and success and failure signals.
 - Renamed the RL_BOY recovery reward ``peak_torque_saturation`` to
   ``peak_torque_usage`` to reflect that it penalizes absolute applied torque
   near the configured peak limit. ONNX policy export now also records explicit
@@ -489,7 +502,7 @@ Added
   - Fixed ``dr.body_com_offset`` not triggering ``set_const``.
 
 - ``export-scene`` CLI script to export any task scene or asset_zoo entity
-  (``g1``, ``go1``, ``yam``) to a directory or zip archive for inspection
+  (``g1``, ``yam``) to a directory or zip archive for inspection
   and debugging.
 
 - ``yam_lift_cube_vision_env_cfg`` now randomizes cube color (``dr.geom_rgba``)

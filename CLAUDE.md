@@ -69,7 +69,7 @@ Core simulation modules:
 - `mjlab.sensor` — sensors (contact, camera, raycast, terrain height, builtin)
 - `mjlab.sim` — MuJoCo Warp bridge and simulation data (`Simulation`, `SimulationCfg`)
 - `mjlab.terrains` — procedural terrain generators
-- `mjlab.asset_zoo` — bundled robot assets (Unitree G1, Go1, etc.)
+- `mjlab.asset_zoo` — bundled robot assets (Unitree G1, RL_BOY, etc.)
 
 ### Manager Layer
 
@@ -266,8 +266,8 @@ The package installs these console scripts:
 Examples:
 
 ```sh
-uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
-uv run play Mjlab-Velocity-Flat-Unitree-G1 --wandb-run-path your-org/mjlab/run-id
+uv run train Mjlab-Velocity-Flat --env.scene.num-envs 4096
+uv run play Mjlab-Velocity-Flat --wandb-run-path your-org/mjlab/run-id
 uv run play Mjlab-Your-Task-Id --agent zero
 ```
 

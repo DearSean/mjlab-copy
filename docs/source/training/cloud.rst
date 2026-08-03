@@ -77,11 +77,11 @@ From the repo root:
 .. code-block:: bash
 
    sky launch scripts/cloud/train.yaml \
-     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
+     --env TASK=Mjlab-Velocity-Flat
 
    # Or with Docker:
    sky launch scripts/cloud/train-docker.yaml \
-     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
+     --env TASK=Mjlab-Velocity-Flat
 What happens behind the scenes:
 
 1. SkyPilot finds an available Lambda instance with the requested GPU.
@@ -131,7 +131,7 @@ command line with ``--env``:
 .. code-block:: bash
 
    sky launch scripts/cloud/train.yaml \
-     --env TASK=Mjlab-Velocity-Flat-Unitree-Go1 \
+     --env TASK=Mjlab-Velocity-Flat \
      --env NUM_ENVS=8192 \
      --env MAX_ITERATIONS=10000
 **Run your own task**
@@ -139,7 +139,7 @@ command line with ``--env``:
 .. code-block:: bash
 
    sky launch scripts/cloud/train.yaml \
-     --env TASK=Mjlab-Velocity-Flat-Unitree-Go1
+     --env TASK=Mjlab-Velocity-Flat
 
 To see all registered tasks:
 

@@ -21,7 +21,6 @@ def load_robot_model(robot_name: str) -> mujoco.MjModel:
   # Map robot names to their XML files.
   robot_paths = {
     "unitree_g1": base_path / "unitree_g1/xmls/g1.xml",
-    "unitree_go1": base_path / "unitree_go1/xmls/go1.xml",
   }
 
   if robot_name not in robot_paths:
@@ -61,34 +60,6 @@ def test_unitree_g1_conversion():
   print(f"✓ Unitree G1: Successfully converted {mesh_geom_count} mesh geometries")
   if has_textures:
     print("  - Found textured meshes")
-
-
-def test_unitree_go1_conversion():
-  """Test conversion with Unitree Go1 robot."""
-  model = load_robot_model("unitree_go1")
-
-  mesh_geom_count = 0
-  primitive_geom_count = 0
-
-  for geom_idx in range(model.ngeom):
-    geom_type = model.geom_type[geom_idx]
-
-    if geom_type == mujoco.mjtGeom.mjGEOM_MESH:
-      mesh_geom_count += 1
-
-      # Convert to trimesh.
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
-
-      # Basic checks.
-      assert mesh is not None, f"Failed to convert geom {geom_idx}"
-      assert len(mesh.vertices) > 0, f"Mesh {geom_idx} has no vertices"
-      assert len(mesh.faces) > 0, f"Mesh {geom_idx} has no faces"
-    else:
-      # Count primitive geometries (box, sphere, capsule, etc.).
-      primitive_geom_count += 1
-
-  print(f"✓ Unitree Go1: Successfully converted {mesh_geom_count} mesh geometries")
-  print(f"  - Also has {primitive_geom_count} primitive geometries")
 
 
 def test_texture_extraction():
@@ -536,7 +507,6 @@ if __name__ == "__main__":
 
   tests = [
     test_unitree_g1_conversion,
-    test_unitree_go1_conversion,
     test_texture_extraction,
     test_material_colors,
     test_performance,

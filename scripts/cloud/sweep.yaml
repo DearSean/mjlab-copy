@@ -27,7 +27,7 @@ command:
   - uv
   - run
   - ${program}
-  - Mjlab-Velocity-Flat-Unitree-G1
+  - Mjlab-Velocity-Flat
   - --env.scene.num-envs
   - "4096"
   - --agent.max-iterations

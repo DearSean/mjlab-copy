@@ -1,4 +1,4 @@
-"""Fallen-recovery assistance curriculum for the RL_BOY velocity task."""
+"""Reusable fallen-recovery assistance terms for velocity tasks."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 
 RECOVERY_ASSIST_EVENT_NAME = "recovery_assist"
+_DEFAULT_POSTURE_PHASE_ESTIMATOR = PosturePhaseEstimator()
 
 
 def _selected_names(names: tuple[str, ...], ids: list[int] | slice) -> tuple[str, ...]:
@@ -94,7 +95,7 @@ class actuator_torque_limit_excess_penalty:
     return torch.sum(torch.square(excess), dim=1)
 
 
-class RlBoyRecoveryAssist:
+class RecoveryAssist:
   """Manage recovery-group resets, upward assistance, and recovery outcomes."""
 
   def __init__(self, cfg: EventTermCfg, env: ManagerBasedRlEnv):
@@ -153,8 +154,10 @@ class RlBoyRecoveryAssist:
       joint_velocity_ranges, device=env.device, dtype=torch.float32
     )
     csv_joint_names: tuple[str, ...] = params["csv_joint_names"]
-    if len(csv_joint_names) != 20:
-      raise ValueError("csv_joint_names must contain exactly 20 joint names.")
+    self._frame_files: tuple[str, ...] = params["frame_files"]
+    if self._frame_files and not csv_joint_names:
+      raise ValueError("csv_joint_names cannot be empty when frame_files are used.")
+    self._num_csv_joints = len(csv_joint_names)
     missing_joint_names = set(csv_joint_names) - set(self._asset.joint_names)
     if missing_joint_names:
       raise ValueError(f"CSV joints not found in robot: {sorted(missing_joint_names)}")
@@ -164,7 +167,6 @@ class RlBoyRecoveryAssist:
       dtype=torch.long,
     )
     frame_dir = Path(params["frame_dir"])
-    self._frame_files: tuple[str, ...] = params["frame_files"]
     self._csv_frames = tuple(
       self._load_frames(frame_dir, frame_file) for frame_file in self._frame_files
     )
@@ -248,9 +250,11 @@ class RlBoyRecoveryAssist:
     for path in paths:
       with path.open(newline="", encoding="utf-8") as csv_file:
         for line_number, row in enumerate(csv.reader(csv_file), start=1):
-          if len(row) != 27:
+          expected_columns = 7 + self._num_csv_joints
+          if len(row) != expected_columns:
             raise ValueError(
-              f"{path}:{line_number} has {len(row)} columns; expected 27."
+              f"{path}:{line_number} has {len(row)} columns; "
+              f"expected {expected_columns}."
             )
           rows.append([float(value) for value in row])
     return torch.tensor(rows, device=self._env.device, dtype=torch.float32)
@@ -343,7 +347,7 @@ class RlBoyRecoveryAssist:
     sources = self.sample_source[recovery_ids]
     root_pos = torch.zeros(count, 3, device=self._env.device)
     root_quat = torch.zeros(count, 4, device=self._env.device)
-    csv_joint_pos = torch.zeros(count, 20, device=self._env.device)
+    csv_joint_pos = torch.zeros(count, self._num_csv_joints, device=self._env.device)
 
     for source, frames in enumerate(self._csv_frames):
       mask = sources == source
@@ -356,7 +360,7 @@ class RlBoyRecoveryAssist:
       # CSV stores (qx, qy, qz, qw); simulation expects (qw, qx, qy, qz).
       quat_xyzw = sampled[:, 3:7]
       root_quat[mask] = quat_xyzw[:, (3, 0, 1, 2)]
-      csv_joint_pos[mask] = sampled[:, 7:27]
+      csv_joint_pos[mask] = sampled[:, 7:]
 
     canonical_mask = sources == self._canonical_source
     canonical_count = int(canonical_mask.sum().item())
@@ -655,10 +659,10 @@ class RlBoyRecoveryAssist:
     return state
 
 
-def _get_assist(env: ManagerBasedRlEnv, event_name: str) -> RlBoyRecoveryAssist:
+def _get_assist(env: ManagerBasedRlEnv, event_name: str) -> RecoveryAssist:
   term = env.event_manager.get_term_cfg(event_name).func
-  if not isinstance(term, RlBoyRecoveryAssist):
-    raise TypeError(f"Event '{event_name}' is not an RlBoyRecoveryAssist.")
+  if not isinstance(term, RecoveryAssist):
+    raise TypeError(f"Event '{event_name}' is not a RecoveryAssist.")
   return term
 
 
@@ -878,3 +882,83 @@ def recovery_success_bonus(
 def recovery_mask(env: ManagerBasedRlEnv, event_name: str) -> torch.Tensor:
   """Return the dynamic assistance mask."""
   return _get_assist(env, event_name).assist_active
+
+
+def recovery_state_potential(
+  env: ManagerBasedRlEnv,
+  height_weight: float,
+  upright_weight: float,
+  asset_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+  """Return a bounded, morphology-normalized recovery potential."""
+  asset_cfg = asset_cfg or SceneEntityCfg("robot")
+  if height_weight < 0.0 or upright_weight < 0.0:
+    raise ValueError("Recovery potential weights cannot be negative.")
+  if not math.isclose(height_weight + upright_weight, 1.0):
+    raise ValueError("Recovery potential weights must sum to one.")
+
+  state = _DEFAULT_POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg)
+  height_score = state.height * state.uprightness
+  return height_weight * height_score + upright_weight * state.uprightness
+
+
+def recovery_walk_gate(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg | None = None,
+) -> torch.Tensor:
+  """Measure continuous confidence that the robot is ready for walking."""
+  asset_cfg = asset_cfg or SceneEntityCfg("robot")
+  return _DEFAULT_POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg).walk_gate
+
+
+class recovery_potential_progress:
+  """Reward changes in recovery potential while assistance is active."""
+
+  def __init__(
+    self,
+    cfg: RewardTermCfg,
+    env: ManagerBasedRlEnv,
+    asset_cfg: SceneEntityCfg | None = None,
+    **_: object,
+  ):
+    del cfg
+    self.asset_cfg = asset_cfg or SceneEntityCfg("robot")
+    self.previous_potential = torch.zeros(env.num_envs, device=env.device)
+    self.was_active = torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
+
+  def reset(self, env_ids: torch.Tensor) -> None:
+    self.was_active[env_ids] = False
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    event_name: str,
+    height_weight: float,
+    upright_weight: float,
+    asset_cfg: SceneEntityCfg | None = None,
+  ) -> torch.Tensor:
+    del asset_cfg
+    potential = recovery_state_potential(
+      env,
+      height_weight,
+      upright_weight,
+      self.asset_cfg,
+    )
+    active = recovery_mask(env, event_name)
+    continuing = active & self.was_active
+    delta = torch.where(
+      continuing,
+      potential - self.previous_potential,
+      torch.zeros_like(potential),
+    )
+    self.previous_potential.copy_(potential)
+    self.was_active.copy_(active)
+    return delta / env.step_dt
+
+
+def recovery_time_penalty(
+  env: ManagerBasedRlEnv,
+  event_name: str,
+) -> torch.Tensor:
+  """Return a constant per-second cost while recovery assistance is active."""
+  return recovery_mask(env, event_name).float()

@@ -221,7 +221,7 @@ for sensor in cfg.scene.sensors or ():
     if sensor.name == "terrain_scan":
         assert isinstance(sensor, RayCastSensorCfg)
         assert isinstance(sensor.frame, ObjRef)
-        sensor.frame.name = "torso_link"  # G1 用 "pelvis"，Go1 用 "trunk"
+        sensor.frame.name = "torso_link"  # G1 使用 "pelvis"
 
 # 足端高度扫描绑定到左右脚 site
 site_names = ("left_foot", "right_foot")
@@ -389,7 +389,8 @@ def my_robot_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
 
 **路径**：`src/mjlab/tasks/velocity/config/my_robot/__init__.py`
 
-把 Rough 和 Flat 两种环境注册到 mjlab 的任务系统中：
+RL_BOY 使用四个无机器人后缀的规范任务 ID。其他机器人应使用机器人名称
+后缀，避免覆盖现有注册；Unitree G1 的 Flat/Rough 配置即采用这种方式：
 
 ```python
 from mjlab.tasks.registry import register_mjlab_task
@@ -443,7 +444,7 @@ uv run play Mjlab-Velocity-Flat-My-Robot --wandb-run-path ...
   - `rewards["upright"]`、`rewards["body_ang_vel"]` 的 `body_names`
   - `rewards["foot_clearance"]`、`rewards["foot_slip"]` 的 `site_names`
 - [ ] `rl_cfg.py` 中 `experiment_name` 已修改
-- [ ] `__init__.py` 中 `task_id` 命名符合 `Mjlab-Velocity-{Rough|Flat}-<Robot>` 规范
+- [ ] `__init__.py` 使用不会与已有机器人冲突的任务 ID
 - [ ] 运行 `make check` 通过格式和类型检查
 - [ ] 运行 `uv run list-envs` 能看到新注册的任务
 

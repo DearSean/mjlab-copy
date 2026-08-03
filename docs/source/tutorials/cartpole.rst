@@ -425,7 +425,7 @@ policy that transfers across physical variations.
 
 **Explore other tasks.** The library ships with locomotion,
 manipulation, and motion tracking tasks you can run out of the box:
-``Mjlab-Velocity-Flat-Unitree-Go1``, ``Mjlab-Lift-Cube-Yam``, and
+``Mjlab-Velocity-Flat``, ``Mjlab-Lift-Cube-Yam``, and
 ``Mjlab-Tracking-Flat-Unitree-G1``, among others. Reading their source
 shows how more complex observation and reward structures are composed.
 

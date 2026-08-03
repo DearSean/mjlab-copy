@@ -2,7 +2,11 @@
 
 import pytest
 
-from mjlab.asset_zoo.robots import G1_ACTION_SCALE, GO1_ACTION_SCALE
+from mjlab.asset_zoo.robots import (
+  G1_ACTION_SCALE,
+  QLMINI2_ACTION_SCALE,
+  RL_BOY_ACTION_SCALE,
+)
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
@@ -12,18 +16,6 @@ from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 def velocity_task_ids() -> list[str]:
   """Get all velocity task IDs."""
   return [t for t in list_tasks() if "Velocity" in t]
-
-
-@pytest.fixture(scope="module")
-def g1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
-  """Get all G1 velocity task IDs."""
-  return [t for t in velocity_task_ids if "G1" in t]
-
-
-@pytest.fixture(scope="module")
-def go1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
-  """Get all Go1 velocity task IDs."""
-  return [t for t in velocity_task_ids if "Go1" in t]
 
 
 @pytest.fixture(scope="module")
@@ -51,9 +43,21 @@ def test_velocity_tasks_have_twist_command(velocity_task_ids: list[str]) -> None
     )
 
 
-def test_g1_velocity_has_required_sensors(g1_velocity_task_ids: list[str]) -> None:
-  """G1 velocity tasks should have feet/ground and self collision sensors."""
-  for task_id in g1_velocity_task_ids:
+def test_velocity_task_set_is_supported(velocity_task_ids: list[str]) -> None:
+  assert set(velocity_task_ids) == {
+    "Mjlab-Velocity-Flat",
+    "Mjlab-Velocity-Rough",
+    "Mjlab-Velocity-Flat-Recovery",
+    "Mjlab-Velocity-Rough-Recovery",
+    "Mjlab-Velocity-Flat-Unitree-G1",
+    "Mjlab-Velocity-Rough-Unitree-G1",
+    "Mjlab-Velocity-Flat-QLmini2.0",
+  }
+
+
+def test_velocity_tasks_have_required_sensors(velocity_task_ids: list[str]) -> None:
+  """Velocity tasks should have feet/ground and self collision sensors."""
+  for task_id in velocity_task_ids:
     cfg = load_env_cfg(task_id)
 
     assert cfg.scene.sensors is not None, f"Task {task_id} has no sensors"
@@ -65,27 +69,6 @@ def test_g1_velocity_has_required_sensors(g1_velocity_task_ids: list[str]) -> No
     assert "self_collision" in sensor_names, (
       f"Task {task_id} missing self_collision sensor"
     )
-
-
-def test_go1_velocity_has_required_sensors(go1_velocity_task_ids: list[str]) -> None:
-  """Go1 velocity tasks should have feet/ground and collision sensors."""
-  for task_id in go1_velocity_task_ids:
-    cfg = load_env_cfg(task_id)
-
-    assert cfg.scene.sensors is not None, f"Task {task_id} has no sensors"
-
-    sensor_names = {s.name for s in cfg.scene.sensors}
-    assert "feet_ground_contact" in sensor_names, (
-      f"Task {task_id} missing feet_ground_contact sensor"
-    )
-    if "Rough" in task_id:
-      for name in (
-        "self_collision",
-        "thigh_ground_touch",
-        "shank_ground_touch",
-        "trunk_ground_touch",
-      ):
-        assert name in sensor_names, f"Task {task_id} missing {name} sensor"
 
 
 def test_flat_velocity_tasks_have_plane_terrain(
@@ -124,8 +107,9 @@ def test_rough_velocity_tasks_have_generator_terrain(
 def test_rough_velocity_training_has_curriculum_enabled() -> None:
   """Rough velocity training tasks should have terrain curriculum enabled."""
   rough_training_tasks = [
+    "Mjlab-Velocity-Rough",
+    "Mjlab-Velocity-Rough-Recovery",
     "Mjlab-Velocity-Rough-Unitree-G1",
-    "Mjlab-Velocity-Rough-Unitree-Go1",
   ]
 
   for task_id in rough_training_tasks:
@@ -144,8 +128,9 @@ def test_rough_velocity_training_has_curriculum_enabled() -> None:
 def test_rough_velocity_play_has_curriculum_disabled() -> None:
   """Rough velocity play tasks should have terrain curriculum disabled."""
   rough_training_tasks = [
+    "Mjlab-Velocity-Rough",
+    "Mjlab-Velocity-Rough-Recovery",
     "Mjlab-Velocity-Rough-Unitree-G1",
-    "Mjlab-Velocity-Rough-Unitree-Go1",
   ]
 
   for task_id in rough_training_tasks:
@@ -163,28 +148,11 @@ def test_rough_velocity_play_has_curriculum_disabled() -> None:
     )
 
 
-def test_g1_velocity_has_correct_action_scale(g1_velocity_task_ids: list[str]) -> None:
-  """G1 velocity tasks should use G1_ACTION_SCALE."""
-  for task_id in g1_velocity_task_ids:
-    cfg = load_env_cfg(task_id)
-
-    assert "joint_pos" in cfg.actions, f"Task {task_id} missing 'joint_pos' action"
-
-    joint_pos_action = cfg.actions["joint_pos"]
-    assert isinstance(joint_pos_action, JointPositionActionCfg), (
-      f"Task {task_id} joint_pos action is not JointPositionActionCfg"
-    )
-
-    assert joint_pos_action.scale == G1_ACTION_SCALE, (
-      f"Task {task_id} action scale mismatch, expected G1_ACTION_SCALE"
-    )
-
-
-def test_go1_velocity_has_correct_action_scale(
-  go1_velocity_task_ids: list[str],
+def test_velocity_tasks_have_correct_action_scale(
+  velocity_task_ids: list[str],
 ) -> None:
-  """Go1 velocity tasks should use GO1_ACTION_SCALE."""
-  for task_id in go1_velocity_task_ids:
+  """Velocity tasks should use the action scale of their configured robot."""
+  for task_id in velocity_task_ids:
     cfg = load_env_cfg(task_id)
 
     assert "joint_pos" in cfg.actions, f"Task {task_id} missing 'joint_pos' action"
@@ -194,6 +162,23 @@ def test_go1_velocity_has_correct_action_scale(
       f"Task {task_id} joint_pos action is not JointPositionActionCfg"
     )
 
-    assert joint_pos_action.scale == GO1_ACTION_SCALE, (
-      f"Task {task_id} action scale mismatch, expected GO1_ACTION_SCALE"
+    if task_id.endswith("-Unitree-G1"):
+      expected_scale = G1_ACTION_SCALE
+    elif task_id.endswith("-QLmini2.0"):
+      expected_scale = QLMINI2_ACTION_SCALE
+    else:
+      expected_scale = RL_BOY_ACTION_SCALE
+    assert joint_pos_action.scale == expected_scale, (
+      f"Task {task_id} action scale mismatch"
     )
+
+
+def test_only_recovery_tasks_enable_recovery(velocity_task_ids: list[str]) -> None:
+  for task_id in velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    if task_id.endswith("-Recovery"):
+      assert "recovery_assist" in cfg.events
+      assert "fell_over" not in cfg.terminations
+    else:
+      assert "recovery_assist" not in cfg.events
+      assert "fell_over" in cfg.terminations

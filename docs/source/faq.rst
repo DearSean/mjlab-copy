@@ -146,7 +146,7 @@ The exported ``scene.xml`` can be loaded directly in MuJoCo for visual
 inspection or diffing. This is useful for verifying that task configuration
 and physics are set up correctly, and for creating minimal reproducible
 examples to share with mjlab or MuJoCo Warp developers. The script accepts task IDs,
-entity aliases (``g1``, ``go1``, ``yam``), or arbitrary import paths. See
+entity aliases (``g1``, ``yam``), or arbitrary import paths. See
 :doc:`debugging/export_scene` for full details.
 
 My contact sensor misses collisions when using decimation
@@ -453,9 +453,8 @@ Assets & Compatibility
 What robots are included?
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-mjlab includes two **reference robots**:
+mjlab includes one **reference legged robot**:
 
-- **Unitree Go1** (quadruped).
 - **Unitree G1** (humanoid).
 
 These robots serve as:

@@ -36,9 +36,10 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.velocity import mdp
-from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
+from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.mdp.recovery import (
   RECOVERY_ASSIST_EVENT_NAME,
-  RlBoyRecoveryAssist,
+  RecoveryAssist,
   actuator_torque_limit_excess_penalty,
   normal_group_payload,
   normal_randomization_curriculum,
@@ -47,12 +48,25 @@ from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
   recovery_assist_curriculum,
   recovery_assist_reward_weight_curriculum,
   recovery_failure_penalty,
-  recovery_mask,
+  recovery_potential_progress,
   recovery_succeeded,
   recovery_success_bonus,
+  recovery_time_penalty,
   recovery_timed_out,
 )
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.mdp.recovery_gates import (
+  gated_action_rate_l2,
+  gated_angular_momentum_penalty,
+  gated_body_angular_velocity_penalty,
+  gated_feet_air_time,
+  gated_feet_clearance,
+  gated_feet_slip,
+  gated_feet_swing_height,
+  gated_track_angular_velocity,
+  gated_track_linear_velocity,
+  gated_upright,
+  gated_variable_posture,
+)
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 from mjlab.utils.string import resolve_expr
 
@@ -106,9 +120,7 @@ _PEAK_TORQUE_LIMIT_BY_ACTUATOR = {
 }
 _TORQUE_FEEDBACK_HISTORY_LENGTH = 4
 
-_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
 _POSTURE_PHASE_CFG = mdp.PosturePhaseEstimatorCfg()
-_POSTURE_PHASE_ESTIMATOR = mdp.PosturePhaseEstimator(_POSTURE_PHASE_CFG)
 
 _KNOCKDOWN_STAGES = [
   {
@@ -332,349 +344,6 @@ def _add_torque_feedback_observations(cfg: ManagerBasedRlEnvCfg) -> None:
       clip=(-2.0, 2.0),
       history_length=_TORQUE_FEEDBACK_HISTORY_LENGTH,
     )
-
-
-def base_height_penalty_recovery(
-  env: "ManagerBasedRlEnv",
-  min_height: float = 0.38,
-  recover_height: float = 0.24,
-  scale_near: float = 10.0,
-  scale_far: float = 3.0,
-  max_penalty: float = 4.0,
-  recovery_event_name: str | None = None,
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  """按 base height 惩罚，鼓励策略在跌倒前主动恢复。
-
-  惩罚曲线（base_height 越低惩罚越大）：
-  - height >= min_height: 无惩罚
-  - recover_height <= height < min_height: 温和的指数惩罚（给策略恢复梯度）
-  - height < recover_height: 陡峭的线性惩罚，平滑饱和到 max_penalty
-
-  返回 POSITIVE cost，RewardTermCfg 中需配 NEGATIVE weight 才会变成惩罚。
-  """
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  asset: "Entity" = env.scene[asset_cfg.name]
-  base_height = asset.data.root_link_pos_w[:, 2]
-
-  # 高度介于 [recover_height, min_height] 之间的小幅下沉（指数区）
-  near_error = torch.clamp(
-    min_height - torch.clamp(base_height, min=recover_height),
-    min=0.0,
-  )
-  # 跌至 recover_height 之下的严重下沉（线性区）
-  far_error = torch.clamp(recover_height - base_height, min=0.0)
-
-  near_penalty = torch.exp(scale_near * near_error) - 1.0
-  far_penalty = scale_far * far_error
-  raw_penalty = near_penalty + far_penalty
-
-  # 平滑饱和：raw -> 0 时 penalty -> 0；raw -> inf 时 penalty -> max_penalty
-  penalty = max_penalty * raw_penalty / (raw_penalty + max_penalty)
-  if recovery_event_name is not None:
-    penalty *= ~recovery_mask(env, recovery_event_name)
-  return penalty
-
-
-def recovery_state_potential(
-  env: "ManagerBasedRlEnv",
-  height_weight: float,
-  upright_weight: float,
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  """Return a bounded recovery potential from independent height and tilt scores."""
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  if height_weight < 0.0 or upright_weight < 0.0:
-    raise ValueError("Recovery potential weights cannot be negative.")
-  if not math.isclose(height_weight + upright_weight, 1.0):
-    raise ValueError("Recovery potential weights must sum to one.")
-
-  state = _POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg)
-  # Height remains an independently weighted signal, but only inside the
-  # upright hemisphere. This makes the complete potential exactly zero at a
-  # 90-degree-or-worse roll/pitch without introducing an angle threshold.
-  height_score = state.height * state.uprightness
-  return height_weight * height_score + upright_weight * state.uprightness
-
-
-def recovery_walk_gate(
-  env: "ManagerBasedRlEnv",
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  """Measure continuous confidence that the robot is ready for walking."""
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  return _POSTURE_PHASE_ESTIMATOR.estimate(env, asset_cfg).walk_gate
-
-
-def _reward_gate_scale(
-  env: "ManagerBasedRlEnv",
-  min_scale: float,
-) -> torch.Tensor:
-  walk_gate = recovery_walk_gate(env)
-  return min_scale + (1.0 - min_scale) * walk_gate
-
-
-def gated_track_linear_velocity(
-  env: "ManagerBasedRlEnv",
-  std: float,
-  command_name: str,
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  """Fade linear-velocity tracking in as height and orientation recover."""
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  gate = recovery_walk_gate(env, asset_cfg)
-  return gate * mdp.track_linear_velocity(env, std, command_name, asset_cfg)
-
-
-def gated_track_angular_velocity(
-  env: "ManagerBasedRlEnv",
-  std: float,
-  command_name: str,
-  asset_cfg: SceneEntityCfg | None = None,
-) -> torch.Tensor:
-  """Fade angular-velocity tracking in as height and orientation recover."""
-  if asset_cfg is None:
-    asset_cfg = SceneEntityCfg("robot")
-  gate = recovery_walk_gate(env, asset_cfg)
-  return gate * mdp.track_angular_velocity(env, std, command_name, asset_cfg)
-
-
-class gated_upright(mdp.upright):
-  """Keep an upright-state reward floor while smoothly entering walking."""
-
-  def __call__(
-    self,
-    env: "ManagerBasedRlEnv",
-    std: float,
-    asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
-    terrain_sensor_names: tuple[str, ...] | None = None,
-    gate_min_scale: float = 0.5,
-  ) -> torch.Tensor:
-    reward = super().__call__(env, std, asset_cfg, terrain_sensor_names)
-    scale = _reward_gate_scale(
-      env,
-      gate_min_scale,
-    )
-    return reward * scale
-
-
-class gated_variable_posture(mdp.variable_posture):
-  """Relax the default-pose objective during fallen recovery."""
-
-  def __call__(
-    self,
-    env: "ManagerBasedRlEnv",
-    std_standing: object,
-    std_walking: object,
-    std_running: object,
-    asset_cfg: SceneEntityCfg,
-    command_name: str,
-    walking_threshold: float = 0.5,
-    running_threshold: float = 1.5,
-    gate_min_scale: float = 0.1,
-  ) -> torch.Tensor:
-    reward = super().__call__(
-      env,
-      std_standing,
-      std_walking,
-      std_running,
-      asset_cfg,
-      command_name,
-      walking_threshold,
-      running_threshold,
-    )
-    scale = _reward_gate_scale(
-      env,
-      gate_min_scale,
-    )
-    return reward * scale
-
-
-def gated_body_angular_velocity_penalty(
-  env: "ManagerBasedRlEnv",
-  asset_cfg: SceneEntityCfg,
-  gate_min_scale: float,
-) -> torch.Tensor:
-  penalty = mdp.body_angular_velocity_penalty(env, asset_cfg)
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return penalty * scale
-
-
-def gated_angular_momentum_penalty(
-  env: "ManagerBasedRlEnv",
-  sensor_name: str,
-  gate_min_scale: float,
-) -> torch.Tensor:
-  penalty = mdp.angular_momentum_penalty(env, sensor_name)
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return penalty * scale
-
-
-def gated_action_rate_l2(
-  env: "ManagerBasedRlEnv",
-  gate_min_scale: float,
-) -> torch.Tensor:
-  penalty = envs_mdp.action_rate_l2(env)
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return penalty * scale
-
-
-def gated_feet_air_time(
-  env: "ManagerBasedRlEnv",
-  sensor_name: str,
-  threshold_min: float,
-  threshold_max: float,
-  command_name: str,
-  command_threshold: float,
-  gate_min_scale: float,
-) -> torch.Tensor:
-  reward = mdp.feet_air_time(
-    env,
-    sensor_name,
-    threshold_min,
-    threshold_max,
-    command_name,
-    command_threshold,
-  )
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return reward * scale
-
-
-def gated_feet_clearance(
-  env: "ManagerBasedRlEnv",
-  target_height: float,
-  height_sensor_name: str,
-  command_name: str,
-  command_threshold: float,
-  asset_cfg: SceneEntityCfg,
-  gate_min_scale: float,
-) -> torch.Tensor:
-  penalty = mdp.feet_clearance(
-    env,
-    target_height,
-    height_sensor_name,
-    command_name,
-    command_threshold,
-    asset_cfg,
-  )
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return penalty * scale
-
-
-class gated_feet_swing_height(mdp.feet_swing_height):
-  """Disable the swing-foot objective during fallen recovery."""
-
-  def __call__(
-    self,
-    env: "ManagerBasedRlEnv",
-    sensor_name: str,
-    height_sensor_name: str,
-    target_height: float,
-    command_name: str,
-    command_threshold: float,
-    gate_min_scale: float = 0.0,
-  ) -> torch.Tensor:
-    penalty = super().__call__(
-      env,
-      sensor_name,
-      height_sensor_name,
-      target_height,
-      command_name,
-      command_threshold,
-    )
-    scale = _reward_gate_scale(
-      env,
-      gate_min_scale,
-    )
-    return penalty * scale
-
-
-def gated_feet_slip(
-  env: "ManagerBasedRlEnv",
-  sensor_name: str,
-  command_name: str,
-  command_threshold: float,
-  asset_cfg: SceneEntityCfg,
-  gate_min_scale: float,
-) -> torch.Tensor:
-  penalty = mdp.feet_slip(env, sensor_name, command_name, command_threshold, asset_cfg)
-  scale = _reward_gate_scale(
-    env,
-    gate_min_scale,
-  )
-  return penalty * scale
-
-
-class recovery_potential_progress:
-  """Reward changes in a bounded recovery potential while assistance is active."""
-
-  def __init__(
-    self,
-    cfg: RewardTermCfg,
-    env: "ManagerBasedRlEnv",
-    asset_cfg: SceneEntityCfg | None = None,
-    **_: object,
-  ):
-    del cfg
-    self.asset_cfg = asset_cfg or SceneEntityCfg("robot")
-    self.previous_potential = torch.zeros(env.num_envs, device=env.device)
-    self.was_active = torch.zeros(env.num_envs, device=env.device, dtype=torch.bool)
-
-  def reset(self, env_ids: torch.Tensor) -> None:
-    self.was_active[env_ids] = False
-
-  def __call__(
-    self,
-    env: "ManagerBasedRlEnv",
-    event_name: str,
-    height_weight: float,
-    upright_weight: float,
-    asset_cfg: SceneEntityCfg | None = None,
-  ) -> torch.Tensor:
-    del asset_cfg  # The resolved asset config from __init__ is used.
-    potential = recovery_state_potential(
-      env,
-      height_weight,
-      upright_weight,
-      self.asset_cfg,
-    )
-    active = recovery_mask(env, event_name)
-    continuing = active & self.was_active
-    delta = torch.where(
-      continuing,
-      potential - self.previous_potential,
-      torch.zeros_like(potential),
-    )
-    self.previous_potential.copy_(potential)
-    self.was_active.copy_(active)
-    return delta / env.step_dt
-
-
-def recovery_time_penalty(
-  env: "ManagerBasedRlEnv",
-  event_name: str,
-) -> torch.Tensor:
-  """Return a constant per-second cost while a recovery attempt is active."""
-  return recovery_mask(env, event_name).float()
 
 
 def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -915,22 +584,6 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       }
     )
 
-  # base height 恢复奖励
-  # 在策略接近跌倒时提供早期梯度,鼓励主动恢复姿态
-  cfg.rewards["base_height_recovery"] = RewardTermCfg(
-    func=base_height_penalty_recovery,
-    weight=-0.5,
-    params={
-      # RL_BOY 站立时 base_link 高度约 0.45m
-      "min_height": 0.38,
-      # 跌至 0.24m 以下视为不可恢复(严重跌倒)
-      "recover_height": 0.24,
-      "scale_near": 10.0,
-      "scale_far": 3.0,
-      "max_penalty": 4.0,
-    },
-  )
-
   # 自碰撞惩罚
   cfg.rewards["self_collisions"] = RewardTermCfg(
     func=mdp.self_collision_cost,
@@ -969,6 +622,196 @@ def rlboy_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   return cfg
 
 
+def _add_recovery_training_cfg(cfg: ManagerBasedRlEnvCfg) -> None:
+  # The reset population only selects initial poses. Assistance activates
+  # dynamically for any robot that remains fallen, while curriculum outcomes
+  # continue to use the controlled initial-pose population.
+  cfg.events[RECOVERY_ASSIST_EVENT_NAME] = EventTermCfg(
+    func=RecoveryAssist,
+    mode="step",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=("waist_yaw_link",)),
+      "poses": _FALLEN_POSES,
+      "recovery_stage_probabilities": (0.6, 0.5, 0.4),
+      "post_stage_recovery_probability": 0.35,
+      "low_force_recovery_probability": 0.3,
+      "recovery_probability_limits": (0.25, 0.65),
+      "recovery_probability_feedback_gain": 0.5,
+      "recovery_probability_smoothing": 0.1,
+      "recovery_probability_min_attempts": 50,
+      "angle_noise_ramp_attempts": 300,
+      "frame_dir": str(_RECOVERY_FRAME_DIR),
+      "frame_files": _RECOVERY_FRAME_FILES,
+      "source_names": ("getup", "fall", "canonical"),
+      "csv_joint_names": _RECOVERY_CSV_JOINT_NAMES,
+      "pose_stage_source_weights": (
+        (1.0, 0.0, 0.0),
+        (1.0, 0.0, 0.0),
+        (0.15, 0.25, 0.6),
+      ),
+      "force_ranges": (
+        (50.0, 50.0),
+        (40.0, 45.0),
+        (32.0, 38.0),
+        (25.0, 30.0),
+        (20.0, 24.0),
+        (12.0, 19.0),
+        (6.0, 11.0),
+        (0.0, 5.0),
+        (0.0, 0.0),
+      ),
+      "posture_cfg": _POSTURE_PHASE_CFG,
+      "fall_confirm_s": 0.12,
+      "upright_hold_s": 0.5,
+      "force_ramp_up_s": 0.3,
+      "force_ramp_down_s": 0.5,
+      "recovery_timeout_s": 5.0,
+      "root_height_range": (0.1, 0.13),
+      "root_lin_vel_range": (-0.1, 0.1),
+      "root_ang_vel_range": (-0.2, 0.2),
+      "joint_position_ranges": {
+        r".*_hip_pitch_joint": (-0.25, 0.25),
+        r".*_hip_roll_joint": (-0.15, 0.15),
+        r".*_hip_yaw_joint": (-0.12, 0.12),
+        r".*_knee_pitch_joint": (-0.3, 0.3),
+        r".*_ankle_pitch_joint": (-0.18, 0.18),
+        r".*_shoulder_pitch_joint": (-0.4, 0.4),
+        r".*_shoulder_roll_joint": (-0.25, 0.25),
+        r".*_shoulder_yaw_joint": (-0.2, 0.2),
+        r".*_elbow_pitch_joint": (-0.35, 0.35),
+        "waist_yaw_joint": (-0.15, 0.15),
+        "head_yaw_joint": (0.0, 0.0),
+      },
+      "joint_velocity_ranges": {
+        r".*(hip|knee|ankle).*": (-0.25, 0.25),
+        r".*(shoulder|elbow).*": (-0.4, 0.4),
+        "waist_yaw_joint": (-0.15, 0.15),
+        "head_yaw_joint": (0.0, 0.0),
+      },
+    },
+  )
+  cfg.events["push_robot"] = EventTermCfg(
+    func=push_normal_group,
+    mode="interval",
+    interval_range_s=(8.0, 12.0),
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "stages": _NORMAL_RANDOMIZATION_STAGES,
+      "asset_cfg": SceneEntityCfg("robot"),
+    },
+  )
+  cfg.events["knockdown_robot"] = EventTermCfg(
+    func=push_normal_group,
+    mode="interval",
+    interval_range_s=(13.0, 15.0),
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "stages": _KNOCKDOWN_STAGES,
+      "asset_cfg": SceneEntityCfg("robot"),
+    },
+  )
+  cfg.events["base_payload"] = EventTermCfg(
+    func=normal_group_payload,
+    mode="reset",
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "stages": _NORMAL_RANDOMIZATION_STAGES,
+      "asset_cfg": SceneEntityCfg("robot", body_names=("base_link",)),
+    },
+  )
+  cfg.events = {
+    "prepare_recovery_group": EventTermCfg(
+      func=prepare_recovery_group,
+      mode="reset",
+      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+    ),
+    **cfg.events,
+  }
+  cfg.rewards["recovery_potential_progress"] = RewardTermCfg(
+    func=recovery_potential_progress,
+    weight=2.0,
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "height_weight": 0.6,
+      "upright_weight": 0.4,
+    },
+  )
+  cfg.rewards["recovery_time"] = RewardTermCfg(
+    func=recovery_time_penalty,
+    weight=-0.05,
+    params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+  )
+  cfg.rewards["recovery_success"] = RewardTermCfg(
+    func=recovery_success_bonus,
+    weight=1.0,
+    params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+  )
+  cfg.rewards["recovery_failure"] = RewardTermCfg(
+    func=recovery_failure_penalty,
+    weight=-2.0,
+    params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+  )
+  cfg.rewards["continuous_torque_excess"] = RewardTermCfg(
+    func=actuator_torque_limit_excess_penalty,
+    weight=0.0,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "limit_by_actuator": _CONTINUOUS_TORQUE_LIMIT_BY_ACTUATOR,
+      "threshold_ratio": 1.0,
+      "log_prefix": "continuous_torque_excess",
+    },
+  )
+  cfg.rewards["peak_torque_usage"] = RewardTermCfg(
+    func=actuator_torque_limit_excess_penalty,
+    weight=0.0,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "limit_by_actuator": _PEAK_TORQUE_LIMIT_BY_ACTUATOR,
+      "threshold_ratio": 0.85,
+      "log_prefix": "peak_torque_usage",
+    },
+  )
+  cfg.terminations["recovery_succeeded"] = TerminationTermCfg(
+    func=recovery_succeeded,
+    time_out=True,
+    params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+  )
+  cfg.terminations["recovery_timed_out"] = TerminationTermCfg(
+    func=recovery_timed_out,
+    params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
+  )
+  cfg.curriculum["recovery_assist"] = CurriculumTermCfg(
+    func=recovery_assist_curriculum,
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "window_size": 500,
+      "success_threshold": 0.9,
+    },
+  )
+  cfg.curriculum["torque_penalties"] = CurriculumTermCfg(
+    func=recovery_assist_reward_weight_curriculum,
+    params={
+      "event_name": RECOVERY_ASSIST_EVENT_NAME,
+      "assist_level": 6,
+      "assist_weights": {
+        "continuous_torque_excess": -0.02,
+        "peak_torque_usage": -0.01,
+      },
+      "complete_weights": {
+        "continuous_torque_excess": -0.05,
+        "peak_torque_usage": -0.02,
+      },
+    },
+  )
+  cfg.curriculum["normal_randomization"] = CurriculumTermCfg(
+    func=normal_randomization_curriculum,
+    params={
+      "push_event_name": "push_robot",
+      "stages": _NORMAL_RANDOMIZATION_STAGES,
+    },
+  )
+
+
 def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create RL Boy flat terrain velocity configuration."""
   cfg = rlboy_rough_env_cfg(play=play)
@@ -994,198 +837,6 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # 禁用地形课程
   cfg.curriculum.pop("terrain_levels", None)
-
-  if not play:
-    # The reset population only selects initial poses. Assistance activates
-    # dynamically for any robot that remains fallen, while curriculum outcomes
-    # continue to use the controlled initial-pose population.
-    cfg.events[RECOVERY_ASSIST_EVENT_NAME] = EventTermCfg(
-      func=RlBoyRecoveryAssist,
-      mode="step",
-      params={
-        "asset_cfg": SceneEntityCfg("robot", body_names=("waist_yaw_link",)),
-        "poses": _FALLEN_POSES,
-        "recovery_stage_probabilities": (0.6, 0.5, 0.4),
-        "post_stage_recovery_probability": 0.35,
-        "low_force_recovery_probability": 0.3,
-        "recovery_probability_limits": (0.25, 0.65),
-        "recovery_probability_feedback_gain": 0.5,
-        "recovery_probability_smoothing": 0.1,
-        "recovery_probability_min_attempts": 50,
-        "angle_noise_ramp_attempts": 300,
-        "frame_dir": str(_RECOVERY_FRAME_DIR),
-        "frame_files": _RECOVERY_FRAME_FILES,
-        "source_names": ("getup", "fall", "canonical"),
-        "csv_joint_names": _RECOVERY_CSV_JOINT_NAMES,
-        "pose_stage_source_weights": (
-          (1.0, 0.0, 0.0),
-          (1.0, 0.0, 0.0),
-          (0.15, 0.25, 0.6),
-        ),
-        "force_ranges": (
-          (50.0, 50.0),
-          (40.0, 45.0),
-          (32.0, 38.0),
-          (25.0, 30.0),
-          (20.0, 24.0),
-          (12.0, 19.0),
-          (6.0, 11.0),
-          (0.0, 5.0),
-          (0.0, 0.0),
-        ),
-        "posture_cfg": _POSTURE_PHASE_CFG,
-        "fall_confirm_s": 0.12,
-        "upright_hold_s": 0.5,
-        "force_ramp_up_s": 0.3,
-        "force_ramp_down_s": 0.5,
-        "recovery_timeout_s": 5.0,
-        "root_height_range": (0.1, 0.13),
-        "root_lin_vel_range": (-0.1, 0.1),
-        "root_ang_vel_range": (-0.2, 0.2),
-        "joint_position_ranges": {
-          r".*_hip_pitch_joint": (-0.25, 0.25),
-          r".*_hip_roll_joint": (-0.15, 0.15),
-          r".*_hip_yaw_joint": (-0.12, 0.12),
-          r".*_knee_pitch_joint": (-0.3, 0.3),
-          r".*_ankle_pitch_joint": (-0.18, 0.18),
-          r".*_shoulder_pitch_joint": (-0.4, 0.4),
-          r".*_shoulder_roll_joint": (-0.25, 0.25),
-          r".*_shoulder_yaw_joint": (-0.2, 0.2),
-          r".*_elbow_pitch_joint": (-0.35, 0.35),
-          "waist_yaw_joint": (-0.15, 0.15),
-          "head_yaw_joint": (0.0, 0.0),
-        },
-        "joint_velocity_ranges": {
-          r".*(hip|knee|ankle).*": (-0.25, 0.25),
-          r".*(shoulder|elbow).*": (-0.4, 0.4),
-          "waist_yaw_joint": (-0.15, 0.15),
-          "head_yaw_joint": (0.0, 0.0),
-        },
-      },
-    )
-    cfg.events["push_robot"] = EventTermCfg(
-      func=push_normal_group,
-      mode="interval",
-      interval_range_s=(8.0, 12.0),
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "stages": _NORMAL_RANDOMIZATION_STAGES,
-        "asset_cfg": SceneEntityCfg("robot"),
-      },
-    )
-    cfg.events["knockdown_robot"] = EventTermCfg(
-      func=push_normal_group,
-      mode="interval",
-      interval_range_s=(13.0, 15.0),
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "stages": _KNOCKDOWN_STAGES,
-        "asset_cfg": SceneEntityCfg("robot"),
-      },
-    )
-    cfg.events["base_payload"] = EventTermCfg(
-      func=normal_group_payload,
-      mode="reset",
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "stages": _NORMAL_RANDOMIZATION_STAGES,
-        "asset_cfg": SceneEntityCfg("robot", body_names=("base_link",)),
-      },
-    )
-    cfg.events = {
-      "prepare_recovery_group": EventTermCfg(
-        func=prepare_recovery_group,
-        mode="reset",
-        params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-      ),
-      **cfg.events,
-    }
-    cfg.rewards["base_height_recovery"].params["recovery_event_name"] = (
-      RECOVERY_ASSIST_EVENT_NAME
-    )
-    cfg.rewards["recovery_potential_progress"] = RewardTermCfg(
-      func=recovery_potential_progress,
-      weight=2.0,
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "height_weight": 0.6,
-        "upright_weight": 0.4,
-      },
-    )
-    cfg.rewards["recovery_time"] = RewardTermCfg(
-      func=recovery_time_penalty,
-      weight=-0.05,
-      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-    )
-    cfg.rewards["recovery_success"] = RewardTermCfg(
-      func=recovery_success_bonus,
-      weight=1.0,
-      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-    )
-    cfg.rewards["recovery_failure"] = RewardTermCfg(
-      func=recovery_failure_penalty,
-      weight=-2.0,
-      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-    )
-    cfg.rewards["continuous_torque_excess"] = RewardTermCfg(
-      func=actuator_torque_limit_excess_penalty,
-      weight=0.0,
-      params={
-        "asset_cfg": SceneEntityCfg("robot"),
-        "limit_by_actuator": _CONTINUOUS_TORQUE_LIMIT_BY_ACTUATOR,
-        "threshold_ratio": 1.0,
-        "log_prefix": "continuous_torque_excess",
-      },
-    )
-    cfg.rewards["peak_torque_usage"] = RewardTermCfg(
-      func=actuator_torque_limit_excess_penalty,
-      weight=0.0,
-      params={
-        "asset_cfg": SceneEntityCfg("robot"),
-        "limit_by_actuator": _PEAK_TORQUE_LIMIT_BY_ACTUATOR,
-        "threshold_ratio": 0.85,
-        "log_prefix": "peak_torque_usage",
-      },
-    )
-    cfg.terminations["recovery_succeeded"] = TerminationTermCfg(
-      func=recovery_succeeded,
-      time_out=True,
-      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-    )
-    cfg.terminations["recovery_timed_out"] = TerminationTermCfg(
-      func=recovery_timed_out,
-      params={"event_name": RECOVERY_ASSIST_EVENT_NAME},
-    )
-    cfg.curriculum["recovery_assist"] = CurriculumTermCfg(
-      func=recovery_assist_curriculum,
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "window_size": 500,
-        "success_threshold": 0.9,
-      },
-    )
-    cfg.curriculum["torque_penalties"] = CurriculumTermCfg(
-      func=recovery_assist_reward_weight_curriculum,
-      params={
-        "event_name": RECOVERY_ASSIST_EVENT_NAME,
-        "assist_level": 6,
-        "assist_weights": {
-          "continuous_torque_excess": -0.02,
-          "peak_torque_usage": -0.01,
-        },
-        "complete_weights": {
-          "continuous_torque_excess": -0.05,
-          "peak_torque_usage": -0.02,
-        },
-      },
-    )
-    cfg.curriculum["normal_randomization"] = CurriculumTermCfg(
-      func=normal_randomization_curriculum,
-      params={
-        "push_event_name": "push_robot",
-        "stages": _NORMAL_RANDOMIZATION_STAGES,
-      },
-    )
 
   if not play:
     # 定制速度指令课程学习。Play 模式保留下方手工设置的指令范围。
@@ -1232,10 +883,6 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       },
     )
 
-  # Falling is never terminal in the flat task. Dedicated recovery episodes still
-  # use their own success and timeout conditions during training.
-  cfg.terminations.pop("fell_over", None)
-
   for reward_name in (
     "air_time",
     "foot_clearance",
@@ -1257,23 +904,19 @@ def rlboy_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-def rlboy_flat_gru_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create the flat RL Boy environment for an actor-GRU policy.
-
-  The recurrent actor receives only signals that are intended to be available
-  on the robot. The MLP critic keeps the complete privileged observation set.
-  Both groups use current-frame observations; temporal state is represented by
-  the actor GRU instead of explicit observation stacking.
-  """
+def rlboy_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create the flat RL Boy velocity task with fallen recovery enabled."""
   cfg = rlboy_flat_env_cfg(play=play)
+  if not play:
+    _add_recovery_training_cfg(cfg)
+  cfg.terminations.pop("fell_over", None)
+  return cfg
 
-  for group_cfg in cfg.observations.values():
-    group_cfg.history_length = None
-    for term_cfg in group_cfg.terms.values():
-      term_cfg.history_length = 0
 
-  actor_terms = cfg.observations["actor"].terms
-  del actor_terms["base_lin_vel"]
-  del actor_terms["applied_torque_peak_ratio"]
-
+def rlboy_rough_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create the rough RL Boy velocity task with fallen recovery enabled."""
+  cfg = rlboy_rough_env_cfg(play=play)
+  if not play:
+    _add_recovery_training_cfg(cfg)
+  cfg.terminations.pop("fell_over", None)
   return cfg

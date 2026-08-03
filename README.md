@@ -28,14 +28,14 @@ For alternative installation methods (PyPI, Docker), see the [Installation Guide
 Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 
 ```bash
-uv run train Mjlab-Velocity-Flat-RL_BOY --env.scene.num-envs 4096
+uv run train Mjlab-Velocity-Flat-Recovery --env.scene.num-envs 4096
 ```
 python src/mjlab/scripts/train.py Mjlab-Tracking-Flat-RL_BOY --env.scene.num-envs 4096
 
 **Multi-GPU Training:** Scale to multiple GPUs using `--gpu-ids`:
 
 ```bash
-uv run train Mjlab-Velocity-Flat-RL_BOY \
+uv run train Mjlab-Velocity-Flat-Recovery \
   --gpu-ids "[0, 1]" \
   --env.scene.num-envs 4096
 ```
@@ -45,7 +45,7 @@ See the [Distributed Training guide](https://mujocolab.github.io/mjlab/main/sour
 Evaluate a policy while training (fetches latest checkpoint from Weights & Biases):
 
 ```bash
-uv run play Mjlab-Velocity-Flat-RL_BOY --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Velocity-Flat-Recovery --wandb-run-path your-org/mjlab/run-id
 ```
 
 ### 2. Motion Imitation

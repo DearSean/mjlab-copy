@@ -446,16 +446,16 @@ def test_expand_model_fields_recreates_cuda_graph(device):
 
 
 @pytest.mark.slow
-def test_g1_foot_friction_shared_across_geoms(device):
-  """G1 velocity env has uniform foot friction across all collision geoms."""
+def test_rlboy_foot_friction_shared_across_geoms(device):
+  """RL_BOY velocity env has uniform foot friction across all foot geoms."""
   import io
   import warnings
   from contextlib import redirect_stderr, redirect_stdout
 
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
-  from mjlab.tasks.velocity.config.g1.env_cfgs import unitree_g1_flat_env_cfg
+  from mjlab.tasks.velocity.config.rlboy.env_cfgs import rlboy_flat_env_cfg
 
-  cfg = unitree_g1_flat_env_cfg()
+  cfg = rlboy_flat_env_cfg()
 
   with warnings.catch_warnings():
     warnings.simplefilter("ignore")

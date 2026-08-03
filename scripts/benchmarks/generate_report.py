@@ -559,7 +559,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 
         // Task metadata: display name and image path (relative to nightly/)
         const taskMeta = {{
-            'Mjlab-Velocity-Flat-Unitree-Go1': {{ name: 'Velocity \u2014 Go1', img: 'images/velocity_go1.png' }},
+            'Mjlab-Velocity-Flat': {{ name: 'Velocity \u2014 RL_BOY', img: '' }},
             'Mjlab-Tracking-Flat-Unitree-G1': {{ name: 'Tracking \u2014 G1', img: 'images/tracking_g1.png' }},
             'Mjlab-Lift-Cube-Yam': {{ name: 'Lift Cube \u2014 Yam', img: 'images/lift_cube_yam.png' }}
         }};

@@ -50,15 +50,3 @@ def rlboy_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     max_iterations=4_000,
     clip_actions=1.0,
   )
-
-
-def rlboy_gru_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  """Create an actor-GRU and MLP-critic runner for RL Boy velocity control."""
-  cfg = rlboy_ppo_runner_cfg()
-  cfg.actor.class_name = "RNNModel"
-  cfg.actor.rnn_type = "gru"
-  cfg.actor.rnn_hidden_dim = 256
-  cfg.actor.rnn_num_layers = 1
-  cfg.critic.class_name = "MLPModel"
-  cfg.experiment_name = "rlboy_velocity_gru"
-  return cfg

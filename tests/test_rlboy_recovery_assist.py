@@ -1,6 +1,7 @@
 """Tests for the RL_BOY fallen-recovery assistance curriculum."""
 
 import inspect
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -10,37 +11,39 @@ from mjlab.actuator import IdealPdActuator
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.tasks.velocity.config.rlboy.env_cfgs import (
-  gated_track_angular_velocity,
-  gated_track_linear_velocity,
-  gated_upright,
-  gated_variable_posture,
-  recovery_potential_progress,
-  recovery_state_potential,
-  recovery_time_penalty,
   requested_actuator_torque_ratio,
-  rlboy_flat_env_cfg,
-)
-from mjlab.tasks.velocity.config.rlboy.recovery_assist import (
-  RECOVERY_ASSIST_EVENT_NAME,
-  RlBoyRecoveryAssist,
-  actuator_torque_limit_excess_penalty,
-  recovery_assist_curriculum,
-  recovery_assist_reward_weight_curriculum,
-  recovery_success_bonus,
+  rlboy_flat_recovery_env_cfg,
 )
 from mjlab.tasks.velocity.config.rlboy.rl_cfg import rlboy_ppo_runner_cfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.mdp.posture_phase import PosturePhaseEstimatorCfg
+from mjlab.tasks.velocity.mdp.recovery import (
+  RECOVERY_ASSIST_EVENT_NAME,
+  RecoveryAssist,
+  actuator_torque_limit_excess_penalty,
+  recovery_assist_curriculum,
+  recovery_assist_reward_weight_curriculum,
+  recovery_potential_progress,
+  recovery_state_potential,
+  recovery_success_bonus,
+  recovery_time_penalty,
+)
+from mjlab.tasks.velocity.mdp.recovery_gates import (
+  gated_track_angular_velocity,
+  gated_track_linear_velocity,
+  gated_upright,
+  gated_variable_posture,
+)
 
 
 def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
-  train_cfg = rlboy_flat_env_cfg()
-  play_cfg = rlboy_flat_env_cfg(play=True)
+  train_cfg = rlboy_flat_recovery_env_cfg()
+  play_cfg = rlboy_flat_recovery_env_cfg(play=True)
 
   assist_cfg = train_cfg.events[RECOVERY_ASSIST_EVENT_NAME]
-  assert assist_cfg.func is RlBoyRecoveryAssist
+  assert assist_cfg.func is RecoveryAssist
   assert assist_cfg.mode == "step"
-  call_params = inspect.signature(RlBoyRecoveryAssist.__call__).parameters
+  call_params = inspect.signature(RecoveryAssist.__call__).parameters
   assert set(assist_cfg.params) <= set(call_params)
   assert assist_cfg.params["asset_cfg"].body_names == ("waist_yaw_link",)
   assert assist_cfg.params["force_ranges"] == (
@@ -150,10 +153,8 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assert train_cfg.rewards["action_rate_l2"].params["gate_min_scale"] == 0.3
   assert train_cfg.rewards["air_time"].params["gate_min_scale"] == 0.0
   assert train_cfg.rewards["foot_slip"].params["gate_min_scale"] == 0.1
-  assert train_cfg.rewards["base_height_recovery"].params["recovery_event_name"] == (
-    RECOVERY_ASSIST_EVENT_NAME
-  )
   for removed_reward in (
+    "base_height_recovery",
     "base_height_recovery_success",
     "recovery_progress",
     "fallen_duration",
@@ -189,6 +190,20 @@ def test_flat_rlboy_enables_recovery_assist_only_during_training() -> None:
   assert set(play_cfg.terminations) == {"time_out"}
 
 
+def test_recovery_csv_schema_uses_configured_joint_count(tmp_path: Path) -> None:
+  assist = RecoveryAssist.__new__(RecoveryAssist)
+  assist._env = SimpleNamespace(device="cpu")
+  assist._num_csv_joints = 2
+  (tmp_path / "getup.csv").write_text(
+    "0,0,0.1,0,0,0,1,0.2,-0.3\n",
+    encoding="utf-8",
+  )
+
+  frames = assist._load_frames(tmp_path, "getup*.csv")
+
+  assert frames.shape == (1, 9)
+
+
 def test_requested_torque_ratio_uses_unclipped_explicit_actuator_effort() -> None:
   actuator = IdealPdActuator.__new__(IdealPdActuator)
   actuator._ctrl_ids = torch.tensor((0, 1))
@@ -217,8 +232,8 @@ def _make_recovery_reward_env(
   heights: torch.Tensor,
   projected_gravity: torch.Tensor,
   active: torch.Tensor,
-) -> tuple[Any, RlBoyRecoveryAssist]:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+) -> tuple[Any, RecoveryAssist]:
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist.assist_active = active
   assist.just_succeeded = torch.zeros_like(active)
   asset = SimpleNamespace(
@@ -322,7 +337,7 @@ def test_recovery_time_and_success_terms_use_assist_state() -> None:
 
 
 def test_recovery_pose_stages_advance_before_assistance_level() -> None:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist.level = 0
   assist.pose_stage = 0
   assist._pose_stage_source_weights = torch.zeros(3, 3)
@@ -437,7 +452,7 @@ def test_peak_torque_penalty_starts_near_saturation() -> None:
 
 
 def test_torque_penalty_curriculum_tracks_recovery_assist_progress() -> None:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist.pose_stage = 2
   assist.level = 5
   assist._force_ranges = torch.tensor(
@@ -529,7 +544,7 @@ def test_torque_penalty_curriculum_tracks_recovery_assist_progress() -> None:
 
 
 def test_recovery_angle_noise_is_disabled_then_smoothly_enabled() -> None:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist._joint_position_ranges = torch.tensor(((-1.0, 1.0), (2.0, 2.0)))
   joint_pos = torch.zeros(4, 2)
 
@@ -551,12 +566,13 @@ def test_recovery_angle_noise_is_disabled_then_smoothly_enabled() -> None:
 
 
 def test_recovery_csv_quaternion_is_reordered_and_normalized() -> None:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist._env = cast(Any, SimpleNamespace(device="cpu"))
   assist.sample_source = torch.tensor((0,))
   assist._csv_frames = (
     torch.tensor([[0.0, 0.0, 0.2, 1.0, 2.0, 3.0, 4.0, *([0.0] * 20)]]),
   )
+  assist._num_csv_joints = 20
   assist._canonical_source = 1
   assist._poses = [{"pos": (0.0, 0.0, 0.1), "quat": (1.0, 0.0, 0.0, 0.0)}]
   assist._root_height_range = (0.1, 0.13)
@@ -570,7 +586,7 @@ def test_recovery_csv_quaternion_is_reordered_and_normalized() -> None:
 
 
 def test_recovery_group_probability_tracks_stage_and_success() -> None:
-  assist = RlBoyRecoveryAssist.__new__(RlBoyRecoveryAssist)
+  assist = RecoveryAssist.__new__(RecoveryAssist)
   assist._recovery_stage_probabilities = (0.6, 0.5, 0.4)
   assist._post_stage_recovery_probability = 0.35
   assist._low_force_recovery_probability = 0.3
@@ -624,7 +640,7 @@ def test_recovery_group_probability_tracks_stage_and_success() -> None:
 
 
 def test_rlboy_curricula_fit_four_thousand_iterations() -> None:
-  env_cfg = rlboy_flat_env_cfg()
+  env_cfg = rlboy_flat_recovery_env_cfg()
   runner_cfg = rlboy_ppo_runner_cfg()
 
   assert runner_cfg.max_iterations == 4_000

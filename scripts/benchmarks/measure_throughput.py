@@ -66,7 +66,7 @@ class ThroughputConfig:
 
   tasks: list[str] = field(
     default_factory=lambda: [
-      "Mjlab-Velocity-Flat-Unitree-Go1",
+      "Mjlab-Velocity-Flat",
       "Mjlab-Tracking-Flat-Unitree-G1",
       "Mjlab-Lift-Cube-Yam",
     ]

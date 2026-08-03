@@ -27,21 +27,21 @@ Tasks are registered by calling ``register_mjlab_task`` in the task's
     from mjlab.tasks.registry import register_mjlab_task
     from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 
-    from .env_cfgs import unitree_g1_rough_env_cfg, unitree_g1_flat_env_cfg
-    from .rl_cfg import unitree_g1_ppo_runner_cfg
+    from .env_cfgs import rlboy_rough_env_cfg
+    from .rl_cfg import rlboy_ppo_runner_cfg
 
     register_mjlab_task(
-      task_id="Mjlab-Velocity-Rough-Unitree-G1",
-      env_cfg=unitree_g1_rough_env_cfg(),
-      play_env_cfg=unitree_g1_rough_env_cfg(play=True),
-      rl_cfg=unitree_g1_ppo_runner_cfg(),
+      task_id="Mjlab-Velocity-Rough",
+      env_cfg=rlboy_rough_env_cfg(),
+      play_env_cfg=rlboy_rough_env_cfg(play=True),
+      rl_cfg=rlboy_ppo_runner_cfg(),
       runner_cls=VelocityOnPolicyRunner,
     )
 
 Each registration takes:
 
-- ``task_id``: a unique name following the convention
-  ``Mjlab-{Category}-{Terrain}-{Robot}``
+- ``task_id``: one of the canonical velocity task names, such as
+  ``Mjlab-Velocity-Rough`` or ``Mjlab-Velocity-Flat-Recovery``
 - ``env_cfg``: the ``ManagerBasedRlEnvCfg`` used for training
 - ``play_env_cfg``: a variant with randomization disabled and episode length
   set to infinity, used for evaluation
@@ -62,7 +62,7 @@ Training and playback
 
 .. code-block:: bash
 
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 --num-envs 4096
+    uv run train Mjlab-Velocity-Flat --num-envs 4096
 
 The task name is the first positional argument. The entire configuration
 hierarchy (environment, scene, rewards, PPO hyperparameters, etc.) is
@@ -72,7 +72,7 @@ be overridden from the command line using dot-separated paths:
 
 .. code-block:: bash
 
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+    uv run train Mjlab-Velocity-Flat \
         --num-envs 4096 \
         --agent.max-iterations 10000 \
         --agent.algorithm.learning-rate 3e-4 \
@@ -91,10 +91,10 @@ To discover available flags, use ``--help`` and pipe through ``grep``:
 .. code-block:: bash
 
     # See all flags.
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 --help
+    uv run train Mjlab-Velocity-Flat --help
 
     # Search for a specific field.
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 --help | grep learning-rate
+    uv run train Mjlab-Velocity-Flat --help | grep learning-rate
 
 Some commonly used top-level flags:
 
@@ -117,12 +117,12 @@ Some commonly used top-level flags:
 .. code-block:: bash
 
     # From W&B.
-    uv run play Mjlab-Velocity-Flat-Unitree-G1 \
+    uv run play Mjlab-Velocity-Flat \
         --wandb-run-path your-entity/mjlab/run-id
 
     # From a local checkpoint.
-    uv run play Mjlab-Velocity-Flat-Unitree-G1 \
-        --checkpoint-file logs/rsl_rl/g1_velocity/2025-01-27_14-30-00/model_1000.pt
+    uv run play Mjlab-Velocity-Flat \
+        --checkpoint-file logs/rsl_rl/rlboy_velocity/2025-01-27_14-30-00/model_1000.pt
 
 Key ``play`` arguments:
 
@@ -165,7 +165,7 @@ Configuration
 ``RslRlOnPolicyRunnerCfg`` is the top-level training configuration. It groups
 runner settings, network architecture (``RslRlModelCfg``), and PPO
 hyperparameters (``RslRlPpoAlgorithmCfg``). The following example from the
-Unitree G1 velocity task shows a typical configuration:
+RL_BOY velocity task shows a typical configuration:
 
 .. code-block:: python
 
@@ -175,7 +175,7 @@ Unitree G1 velocity task shows a typical configuration:
         RslRlPpoAlgorithmCfg,
     )
 
-    def unitree_g1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+    def rlboy_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
         return RslRlOnPolicyRunnerCfg(
             actor=RslRlModelCfg(
                 hidden_dims=(512, 256, 128),
@@ -201,7 +201,7 @@ Unitree G1 velocity task shows a typical configuration:
                 desired_kl=0.01,
                 max_grad_norm=1.0,
             ),
-            experiment_name="g1_velocity",
+            experiment_name="rlboy_velocity",
             save_interval=50,
             num_steps_per_env=24,
             max_iterations=30_000,
@@ -233,7 +233,7 @@ config to disable uploads while keeping metric logging.
 
 .. code-block:: bash
 
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+    uv run train Mjlab-Velocity-Flat \
         --num-envs 4096 \
         --agent.resume True
 
@@ -251,7 +251,7 @@ To resume from a W&B run:
 
 .. code-block:: bash
 
-    uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+    uv run train Mjlab-Velocity-Flat \
         --num-envs 4096 \
         --agent.resume True \
         --wandb-run-path your-entity/mjlab/run-id
