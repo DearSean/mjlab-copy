@@ -43,8 +43,6 @@
     </asset>
 
     <worldbody>
-        <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
-        <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
         <!-- Coarse primitive collision bodies; dimensions are intended for later tuning. -->
         <body name="base_link" pos="0.00000000 0.00000000 0.48" quat="1 0 0 0">
             <freejoint name="floating_base_joint"/>

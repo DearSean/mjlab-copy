@@ -100,8 +100,9 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # flailing.
   cfg.rewards["pose"].params["std_standing"] = {
     r".*_(hip_pitch|hip_roll|hip_yaw|knee|foot_pitch)_joint": 0.05,
-    r".*waist_yaw.*": 0.03,
-    r".*shoulder.*": 0.12,
+    r".*waist_yaw.*": 0.06,
+    r".*shoulder_pitch.*": 0.12,
+    r".*shoulder_(roll|yaw).*": 0.08,
     r".*elbow.*": 0.12,
   }
   cfg.rewards["pose"].params["std_walking"] = {
@@ -110,10 +111,10 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*hip_yaw.*": 0.12,
     r".*knee.*": 0.3,
     r".*foot_pitch.*": 0.2,
-    r".*waist_yaw.*": 0.06,
-    r".*shoulder_pitch.*": 0.65,
-    r".*shoulder_roll.*": 0.45,
-    r".*shoulder_yaw.*": 0.45,
+    r".*waist_yaw.*": 0.14,
+    r".*shoulder_pitch.*": 0.45,
+    r".*shoulder_roll.*": 0.2,
+    r".*shoulder_yaw.*": 0.3,
     r".*elbow.*": 0.60,
   }
   cfg.rewards["pose"].params["std_running"] = {
@@ -122,10 +123,10 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*hip_yaw.*": 0.18,
     r".*knee.*": 0.5,
     r".*foot_pitch.*": 0.3,
-    r".*waist_yaw.*": 0.10,
-    r".*shoulder_pitch.*": 0.90,
-    r".*shoulder_roll.*": 0.65,
-    r".*shoulder_yaw.*": 0.65,
+    r".*waist_yaw.*": 0.22,
+    r".*shoulder_pitch.*": 0.65,
+    r".*shoulder_roll.*": 0.2,
+    r".*shoulder_yaw.*": 0.3,
     r".*elbow.*": 0.85,
   }
 
@@ -135,8 +136,26 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.rewards["angular_momentum"].weight = -0.08
   cfg.rewards["waist_yaw_velocity"] = RewardTermCfg(
     func=envs_mdp.joint_vel_l2,
-    weight=-0.10,
+    weight=-0.04,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=("waist_yaw_joint",))},
+  )
+  shoulder_pitch_cfg = SceneEntityCfg(
+    "robot",
+    joint_names=("left_shoulder_pitch_joint", "right_shoulder_pitch_joint"),
+  )
+  cfg.rewards["arm_swing_antiphase"] = RewardTermCfg(
+    func=mdp.paired_joint_antiphase_l2,
+    weight=-0.06,
+    params={"asset_cfg": shoulder_pitch_cfg, "std": 0.45},
+  )
+  cfg.rewards["arm_pitch_bias"] = RewardTermCfg(
+    func=mdp.filtered_joint_bias_l2,
+    weight=-0.03,
+    params={
+      "asset_cfg": shoulder_pitch_cfg,
+      "time_constant_s": 0.75,
+      "std": 0.25,
+    },
   )
   cfg.rewards["action_rate_l2"].weight = -0.05
   cfg.rewards["air_time"].weight = 0.25

@@ -206,6 +206,77 @@ def angular_momentum_penalty(
   return angmom_magnitude_sq
 
 
+def paired_joint_antiphase_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg,
+  std: float,
+) -> torch.Tensor:
+  """Penalize common-mode displacement of a mirrored joint pair.
+
+  The two selected joints are expressed relative to their default positions.
+  A natural left/right counter-swing has opposite signed displacement and
+  therefore a near-zero sum.  The term deliberately does not prescribe a gait
+  frequency or a swing amplitude.
+  """
+  if len(asset_cfg.joint_ids) != 2:
+    raise ValueError("paired_joint_antiphase_l2 requires exactly two joints.")
+  asset: Entity = env.scene[asset_cfg.name]
+  default_joint_pos = asset.data.default_joint_pos
+  assert default_joint_pos is not None
+  displacement = (
+    asset.data.joint_pos[:, asset_cfg.joint_ids]
+    - default_joint_pos[:, asset_cfg.joint_ids]
+  )
+  return torch.square(torch.sum(displacement, dim=1) / std)
+
+
+class filtered_joint_bias_l2:
+  """Penalize a persistent joint offset while preserving cyclic motion.
+
+  An exponential moving average separates a long-lived pose bias from normal
+  walking-frequency motion.  This prevents a policy from holding both arms in
+  front of the torso without discouraging their counter-swing.
+  """
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self._asset_cfg: SceneEntityCfg = cfg.params["asset_cfg"]
+    if len(self._asset_cfg.joint_ids) != 2:
+      raise ValueError("filtered_joint_bias_l2 requires exactly two joints.")
+    self._time_constant_s = float(cfg.params["time_constant_s"])
+    if self._time_constant_s <= 0.0:
+      raise ValueError("time_constant_s must be positive.")
+    self._std = float(cfg.params["std"])
+    if self._std <= 0.0:
+      raise ValueError("std must be positive.")
+    self._alpha = float(np.exp(-env.step_dt / self._time_constant_s))
+    self._filtered_displacement = torch.zeros(
+      (env.num_envs, 2), device=env.device, dtype=torch.float32
+    )
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    asset_cfg: SceneEntityCfg,
+    time_constant_s: float,
+    std: float,
+  ) -> torch.Tensor:
+    del asset_cfg, time_constant_s, std  # Resolved and cached in __init__.
+    asset: Entity = env.scene[self._asset_cfg.name]
+    default_joint_pos = asset.data.default_joint_pos
+    assert default_joint_pos is not None
+    displacement = (
+      asset.data.joint_pos[:, self._asset_cfg.joint_ids]
+      - default_joint_pos[:, self._asset_cfg.joint_ids]
+    )
+    self._filtered_displacement.mul_(self._alpha).add_(
+      displacement, alpha=1.0 - self._alpha
+    )
+    return torch.mean(torch.square(self._filtered_displacement / self._std), dim=1)
+
+  def reset(self, env_ids: torch.Tensor | slice) -> None:
+    self._filtered_displacement[env_ids] = 0.0
+
+
 def feet_air_time(
   env: ManagerBasedRlEnv,
   sensor_name: str,

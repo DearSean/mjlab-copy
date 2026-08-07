@@ -177,7 +177,7 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
     ".*_knee_joint": 0.3,
     ".*_foot_pitch_joint": -0.15,
     ".*_shoulder_pitch_joint": 0.15,
-    ".*_elbow_joint": 0.5,
+    ".*_elbow_joint": 0.7,
     "left_shoulder_roll_joint": 0.2,
     "right_shoulder_roll_joint": -0.2,
   },
