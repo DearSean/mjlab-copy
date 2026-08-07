@@ -24,6 +24,18 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
+def _command_motion_gate(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  command_threshold: float,
+) -> torch.Tensor:
+  """Return one for commanded locomotion and zero for standing."""
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  command_speed = torch.norm(command[:, :2], dim=1) + torch.abs(command[:, 2])
+  return (command_speed >= command_threshold).float()
+
+
 def track_linear_velocity(
   env: ManagerBasedRlEnv,
   std: float,
@@ -210,6 +222,8 @@ def paired_joint_antiphase_l2(
   env: ManagerBasedRlEnv,
   asset_cfg: SceneEntityCfg,
   std: float,
+  command_name: str,
+  command_threshold: float,
 ) -> torch.Tensor:
   """Penalize common-mode displacement of a mirrored joint pair.
 
@@ -227,7 +241,8 @@ def paired_joint_antiphase_l2(
     asset.data.joint_pos[:, asset_cfg.joint_ids]
     - default_joint_pos[:, asset_cfg.joint_ids]
   )
-  return torch.square(torch.sum(displacement, dim=1) / std)
+  penalty = torch.square(torch.sum(displacement, dim=1) / std)
+  return penalty * _command_motion_gate(env, command_name, command_threshold)
 
 
 class filtered_joint_bias_l2:
@@ -259,6 +274,8 @@ class filtered_joint_bias_l2:
     asset_cfg: SceneEntityCfg,
     time_constant_s: float,
     std: float,
+    command_name: str,
+    command_threshold: float,
   ) -> torch.Tensor:
     del asset_cfg, time_constant_s, std  # Resolved and cached in __init__.
     asset: Entity = env.scene[self._asset_cfg.name]
@@ -271,7 +288,8 @@ class filtered_joint_bias_l2:
     self._filtered_displacement.mul_(self._alpha).add_(
       displacement, alpha=1.0 - self._alpha
     )
-    return torch.mean(torch.square(self._filtered_displacement / self._std), dim=1)
+    penalty = torch.mean(torch.square(self._filtered_displacement / self._std), dim=1)
+    return penalty * _command_motion_gate(env, command_name, command_threshold)
 
   def reset(self, env_ids: torch.Tensor | slice) -> None:
     self._filtered_displacement[env_ids] = 0.0

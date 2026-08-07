@@ -89,7 +89,7 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   twist_cmd.viz.z_offset = 0.7
   twist_cmd.ranges.lin_vel_x = (-0.3, 0.5)
   twist_cmd.ranges.lin_vel_y = (-0.2, 0.2)
-  twist_cmd.ranges.ang_vel_z = (-0.3, 0.3)
+  twist_cmd.ranges.ang_vel_z = (-1.0, 1.0)
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = foot_geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
@@ -146,7 +146,12 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.rewards["arm_swing_antiphase"] = RewardTermCfg(
     func=mdp.paired_joint_antiphase_l2,
     weight=-0.06,
-    params={"asset_cfg": shoulder_pitch_cfg, "std": 0.45},
+    params={
+      "asset_cfg": shoulder_pitch_cfg,
+      "std": 0.45,
+      "command_name": "twist",
+      "command_threshold": 0.15,
+    },
   )
   cfg.rewards["arm_pitch_bias"] = RewardTermCfg(
     func=mdp.filtered_joint_bias_l2,
@@ -155,6 +160,8 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       "asset_cfg": shoulder_pitch_cfg,
       "time_constant_s": 0.75,
       "std": 0.25,
+      "command_name": "twist",
+      "command_threshold": 0.15,
     },
   )
   cfg.rewards["action_rate_l2"].weight = -0.05
@@ -176,8 +183,8 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.curriculum.pop("terrain_levels", None)
   cfg.curriculum["command_vel"].params["velocity_stages"] = [
     {"step": 0, "lin_vel_x": (-0.3, 0.5), "ang_vel_z": (-0.3, 0.3)},
-    {"step": 5000 * 24, "lin_vel_x": (-0.5, 0.8), "ang_vel_z": (-0.5, 0.5)},
-    {"step": 10000 * 24, "lin_vel_x": (-0.8, 1.2)},
+    {"step": 750 * 24, "lin_vel_x": (-0.5, 0.8), "ang_vel_z": (-0.5, 0.5)},
+    {"step": 1500 * 24, "lin_vel_x": (-0.8, 1.2), "ang_vel_z": (-1.0, 1.0)},
   ]
 
   if play:
@@ -187,6 +194,6 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.curriculum = {}
     twist_cmd.ranges.lin_vel_x = (-0.5, 0.8)
     twist_cmd.ranges.lin_vel_y = (-0.3, 0.3)
-    twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
+    twist_cmd.ranges.ang_vel_z = (-1.0, 1.0)
 
   return cfg
