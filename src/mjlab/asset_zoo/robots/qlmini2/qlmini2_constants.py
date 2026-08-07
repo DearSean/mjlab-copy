@@ -1,4 +1,4 @@
-"""QLmini2.0 robot and actuator constants."""
+"""qlmini2 robot and actuator constants."""
 
 import math
 from pathlib import Path
@@ -11,7 +11,7 @@ from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.spec_config import CollisionCfg
 
 QLMINI2_XML: Path = (
-  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "QLmini2.0" / "urdf" / "qinglongmini2.0.xml"
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "qlmini2" / "urdf" / "qlmini2.xml"
 )
 assert QLMINI2_XML.exists()
 
@@ -20,9 +20,13 @@ def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(QLMINI2_XML))
 
 
-# Specs below come from the supplied Lingzu motor manuals dated 2025-12-10.
-# The manuals do not specify rotor inertia. The source MJCF's temporary 0.01
-# armature is deliberately not inherited, and no fabricated inertia is used.
+# Specs below are digitized from the supplied RobStride manuals dated
+# 2025-12-10.  The curve points are the 48 V output-shaft T-N envelopes, not
+# MIT protocol ranges.  Their continuous ratings remain separate because the
+# manuals' overload tables show that peak torque is only sustainable briefly.
+# The manuals do not specify rotor inertia. These conservative output-side
+# armature estimates are provisionally scaled by motor class from RL Boy's
+# documented reflected inertias; replace them with measured values when known.
 def _rpm_to_rad_s(rpm: float) -> float:
   return rpm * 2.0 * math.pi / 60.0
 
@@ -30,38 +34,98 @@ def _rpm_to_rad_s(rpm: float) -> float:
 EL05_RATED_TORQUE = 1.8
 EL05_PEAK_TORQUE = 6.0
 EL05_NO_LOAD_SPEED = _rpm_to_rad_s(430.0)
+EL05_ARMATURE = 0.0005
+EL05_TORQUE_SPEED_POINTS = tuple(
+  (_rpm_to_rad_s(rpm), torque)
+  for rpm, torque in (
+    (0.0, 5.6),
+    (100.0, 5.3),
+    (220.0, 4.0),
+    (310.0, 3.0),
+    (430.0, 0.0),
+  )
+)
 
 RS00_RATED_TORQUE = 5.0
 RS00_PEAK_TORQUE = 14.0
 RS00_NO_LOAD_SPEED = _rpm_to_rad_s(315.0)
+RS00_ARMATURE = 0.002
+RS00_TORQUE_SPEED_POINTS = tuple(
+  (_rpm_to_rad_s(rpm), torque)
+  for rpm, torque in (
+    (0.0, 14.0),
+    (50.0, 14.0),
+    (130.0, 12.0),
+    (170.0, 11.0),
+    (220.0, 8.0),
+    (260.0, 6.0),
+    (300.0, 3.0),
+    (315.0, 0.0),
+  )
+)
 
 RS02_RATED_TORQUE = 6.0
 RS02_PEAK_TORQUE = 17.0
 RS02_NO_LOAD_SPEED = _rpm_to_rad_s(410.0)
+RS02_ARMATURE = 0.003
+RS02_TORQUE_SPEED_POINTS = tuple(
+  (_rpm_to_rad_s(rpm), torque)
+  for rpm, torque in (
+    (0.0, 17.0),
+    (165.0, 17.0),
+    (195.0, 16.0),
+    (240.0, 14.0),
+    (285.0, 10.0),
+    (330.0, 7.0),
+    (375.0, 4.0),
+    (410.0, 0.0),
+  )
+)
 
 RS06_RATED_TORQUE = 11.0
 RS06_PEAK_TORQUE = 36.0
-RS06_NO_LOAD_SPEED = _rpm_to_rad_s(480.0)
+RS06_NO_LOAD_SPEED = _rpm_to_rad_s(510.0)
+RS06_ARMATURE = 0.005
+RS06_TORQUE_SPEED_POINTS = tuple(
+  (_rpm_to_rad_s(rpm), torque)
+  for rpm, torque in (
+    (0.0, 36.0),
+    (270.0, 35.5),
+    (290.0, 32.0),
+    (310.0, 30.0),
+    (330.0, 27.5),
+    (350.0, 23.0),
+    (370.0, 20.0),
+    (390.0, 17.0),
+    (410.0, 16.0),
+    (430.0, 15.0),
+    (450.0, 11.0),
+    (470.0, 7.0),
+    (490.0, 1.5),
+    (510.0, 0.0),
+  )
+)
 
 # Initial simulation-space PD gains. These are controller tuning values, not
 # claimed motor-manual parameters, and should be identified on the real robot.
-STIFFNESS_EL05 = 20.0
-DAMPING_EL05 = 0.8
-STIFFNESS_RS00 = 50.0
-DAMPING_RS00 = 1.5
-STIFFNESS_RS02 = 60.0
-DAMPING_RS02 = 1.5
-STIFFNESS_RS06 = 80.0
-DAMPING_RS06 = 2.0
+STIFFNESS_EL05 = 5.0
+DAMPING_EL05 = 0.3
+STIFFNESS_RS00 = 8.0
+DAMPING_RS00 = 0.5
+STIFFNESS_RS02 = 16.0
+DAMPING_RS02 = 0.7
+STIFFNESS_RS06 = 16.0
+DAMPING_RS06 = 0.7
 
 QLMINI2_ACTUATOR_RS06 = DcMotorActuatorCfg(
-  target_names_expr=("waist_yaw_joint", ".*_hip_pitch_joint"),
+  target_names_expr=(".*_hip_pitch_joint",),
   stiffness=STIFFNESS_RS06,
   damping=DAMPING_RS06,
   effort_limit=RS06_RATED_TORQUE,
   saturation_effort=RS06_PEAK_TORQUE,
   velocity_limit=RS06_NO_LOAD_SPEED,
-  armature=0.0,
+  torque_speed_points=RS06_TORQUE_SPEED_POINTS,
+  armature=RS06_ARMATURE,
 )
 
 QLMINI2_ACTUATOR_RS00 = DcMotorActuatorCfg(
@@ -71,7 +135,8 @@ QLMINI2_ACTUATOR_RS00 = DcMotorActuatorCfg(
   effort_limit=RS00_RATED_TORQUE,
   saturation_effort=RS00_PEAK_TORQUE,
   velocity_limit=RS00_NO_LOAD_SPEED,
-  armature=0.0,
+  torque_speed_points=RS00_TORQUE_SPEED_POINTS,
+  armature=RS00_ARMATURE,
 )
 
 QLMINI2_ACTUATOR_RS02 = DcMotorActuatorCfg(
@@ -79,13 +144,15 @@ QLMINI2_ACTUATOR_RS02 = DcMotorActuatorCfg(
     ".*_hip_roll_joint",
     ".*_knee_joint",
     ".*_foot_pitch_joint",
+    "waist_yaw_joint",
   ),
   stiffness=STIFFNESS_RS02,
   damping=DAMPING_RS02,
   effort_limit=RS02_RATED_TORQUE,
   saturation_effort=RS02_PEAK_TORQUE,
   velocity_limit=RS02_NO_LOAD_SPEED,
-  armature=0.0,
+  torque_speed_points=RS02_TORQUE_SPEED_POINTS,
+  armature=RS02_ARMATURE,
 )
 
 QLMINI2_ACTUATOR_EL05 = DcMotorActuatorCfg(
@@ -99,7 +166,8 @@ QLMINI2_ACTUATOR_EL05 = DcMotorActuatorCfg(
   effort_limit=EL05_RATED_TORQUE,
   saturation_effort=EL05_PEAK_TORQUE,
   velocity_limit=EL05_NO_LOAD_SPEED,
-  armature=0.0,
+  torque_speed_points=EL05_TORQUE_SPEED_POINTS,
+  armature=EL05_ARMATURE,
 )
 
 HOME_KEYFRAME = EntityCfg.InitialStateCfg(

@@ -1,4 +1,4 @@
-<mujoco model="qinglongmini2.0">
+<mujoco model="qlmini2">
     <compiler angle="radian" meshdir="../meshes/"/>
     <size njmax="500" nconmax="1000"/>
     <default>
@@ -36,12 +36,18 @@
         <mesh name="left_shoulder_roll_link" file="left_shoulder_roll_link.STL"/>
         <mesh name="left_shoulder_yaw_link" file="left_shoulder_yaw_link.STL"/>
         <mesh name="left_elbow_link" file="left_elbow_link.STL"/>
+        <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072"/>
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+                 markrgb="0.8 0.8 0.8" width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
     </asset>
 
     <worldbody>
+        <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
+        <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
         <!-- Coarse primitive collision bodies; dimensions are intended for later tuning. -->
         <body name="base_link" pos="0.00000000 0.00000000 0.48" quat="1 0 0 0">
-            <joint name="floating_base_joint" type="free" limited="false" actuatorfrclimited="false"/>
+            <freejoint name="floating_base_joint"/>
             <inertial pos="-5.73678996165089E-06 -1.69193884976709E-05 0.058874742378733" quat="1.0 0.0 0.0 0.0"
                       mass="1.6520541" diaginertia="0.0032157 0.0019340 0.0028831"/>
             <geom class="visual" type="mesh" rgba="0.898 0.918 0.929 1" mesh="base_link"/>
@@ -249,14 +255,4 @@
         <rgba haze="0.15 0.25 0.35 1"/>
         <global azimuth="-140" elevation="-20"/>
     </visual>
-    <asset>
-        <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072"/>
-        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
-                 markrgb="0.8 0.8 0.8" width="300" height="300"/>
-        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
-    </asset>
-    <worldbody>
-        <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
-        <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
-    </worldbody>
 </mujoco>

@@ -134,6 +134,34 @@ def test_dc_motor_linear_torque_speed_curve(device, robot_xml):
   assert torch.allclose(ctrl, torch.tensor([expected], device=device), rtol=1e-4)
 
 
+def test_dc_motor_piecewise_torque_speed_curve(device, robot_xml):
+  """DC motor can use a measured piecewise T-N envelope."""
+  entity = create_entity_with_actuator(
+    robot_xml,
+    DcMotorActuatorCfg(
+      target_names_expr=("joint.*",),
+      effort_limit=20.0,
+      stiffness=100.0,
+      damping=0.0,
+      saturation_effort=20.0,
+      velocity_limit=30.0,
+      torque_speed_points=((0.0, 20.0), (10.0, 15.0), (30.0, 0.0)),
+    ),
+  )
+  entity, sim = initialize_entity(entity, device)
+
+  entity.write_joint_state_to_sim(
+    torch.tensor([[0.0]], device=device), torch.tensor([[5.0]], device=device)
+  )
+  entity.set_joint_position_target(torch.tensor([[2.0]], device=device))
+  entity.set_joint_velocity_target(torch.zeros(1, 1, device=device))
+  entity.set_joint_effort_target(torch.zeros(1, 1, device=device))
+  entity.write_data_to_sim()
+
+  # Linear interpolation of 20 Nm at 0 rad/s and 15 Nm at 10 rad/s.
+  assert torch.allclose(sim.data.ctrl[0], torch.tensor([17.5], device=device))
+
+
 def test_dc_motor_effort_limit_constrains_output(device, robot_xml):
   """Continuous effort_limit constrains output below saturation_effort."""
   kp = 100.0

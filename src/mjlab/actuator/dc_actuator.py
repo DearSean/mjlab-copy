@@ -41,6 +41,15 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
   velocity_limit: float
   """Maximum motor velocity (no-load speed)."""
 
+  torque_speed_points: tuple[tuple[float, float], ...] | None = None
+  """Optional piecewise torque-speed envelope as ``(rad/s, Nm)`` points.
+
+  Points describe the positive magnitude of the output torque available at a
+  given output-shaft speed.  The envelope is linearly interpolated and applied
+  symmetrically in both rotation directions.  When omitted, the traditional
+  linear ``saturation_effort`` to ``velocity_limit`` model is used.
+  """
+
   def __post_init__(self) -> None:
     """Validate DC motor parameters."""
     super().__post_init__()
@@ -64,6 +73,19 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
         UserWarning,
         stacklevel=2,
       )
+
+    if self.torque_speed_points is not None:
+      if len(self.torque_speed_points) < 2:
+        raise ValueError("torque_speed_points must contain at least two points")
+      speeds, torques = zip(*self.torque_speed_points, strict=True)
+      if speeds[0] != 0.0 or any(
+        speeds[index] <= speeds[index - 1] for index in range(1, len(speeds))
+      ):
+        raise ValueError(
+          "torque_speed_points must start at zero and have strictly increasing speeds"
+        )
+      if any(torque < 0.0 for torque in torques):
+        raise ValueError("torque_speed_points torques must be non-negative")
 
   def build(
     self, entity: Entity, target_ids: list[int], target_names: list[str]
@@ -96,6 +118,8 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     self.velocity_limit_motor: torch.Tensor | None = None
     self._vel_at_effort_lim: torch.Tensor | None = None
     self._joint_vel_clipped: torch.Tensor | None = None
+    self._curve_speeds: torch.Tensor | None = None
+    self._curve_torques: torch.Tensor | None = None
 
   def initialize(
     self,
@@ -128,6 +152,17 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
       1 + self.force_limit / self.saturation_effort
     )
     self._joint_vel_clipped = torch.zeros(num_envs, num_joints, device=device)
+    if self.cfg.torque_speed_points is not None:
+      self._curve_speeds = torch.tensor(
+        [point[0] for point in self.cfg.torque_speed_points],
+        dtype=torch.float,
+        device=device,
+      )
+      self._curve_torques = torch.tensor(
+        [point[1] for point in self.cfg.torque_speed_points],
+        dtype=torch.float,
+        device=device,
+      )
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     assert self._joint_vel_clipped is not None
@@ -140,6 +175,25 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     assert self.force_limit is not None
     assert self._vel_at_effort_lim is not None
     assert self._joint_vel_clipped is not None
+
+    if self._curve_speeds is not None:
+      assert self._curve_torques is not None
+      speed = self._joint_vel_clipped.abs()
+      point_idx = torch.bucketize(speed, self._curve_speeds).clamp(
+        min=1, max=len(self._curve_speeds) - 1
+      )
+      lower_speed = self._curve_speeds[point_idx - 1]
+      upper_speed = self._curve_speeds[point_idx]
+      lower_torque = self._curve_torques[point_idx - 1]
+      upper_torque = self._curve_torques[point_idx]
+      torque_limit = lower_torque + (upper_torque - lower_torque) * (
+        (speed - lower_speed) / (upper_speed - lower_speed)
+      )
+      torque_limit = torch.where(
+        speed >= self._curve_speeds[-1], torch.zeros_like(torque_limit), torque_limit
+      )
+      torque_limit = torch.clamp(torque_limit, max=self.force_limit)
+      return torch.clamp(effort, min=-torque_limit, max=torque_limit)
 
     # Clip velocity to corner velocity range.
     vel_clipped = torch.clamp(

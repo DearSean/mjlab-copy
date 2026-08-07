@@ -9,7 +9,7 @@ from mjlab.entity import Entity
   "robot_name,robot_cfg_fn",
   [
     ("G1", get_g1_robot_cfg),
-    ("QLmini2.0", get_qlmini2_robot_cfg),
+    ("qlmini2", get_qlmini2_robot_cfg),
   ],
 )
 def test_robot_compiles_parametrized(robot_name: str, robot_cfg_fn) -> None:

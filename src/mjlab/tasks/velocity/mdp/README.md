@@ -181,7 +181,7 @@ PosturePhaseEstimatorCfg(
 | 机器人 | Velocity 行走 | 起身配置 | 起身动作帧 |
 |---|---|---|---|
 | Unitree G1 | 已接入 Flat/Rough | 未接入 | 未提供 |
-| QLmini2.0 | 已接入 Flat | 未接入 | 未提供 |
+| qlmini2 | 已接入 Flat | 未接入 | 未提供 |
 | RL_BOY | 已接入 | 已接入 | 已提供 |
 
 RL_BOY 是当前完整起身接入的参考实现：

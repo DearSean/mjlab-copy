@@ -51,7 +51,7 @@ def test_velocity_task_set_is_supported(velocity_task_ids: list[str]) -> None:
     "Mjlab-Velocity-Rough-Recovery",
     "Mjlab-Velocity-Flat-Unitree-G1",
     "Mjlab-Velocity-Rough-Unitree-G1",
-    "Mjlab-Velocity-Flat-QLmini2.0",
+    "Mjlab-Velocity-Flat-qlmini2",
   }
 
 
@@ -164,7 +164,7 @@ def test_velocity_tasks_have_correct_action_scale(
 
     if task_id.endswith("-Unitree-G1"):
       expected_scale = G1_ACTION_SCALE
-    elif task_id.endswith("-QLmini2.0"):
+    elif task_id.endswith("-qlmini2"):
       expected_scale = QLMINI2_ACTION_SCALE
     else:
       expected_scale = RL_BOY_ACTION_SCALE

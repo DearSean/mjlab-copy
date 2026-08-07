@@ -82,7 +82,7 @@ Added
 Changed
 ^^^^^^^
 
-- Added the ``Mjlab-Velocity-Flat-QLmini2.0`` task and configured its 19
+- Added the ``Mjlab-Velocity-Flat-qlmini2`` task and configured its 19
   actuators as RS06, RS00, RS02, and EL05 groups using the supplied motor
   manuals. The temporary ``0.01`` joint armature was removed because the
   manuals do not specify rotor inertia.

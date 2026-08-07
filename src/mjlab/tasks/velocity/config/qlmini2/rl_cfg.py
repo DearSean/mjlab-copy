@@ -1,4 +1,4 @@
-"""RL configuration for the QLmini2.0 velocity task."""
+"""RL configuration for the qlmini2 velocity task."""
 
 from mjlab.rl import (
   RslRlModelCfg,

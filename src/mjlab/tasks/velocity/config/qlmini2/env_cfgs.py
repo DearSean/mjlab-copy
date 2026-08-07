@@ -1,8 +1,10 @@
-"""QLmini2.0 flat-terrain velocity environment configuration."""
+"""qlmini2 flat-terrain velocity environment configuration."""
 
 from mjlab.asset_zoo.robots import QLMINI2_ACTION_SCALE, get_qlmini2_robot_cfg
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers import SceneEntityCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.sensor import (
   ContactMatch,
@@ -17,10 +19,10 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 
 def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create the QLmini2.0 flat velocity task."""
+  """Create the qlmini2 flat velocity task."""
   cfg = make_velocity_env_cfg()
 
-  cfg.sim.njmax = 300
+  cfg.sim.njmax = 600
   cfg.sim.mujoco.ccd_iterations = 50
   cfg.sim.contact_sensor_maxmatch = 64
   cfg.sim.nconmax = None
@@ -92,18 +94,27 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = foot_geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
 
-  cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
+  # Keep the waist close to its neutral pose while leaving enough arm range for
+  # counter-swing. Whole-body angular-momentum and waist-velocity costs below
+  # make the learned arm motion a balance strategy rather than unconstrained
+  # flailing.
+  cfg.rewards["pose"].params["std_standing"] = {
+    r".*_(hip_pitch|hip_roll|hip_yaw|knee|foot_pitch)_joint": 0.05,
+    r".*waist_yaw.*": 0.03,
+    r".*shoulder.*": 0.12,
+    r".*elbow.*": 0.12,
+  }
   cfg.rewards["pose"].params["std_walking"] = {
     r".*hip_pitch.*": 0.25,
     r".*hip_roll.*": 0.12,
     r".*hip_yaw.*": 0.12,
     r".*knee.*": 0.3,
     r".*foot_pitch.*": 0.2,
-    r".*waist_yaw.*": 0.15,
-    r".*shoulder_pitch.*": 0.2,
-    r".*shoulder_roll.*": 0.15,
-    r".*shoulder_yaw.*": 0.12,
-    r".*elbow.*": 0.2,
+    r".*waist_yaw.*": 0.06,
+    r".*shoulder_pitch.*": 0.65,
+    r".*shoulder_roll.*": 0.45,
+    r".*shoulder_yaw.*": 0.45,
+    r".*elbow.*": 0.60,
   }
   cfg.rewards["pose"].params["std_running"] = {
     r".*hip_pitch.*": 0.4,
@@ -111,18 +122,26 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*hip_yaw.*": 0.18,
     r".*knee.*": 0.5,
     r".*foot_pitch.*": 0.3,
-    r".*waist_yaw.*": 0.25,
-    r".*shoulder_pitch.*": 0.35,
-    r".*shoulder_roll.*": 0.25,
-    r".*shoulder_yaw.*": 0.2,
-    r".*elbow.*": 0.3,
+    r".*waist_yaw.*": 0.10,
+    r".*shoulder_pitch.*": 0.90,
+    r".*shoulder_roll.*": 0.65,
+    r".*shoulder_yaw.*": 0.65,
+    r".*elbow.*": 0.85,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("waist_yaw_link",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("waist_yaw_link",)
-  cfg.rewards["body_ang_vel"].weight = -0.05
-  cfg.rewards["angular_momentum"].weight = -0.02
-  cfg.rewards["air_time"].weight = 0.0
+  cfg.rewards["body_ang_vel"].weight = -0.10
+  cfg.rewards["angular_momentum"].weight = -0.08
+  cfg.rewards["waist_yaw_velocity"] = RewardTermCfg(
+    func=envs_mdp.joint_vel_l2,
+    weight=-0.10,
+    params={"asset_cfg": SceneEntityCfg("robot", joint_names=("waist_yaw_joint",))},
+  )
+  cfg.rewards["action_rate_l2"].weight = -0.05
+  cfg.rewards["air_time"].weight = 0.25
+  cfg.rewards["foot_slip"].weight = -0.20
+  cfg.rewards["soft_landing"].weight = -2.0e-5
   cfg.rewards["foot_clearance"].params["target_height"] = 0.06
   cfg.rewards["foot_swing_height"].params["target_height"] = 0.06
   for reward_name in ("foot_clearance", "foot_slip"):
