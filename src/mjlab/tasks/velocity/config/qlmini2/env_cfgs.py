@@ -88,7 +88,7 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 0.7
   twist_cmd.ranges.lin_vel_x = (-0.3, 0.5)
-  twist_cmd.ranges.lin_vel_y = (-0.2, 0.2)
+  twist_cmd.ranges.lin_vel_y = (-0.3, 0.3)
   twist_cmd.ranges.ang_vel_z = (-1.0, 1.0)
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = foot_geom_names
@@ -107,7 +107,7 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   }
   cfg.rewards["pose"].params["std_walking"] = {
     r".*hip_pitch.*": 0.25,
-    r".*hip_roll.*": 0.12,
+    r".*hip_roll.*": 0.25,
     r".*hip_yaw.*": 0.12,
     r".*knee.*": 0.3,
     r".*foot_pitch.*": 0.2,
@@ -119,7 +119,7 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   }
   cfg.rewards["pose"].params["std_running"] = {
     r".*hip_pitch.*": 0.4,
-    r".*hip_roll.*": 0.18,
+    r".*hip_roll.*": 0.35,
     r".*hip_yaw.*": 0.18,
     r".*knee.*": 0.5,
     r".*foot_pitch.*": 0.3,
@@ -182,9 +182,24 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.terminations.pop("out_of_terrain_bounds", None)
   cfg.curriculum.pop("terrain_levels", None)
   cfg.curriculum["command_vel"].params["velocity_stages"] = [
-    {"step": 0, "lin_vel_x": (-0.3, 0.5), "ang_vel_z": (-0.3, 0.3)},
-    {"step": 750 * 24, "lin_vel_x": (-0.5, 0.8), "ang_vel_z": (-0.5, 0.5)},
-    {"step": 1500 * 24, "lin_vel_x": (-0.8, 1.2), "ang_vel_z": (-1.0, 1.0)},
+    {
+      "step": 0,
+      "lin_vel_x": (-0.3, 0.5),
+      "lin_vel_y": (-0.3, 0.3),
+      "ang_vel_z": (-0.3, 0.3),
+    },
+    {
+      "step": 750 * 24,
+      "lin_vel_x": (-0.5, 0.8),
+      "lin_vel_y": (-0.5, 0.5),
+      "ang_vel_z": (-0.5, 0.5),
+    },
+    {
+      "step": 1500 * 24,
+      "lin_vel_x": (-0.8, 1.2),
+      "lin_vel_y": (-0.8, 0.8),
+      "ang_vel_z": (-1.0, 1.0),
+    },
   ]
 
   if play:
@@ -193,7 +208,7 @@ def qlmini2_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.events.pop("push_robot", None)
     cfg.curriculum = {}
     twist_cmd.ranges.lin_vel_x = (-0.5, 0.8)
-    twist_cmd.ranges.lin_vel_y = (-0.3, 0.3)
+    twist_cmd.ranges.lin_vel_y = (-0.8, 0.8)
     twist_cmd.ranges.ang_vel_z = (-1.0, 1.0)
 
   return cfg

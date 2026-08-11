@@ -169,7 +169,10 @@
                                           mass="0.1977884" diaginertia="0.0000909 0.0008559 0.0009024"/>
                                 <geom class="visual" type="mesh" rgba="1 1 1 1" mesh="right_elbow_link"/>
                                 <geom name="right_elbow_link_collision" class="collision" type="cylinder" pos="0.1 0.005 0" size="0.02 0.06" euler="0 1.5708 0"/>
-                                <geom name="right_elbow_link_collision2" class="collision" type="sphere" pos="0.17 0.005 0" size="0.02"/>
+                                <body name="right_hand" pos="0.17 0.005 0">
+                                    <geom name="right_hand_collision" class="collision" type="sphere" size="0.02"/>
+                                    <site name="right_palm" pos="0 0 0" size="0.01"/>
+                                </body>
                             </body>
                         </body>
                     </body>
@@ -198,7 +201,10 @@
                                           mass="0.1977884" diaginertia="0.0000909 0.0008559 0.0009024"/>
                                 <geom class="visual" type="mesh" rgba="1 1 1 1" mesh="left_elbow_link"/>
                                 <geom name="left_elbow_link_collision" class="collision" type="cylinder" pos="0.1 -0.005 0" size="0.02 0.06" euler="0 1.5708 0"/>
-                                <geom name="left_elbow_link_collision2" class="collision" type="sphere" pos="0.17 -0.005 0" size="0.02"/>
+                                <body name="left_hand" pos="0.17 -0.005 0">
+                                    <geom name="left_hand_collision" class="collision" type="sphere" size="0.02"/>
+                                    <site name="left_palm" pos="0 0 0" size="0.01"/>
+                                </body>
                             </body>
                         </body>
                     </body>
@@ -231,10 +237,12 @@
         <exclude body1="right_shoulder_pitch_link" body2="right_shoulder_roll_link"/>
         <exclude body1="right_shoulder_roll_link" body2="right_shoulder_yaw_link"/>
         <exclude body1="right_shoulder_yaw_link" body2="right_elbow_link"/>
+        <exclude body1="right_elbow_link" body2="right_hand"/>
         <exclude body1="waist_yaw_link" body2="left_shoulder_pitch_link"/>
         <exclude body1="left_shoulder_pitch_link" body2="left_shoulder_roll_link"/>
         <exclude body1="left_shoulder_roll_link" body2="left_shoulder_yaw_link"/>
         <exclude body1="left_shoulder_yaw_link" body2="left_elbow_link"/>
+        <exclude body1="left_elbow_link" body2="left_hand"/>
     </contact>
 
     <sensor>

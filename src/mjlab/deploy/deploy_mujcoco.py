@@ -134,10 +134,18 @@ def pd_control(target_q, q, kp, target_dq, dq, kd):
 class KeyboardControlWindow:
   """Receive velocity commands in a dedicated Tk window."""
 
-  def __init__(self):
+  def __init__(
+    self,
+    lin_vel_x_limit: float = 1.0,
+    lin_vel_y_limit: float = 1.0,
+    ang_vel_z_limit: float = 0.5,
+  ):
     self.lin_vel_x = 0.0
     self.lin_vel_y = 0.0
     self.ang_vel_z = 0.0
+    self.lin_vel_x_limit = lin_vel_x_limit
+    self.lin_vel_y_limit = lin_vel_y_limit
+    self.ang_vel_z_limit = ang_vel_z_limit
     self.heading_target = 0.0
     self.heading_mode = False
     self._lock = threading.Lock()
@@ -229,17 +237,29 @@ class KeyboardControlWindow:
     key = str(key).upper()
     with self._lock:
       if key == "W":
-        self.lin_vel_x = np.clip(self.lin_vel_x + 0.1, -1.0, 1.0)
+        self.lin_vel_x = np.clip(
+          self.lin_vel_x + 0.1, -self.lin_vel_x_limit, self.lin_vel_x_limit
+        )
       elif key == "S":
-        self.lin_vel_x = np.clip(self.lin_vel_x - 0.1, -1.0, 1.0)
+        self.lin_vel_x = np.clip(
+          self.lin_vel_x - 0.1, -self.lin_vel_x_limit, self.lin_vel_x_limit
+        )
       elif key == "A":
-        self.lin_vel_y = np.clip(self.lin_vel_y + 0.1, -1.0, 1.0)
+        self.lin_vel_y = np.clip(
+          self.lin_vel_y + 0.1, -self.lin_vel_y_limit, self.lin_vel_y_limit
+        )
       elif key == "D":
-        self.lin_vel_y = np.clip(self.lin_vel_y - 0.1, -1.0, 1.0)
+        self.lin_vel_y = np.clip(
+          self.lin_vel_y - 0.1, -self.lin_vel_y_limit, self.lin_vel_y_limit
+        )
       elif key == "Q":
-        self.ang_vel_z = np.clip(self.ang_vel_z + 0.1, -0.5, 0.5)
+        self.ang_vel_z = np.clip(
+          self.ang_vel_z + 0.1, -self.ang_vel_z_limit, self.ang_vel_z_limit
+        )
       elif key == "E":
-        self.ang_vel_z = np.clip(self.ang_vel_z - 0.1, -0.5, 0.5)
+        self.ang_vel_z = np.clip(
+          self.ang_vel_z - 0.1, -self.ang_vel_z_limit, self.ang_vel_z_limit
+        )
       elif key == "H":
         self.heading_mode = not self.heading_mode
       elif key == "F":
@@ -460,7 +480,8 @@ if __name__ == "__main__":
   output_name = policy.get_outputs()[0].name
   print(f"Loaded ONNX policy from {policy_path}")
 
-  kbd = KeyboardControlWindow()
+  velocity_limits = (1.0, 0.8, 1.0) if args.robot == "qlmini2" else (1.0, 1.0, 0.5)
+  kbd = KeyboardControlWindow(*velocity_limits)
   kbd.start()
 
   def get_heading():
@@ -491,7 +512,11 @@ if __name__ == "__main__":
 
           if heading_mode:
             heading_error = wrap_to_pi(heading_target - get_heading())
-            ang_vel_z = np.clip(heading_control_stiffness * heading_error, -0.5, 0.5)
+            ang_vel_z = np.clip(
+              heading_control_stiffness * heading_error,
+              -velocity_limits[2],
+              velocity_limits[2],
+            )
 
           cmd[0] = lin_vel_x
           cmd[1] = lin_vel_y
