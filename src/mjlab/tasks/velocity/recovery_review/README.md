@@ -33,6 +33,74 @@ to `artifacts/recovery/review/reviewer-01.json`. Commit and push that file befor
 moving to another computer. The bundled BVH files retain their separate LaFAN1
 CC BY-NC-ND 4.0 license; see `data/lafan1/README.md` and `LICENSE.txt`.
 
+## Cross-computer review workflow
+
+### First use on a new computer
+
+Clone the `academic` branch and install the CPU development environment:
+
+```bash
+git clone --branch academic https://github.com/DearSean/mjlab-copy.git
+cd mjlab-copy
+uv sync --extra cpu --group dev
+```
+
+Start segment review from the repository root:
+
+```bash
+uv run python -m mjlab.tasks.velocity.recovery_review.viewer \
+  --reviewer reviewer-01 \
+  --mode segments
+```
+
+Open `http://127.0.0.1:8080` if the browser does not open automatically. Stop
+the server with `Ctrl+C`. Do not run `prepare` when resuming this review: the
+checked-in queue and its source-file hashes must remain unchanged.
+
+### Save work to GitHub
+
+`Save draft`, `Accept`, and `Reject` write the current annotation state to
+`artifacts/recovery/review/reviewer-01.json`. After stopping the viewer, upload
+the latest review state:
+
+```bash
+git status --short
+git add artifacts/recovery/review/reviewer-01.json
+git commit -m "Update recovery review annotations"
+git push origin academic
+```
+
+If Git reports that there is nothing to commit, no saved review decision has
+changed since the previous commit. Merely moving sliders or pressing Set does
+not persist a record until `Save draft`, `Accept`, or `Reject` is pressed.
+
+### Continue on another computer
+
+Before starting the viewer on an existing clone, update it with a fast-forward
+pull:
+
+```bash
+cd mjlab-copy
+git switch academic
+git pull --ff-only origin academic
+uv sync --extra cpu --group dev
+uv run python -m mjlab.tasks.velocity.recovery_review.viewer \
+  --reviewer reviewer-01 \
+  --mode segments
+```
+
+Always commit and push on the first computer before pulling on the second. Do
+not review concurrently on two computers, because both would edit the same
+`reviewer-01.json` and create a JSON merge conflict.
+
+### Verify the resumed progress
+
+The checked-in state at commit `c274105` contains 40 completed segment
+decisions: 32 accepted and 8 rejected. The viewer header shows `Completed
+decisions`; after pulling newer commits, use that count to confirm that the
+latest review state was loaded. The count should only increase as later review
+commits are added.
+
 ## 1. Prepare a new queue (full dataset only)
 
 ```bash

@@ -21,6 +21,12 @@ uv run demo
 
 For alternative installation methods (PyPI, Docker), see the [Installation Guide](https://mujocolab.github.io/mjlab/main/source/installation.html).
 
+## Continue the LaFAN Recovery Review
+
+The `academic` branch includes the review tool, current annotations, review
+queue, and the 17 LaFAN1 BVH files needed to resume on another computer. Follow
+the [recovery review instructions](src/mjlab/tasks/velocity/recovery_review/README.md#cross-computer-review-workflow).
+
 ## Training Examples
 
 ### 1. Velocity Tracking
