@@ -1,0 +1,2183 @@
+{
+  "clips": [
+    {
+      "duration_s": 239.43093900000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7184,
+      "recording": "aiming1",
+      "recovery_source": false,
+      "relative_path": "aiming1_subject1.bvh",
+      "segments": [],
+      "sha256": "53c90d858221d02a623776b6bca9d4cfed17ea832fc7bd641b35549055af912c",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 239.43093900000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7184,
+      "recording": "aiming1",
+      "recovery_source": false,
+      "relative_path": "aiming1_subject4.bvh",
+      "segments": [],
+      "sha256": "651f3c00bfe50fd19f6757faa31df2407ad70de11c30ae1f8525c6e49ab4b07b",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject2.bvh",
+      "segments": [],
+      "sha256": "76ddbd67bd40710f2196f732e7686823744c3fdfcd5c3410838f4c8508508d98",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject3.bvh",
+      "segments": [],
+      "sha256": "8f0bf3935998e1118dda8b01ded62d70bd3c679bdc5b5780a602924236a51cc9",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject5.bvh",
+      "segments": [],
+      "sha256": "788d43f6ecd38a937e2423bf8139cd4c562e45502924034c9c23b7a0e83a7061",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject1.bvh",
+      "segments": [],
+      "sha256": "9a285b61bb0446aa4c919c62247ff895eb158bc693be3b7477d31ef070995d73",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject2.bvh",
+      "segments": [],
+      "sha256": "4f15d0b1caac72f9e58745f5ab9183d7dc051dd6fcdc4e1bd90af128b8cfab4d",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject3.bvh",
+      "segments": [],
+      "sha256": "886e68a0cba98d6a7a719e164b2601b473d54716a4f1b00364416cfe084d88a2",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject1.bvh",
+      "segments": [],
+      "sha256": "8af02061322ac5fcc58930450523c8bbcb576987dcc25dde2438acd77c487efc",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject2.bvh",
+      "segments": [],
+      "sha256": "c7d6d108ce6d7fb3c67c5c0c74c1db78643e5c0555ff8dad1375bcf135ad4358",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject3.bvh",
+      "segments": [],
+      "sha256": "5030908e46c4042381d1e8c1297bbda88cf94477906f9eaa07e571854c51b952",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject4.bvh",
+      "segments": [],
+      "sha256": "ef1b1448ab2fb4713431ddee96ad67833d443dc54a722cd136b9197b12205699",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject5.bvh",
+      "segments": [],
+      "sha256": "a40d811b75e2bdfaa9c35e9fd5e9f56ecab0bad92bf130af5b8f36ef6ce3d5c2",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject1.bvh",
+      "segments": [
+        {
+          "end_frame": 349,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 160,
+          "terminal_progress": 0.8595927953720093
+        },
+        {
+          "end_frame": 598,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 426,
+          "terminal_progress": 0.8582256436347961
+        },
+        {
+          "end_frame": 785,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 645,
+          "terminal_progress": 0.8580023646354675
+        },
+        {
+          "end_frame": 938,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 816,
+          "terminal_progress": 0.8584913611412048
+        },
+        {
+          "end_frame": 1134,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 997,
+          "terminal_progress": 0.8524718284606934
+        },
+        {
+          "end_frame": 1326,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1250,
+          "terminal_progress": 0.8643820881843567
+        },
+        {
+          "end_frame": 1460,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1381,
+          "terminal_progress": 0.8514655232429504
+        },
+        {
+          "end_frame": 1687,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1538,
+          "terminal_progress": 0.8614593148231506
+        },
+        {
+          "end_frame": 1930,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1764,
+          "terminal_progress": 0.8528039455413818
+        },
+        {
+          "end_frame": 2211,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1999,
+          "terminal_progress": 0.885798454284668
+        },
+        {
+          "end_frame": 2415,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2247,
+          "terminal_progress": 0.8758355379104614
+        },
+        {
+          "end_frame": 2768,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2546,
+          "terminal_progress": 0.8515863418579102
+        },
+        {
+          "end_frame": 3077,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2836,
+          "terminal_progress": 0.8551378846168518
+        },
+        {
+          "end_frame": 3364,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3163,
+          "terminal_progress": 0.8505605459213257
+        },
+        {
+          "end_frame": 3604,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3406,
+          "terminal_progress": 0.8560290336608887
+        },
+        {
+          "end_frame": 3967,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3737,
+          "terminal_progress": 0.860064685344696
+        },
+        {
+          "end_frame": 4435,
+          "initial_posture": "supine",
+          "min_progress": 0.0,
+          "start_frame": 4194,
+          "terminal_progress": 0.8566035628318787
+        },
+        {
+          "end_frame": 4669,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4496,
+          "terminal_progress": 0.8535959720611572
+        },
+        {
+          "end_frame": 4961,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4843,
+          "terminal_progress": 0.8634065389633179
+        }
+      ],
+      "sha256": "8187569b98c3642fb1d491ad9fc483077804d8a6be2bc2e14180dfb26d56f495",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject4.bvh",
+      "segments": [
+        {
+          "end_frame": 854,
+          "initial_posture": "left_side",
+          "min_progress": 0.0,
+          "start_frame": 613,
+          "terminal_progress": 0.867074191570282
+        },
+        {
+          "end_frame": 1622,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1381,
+          "terminal_progress": 0.8600493669509888
+        },
+        {
+          "end_frame": 2176,
+          "initial_posture": "supine",
+          "min_progress": 0.0,
+          "start_frame": 1935,
+          "terminal_progress": 0.8504466414451599
+        },
+        {
+          "end_frame": 2440,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2220,
+          "terminal_progress": 0.8634105324745178
+        },
+        {
+          "end_frame": 2749,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2545,
+          "terminal_progress": 0.8917379975318909
+        },
+        {
+          "end_frame": 3096,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2896,
+          "terminal_progress": 0.8777746558189392
+        },
+        {
+          "end_frame": 3409,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3206,
+          "terminal_progress": 0.863173246383667
+        },
+        {
+          "end_frame": 3791,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3550,
+          "terminal_progress": 0.8508462905883789
+        },
+        {
+          "end_frame": 4296,
+          "initial_posture": "left_side",
+          "min_progress": 0.0,
+          "start_frame": 4055,
+          "terminal_progress": 0.8590666651725769
+        },
+        {
+          "end_frame": 4671,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4440,
+          "terminal_progress": 0.8573054671287537
+        },
+        {
+          "end_frame": 4893,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4758,
+          "terminal_progress": 0.8804144263267517
+        }
+      ],
+      "sha256": "d0cbd401a8abc5c0e5ac5892ffcc77eff6f19bc2725d4a51c8cb880f423fc53b",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject5.bvh",
+      "segments": [
+        {
+          "end_frame": 1181,
+          "initial_posture": "right_side",
+          "min_progress": 0.0,
+          "start_frame": 960,
+          "terminal_progress": 0.8747151494026184
+        },
+        {
+          "end_frame": 1298,
+          "initial_posture": "prone",
+          "min_progress": 0.00020405174291227013,
+          "start_frame": 1222,
+          "terminal_progress": 0.870490312576294
+        },
+        {
+          "end_frame": 1589,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1353,
+          "terminal_progress": 0.8596717119216919
+        },
+        {
+          "end_frame": 1766,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1620,
+          "terminal_progress": 0.86178058385849
+        },
+        {
+          "end_frame": 1977,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1804,
+          "terminal_progress": 0.8658024072647095
+        },
+        {
+          "end_frame": 2163,
+          "initial_posture": "right_side",
+          "min_progress": 0.0,
+          "start_frame": 2010,
+          "terminal_progress": 0.8691355586051941
+        },
+        {
+          "end_frame": 2377,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2249,
+          "terminal_progress": 0.8526883721351624
+        },
+        {
+          "end_frame": 2604,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2480,
+          "terminal_progress": 0.88138747215271
+        },
+        {
+          "end_frame": 3088,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2891,
+          "terminal_progress": 0.8654625415802002
+        },
+        {
+          "end_frame": 3243,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3118,
+          "terminal_progress": 0.8668881058692932
+        },
+        {
+          "end_frame": 3409,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3261,
+          "terminal_progress": 0.8559702038764954
+        },
+        {
+          "end_frame": 3591,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3463,
+          "terminal_progress": 0.8595396876335144
+        },
+        {
+          "end_frame": 3781,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3622,
+          "terminal_progress": 0.8536815643310547
+        },
+        {
+          "end_frame": 3992,
+          "initial_posture": "right_side",
+          "min_progress": 0.0,
+          "start_frame": 3829,
+          "terminal_progress": 0.860952615737915
+        },
+        {
+          "end_frame": 4200,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4079,
+          "terminal_progress": 0.860710084438324
+        },
+        {
+          "end_frame": 4352,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4231,
+          "terminal_progress": 0.8528637290000916
+        },
+        {
+          "end_frame": 4600,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4422,
+          "terminal_progress": 0.87250816822052
+        },
+        {
+          "end_frame": 4797,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4646,
+          "terminal_progress": 0.8653049468994141
+        },
+        {
+          "end_frame": 5007,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4840,
+          "terminal_progress": 0.86881023645401
+        }
+      ],
+      "sha256": "28b6583d317462d6884fccde7e0958fa867bd8386987d91e0a706b3255771fa2",
+      "split": "validation",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "fallAndGetUp2",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp2_subject2.bvh",
+      "segments": [
+        {
+          "end_frame": 521,
+          "initial_posture": "supine",
+          "min_progress": 0.0,
+          "start_frame": 280,
+          "terminal_progress": 0.8589482307434082
+        },
+        {
+          "end_frame": 1021,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 780,
+          "terminal_progress": 0.86456298828125
+        },
+        {
+          "end_frame": 1347,
+          "initial_posture": "right_side",
+          "min_progress": 0.0,
+          "start_frame": 1106,
+          "terminal_progress": 0.8647913336753845
+        },
+        {
+          "end_frame": 1583,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1416,
+          "terminal_progress": 0.884229838848114
+        },
+        {
+          "end_frame": 1877,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1688,
+          "terminal_progress": 0.8630911111831665
+        },
+        {
+          "end_frame": 2169,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1997,
+          "terminal_progress": 0.855422854423523
+        },
+        {
+          "end_frame": 2686,
+          "initial_posture": "left_side",
+          "min_progress": 0.0,
+          "start_frame": 2445,
+          "terminal_progress": 0.8640167713165283
+        },
+        {
+          "end_frame": 2841,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2786,
+          "terminal_progress": 0.8569531440734863
+        },
+        {
+          "end_frame": 2987,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2886,
+          "terminal_progress": 0.8613042831420898
+        },
+        {
+          "end_frame": 3123,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3049,
+          "terminal_progress": 0.8633047342300415
+        },
+        {
+          "end_frame": 3255,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3167,
+          "terminal_progress": 0.8561559915542603
+        },
+        {
+          "end_frame": 3562,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3321,
+          "terminal_progress": 0.8526405692100525
+        },
+        {
+          "end_frame": 4075,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3902,
+          "terminal_progress": 0.8686016201972961
+        },
+        {
+          "end_frame": 4654,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4413,
+          "terminal_progress": 0.8605023622512817
+        },
+        {
+          "end_frame": 4842,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4698,
+          "terminal_progress": 0.8512452840805054
+        }
+      ],
+      "sha256": "6a165a1b3790c3acbf603df4c267edf7812f0bf3f648e20e5f49918ac4211d19",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "fallAndGetUp2",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp2_subject3.bvh",
+      "segments": [
+        {
+          "end_frame": 530,
+          "initial_posture": "supine",
+          "min_progress": 0.0,
+          "start_frame": 289,
+          "terminal_progress": 0.8821674585342407
+        },
+        {
+          "end_frame": 991,
+          "initial_posture": "supine",
+          "min_progress": 0.0,
+          "start_frame": 750,
+          "terminal_progress": 0.861012876033783
+        },
+        {
+          "end_frame": 1281,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1063,
+          "terminal_progress": 0.8914493322372437
+        },
+        {
+          "end_frame": 1621,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1412,
+          "terminal_progress": 0.8782339692115784
+        },
+        {
+          "end_frame": 1906,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1704,
+          "terminal_progress": 0.85146564245224
+        },
+        {
+          "end_frame": 2149,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1959,
+          "terminal_progress": 0.8794886469841003
+        },
+        {
+          "end_frame": 2377,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2211,
+          "terminal_progress": 0.8735806941986084
+        },
+        {
+          "end_frame": 2600,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2438,
+          "terminal_progress": 0.85111403465271
+        },
+        {
+          "end_frame": 2965,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2724,
+          "terminal_progress": 0.8553373217582703
+        },
+        {
+          "end_frame": 3397,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3156,
+          "terminal_progress": 0.8707539439201355
+        },
+        {
+          "end_frame": 3853,
+          "initial_posture": "left_side",
+          "min_progress": 0.0,
+          "start_frame": 3612,
+          "terminal_progress": 0.8542502522468567
+        },
+        {
+          "end_frame": 4309,
+          "initial_posture": "left_side",
+          "min_progress": 0.0,
+          "start_frame": 4068,
+          "terminal_progress": 0.8747485280036926
+        },
+        {
+          "end_frame": 4885,
+          "initial_posture": "right_side",
+          "min_progress": 0.0,
+          "start_frame": 4644,
+          "terminal_progress": 0.8505260348320007
+        }
+      ],
+      "sha256": "e66fd460eeff103885dbf2ed54482d43761ba1fd8916a41baa6804e5da58725e",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 102.16564500000001,
+      "fps": 30.000300003000028,
+      "frame_count": 3066,
+      "recording": "fallAndGetUp3",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp3_subject1.bvh",
+      "segments": [
+        {
+          "end_frame": 343,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 263,
+          "terminal_progress": 0.8593755960464478
+        },
+        {
+          "end_frame": 458,
+          "initial_posture": "prone",
+          "min_progress": 0.008056171238422394,
+          "start_frame": 408,
+          "terminal_progress": 0.8521760106086731
+        },
+        {
+          "end_frame": 573,
+          "initial_posture": "prone",
+          "min_progress": 5.727473762817681e-05,
+          "start_frame": 516,
+          "terminal_progress": 0.857561469078064
+        },
+        {
+          "end_frame": 681,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 633,
+          "terminal_progress": 0.8521670699119568
+        },
+        {
+          "end_frame": 804,
+          "initial_posture": "prone",
+          "min_progress": 6.196053436724469e-05,
+          "start_frame": 738,
+          "terminal_progress": 0.8703954219818115
+        },
+        {
+          "end_frame": 956,
+          "initial_posture": "prone",
+          "min_progress": 0.014408144168555737,
+          "start_frame": 896,
+          "terminal_progress": 0.8581563234329224
+        },
+        {
+          "end_frame": 1134,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1053,
+          "terminal_progress": 0.8701457977294922
+        },
+        {
+          "end_frame": 1276,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1197,
+          "terminal_progress": 0.8963876366615295
+        },
+        {
+          "end_frame": 1385,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1331,
+          "terminal_progress": 0.8835505247116089
+        },
+        {
+          "end_frame": 1529,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1472,
+          "terminal_progress": 0.8522361516952515
+        },
+        {
+          "end_frame": 1684,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1611,
+          "terminal_progress": 0.8660364747047424
+        },
+        {
+          "end_frame": 2092,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1944,
+          "terminal_progress": 0.8612755537033081
+        },
+        {
+          "end_frame": 2302,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2170,
+          "terminal_progress": 0.8584522008895874
+        },
+        {
+          "end_frame": 2535,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2389,
+          "terminal_progress": 0.8652162551879883
+        },
+        {
+          "end_frame": 2769,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2644,
+          "terminal_progress": 0.8570473194122314
+        }
+      ],
+      "sha256": "4a67afdd0ae0aaa1034a59b327fe558a6c8381939a7ac4afca324f4913ba0128",
+      "split": "test",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject2.bvh",
+      "segments": [],
+      "sha256": "f50c8a3502ed71a8b132cad83bbc9991bbf78bb848bf9b40534c25a7abe31593",
+      "split": "test",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject3.bvh",
+      "segments": [],
+      "sha256": "1678d40d5e5aa584bcf49b2d83765245589addcee37abe95c27a760b4e5e7de9",
+      "split": "test",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject5.bvh",
+      "segments": [],
+      "sha256": "e8af9a4f8d9a5ade73a7f1e1f9a219e32c23519215178f9cc30a40c5ee946887",
+      "split": "test",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 245.130882,
+      "fps": 30.000300003000028,
+      "frame_count": 7355,
+      "recording": "fightAndSports1",
+      "recovery_source": false,
+      "relative_path": "fightAndSports1_subject1.bvh",
+      "segments": [],
+      "sha256": "6317db16e0bf4f4398a08204f66e412bdd441fc2952430500a388b27a338c7f6",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 245.130882,
+      "fps": 30.000300003000028,
+      "frame_count": 7355,
+      "recording": "fightAndSports1",
+      "recovery_source": false,
+      "relative_path": "fightAndSports1_subject4.bvh",
+      "segments": [],
+      "sha256": "205396f5a212419b721c2d3b1f9072d625718567354ee623f89beacc84d5b98c",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject1.bvh",
+      "segments": [
+        {
+          "end_frame": 4706,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4465,
+          "terminal_progress": 0.8705719709396362
+        }
+      ],
+      "sha256": "74125060069440a0c038a1404ca685ace42735c77dfd31526b556f4a3c3ded4e",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject4.bvh",
+      "segments": [
+        {
+          "end_frame": 4668,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4455,
+          "terminal_progress": 0.8564280867576599
+        }
+      ],
+      "sha256": "c60898cb2f4be5a343ac919ca21c52a64fffd7b47b98d75deacea209b27f7653",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject5.bvh",
+      "segments": [
+        {
+          "end_frame": 612,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 371,
+          "terminal_progress": 0.8529618978500366
+        },
+        {
+          "end_frame": 4705,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4464,
+          "terminal_progress": 0.8708426356315613
+        }
+      ],
+      "sha256": "4bbcd23182a49c70f4112cb92862cabe08d4b67ffc555d8108cfeecd7c898391",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 184.964817,
+      "fps": 30.000300003000028,
+      "frame_count": 5550,
+      "recording": "ground2",
+      "recovery_source": true,
+      "relative_path": "ground2_subject2.bvh",
+      "segments": [
+        {
+          "end_frame": 4201,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3960,
+          "terminal_progress": 0.8847435712814331
+        },
+        {
+          "end_frame": 4812,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4571,
+          "terminal_progress": 0.8694131970405579
+        },
+        {
+          "end_frame": 5507,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 5273,
+          "terminal_progress": 0.8557462692260742
+        }
+      ],
+      "sha256": "da19db36053b6cd3a775a29c8a54e22e703199a0c5815458a5486e69229c4fea",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 184.964817,
+      "fps": 30.000300003000028,
+      "frame_count": 5550,
+      "recording": "ground2",
+      "recovery_source": true,
+      "relative_path": "ground2_subject3.bvh",
+      "segments": [
+        {
+          "end_frame": 3736,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3495,
+          "terminal_progress": 0.8830169439315796
+        },
+        {
+          "end_frame": 3922,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3813,
+          "terminal_progress": 0.8673424124717712
+        },
+        {
+          "end_frame": 4172,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4075,
+          "terminal_progress": 0.876907229423523
+        },
+        {
+          "end_frame": 4341,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4248,
+          "terminal_progress": 0.9001772999763489
+        },
+        {
+          "end_frame": 4505,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4418,
+          "terminal_progress": 0.898127019405365
+        },
+        {
+          "end_frame": 5533,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 5292,
+          "terminal_progress": 0.8700027465820312
+        }
+      ],
+      "sha256": "33be36ec52d7818d1c0bbec85f1e98dbb97a30ebb241b717fb3f4df1e8715e26",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject1.bvh",
+      "segments": [],
+      "sha256": "877006b961a65fc46f1a3101452831c84f0f45f1065426d5dbc188005452b1fe",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject2.bvh",
+      "segments": [],
+      "sha256": "e059d1449b83de0897c7379237bb5f92d67ce4f74fa39dcd56929547b4d49ea0",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject5.bvh",
+      "segments": [],
+      "sha256": "1c89870da12edd65bbfc658301133792eeba9bc38dfcd534df5c5a2a3f14be18",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject1.bvh",
+      "segments": [
+        {
+          "end_frame": 332,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 139,
+          "terminal_progress": 0.8639753460884094
+        },
+        {
+          "end_frame": 550,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 406,
+          "terminal_progress": 0.8909292221069336
+        },
+        {
+          "end_frame": 865,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 658,
+          "terminal_progress": 0.8923409581184387
+        },
+        {
+          "end_frame": 1138,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 943,
+          "terminal_progress": 0.8737298846244812
+        },
+        {
+          "end_frame": 3610,
+          "initial_posture": "other",
+          "min_progress": 0.3193327784538269,
+          "start_frame": 3445,
+          "terminal_progress": 0.8542461395263672
+        },
+        {
+          "end_frame": 3781,
+          "initial_posture": "other",
+          "min_progress": 0.2633749842643738,
+          "start_frame": 3612,
+          "terminal_progress": 0.9293380975723267
+        },
+        {
+          "end_frame": 4018,
+          "initial_posture": "other",
+          "min_progress": 0.18376527726650238,
+          "start_frame": 3983,
+          "terminal_progress": 0.8767500519752502
+        },
+        {
+          "end_frame": 4435,
+          "initial_posture": "other",
+          "min_progress": 0.3408818542957306,
+          "start_frame": 4360,
+          "terminal_progress": 0.8631055355072021
+        }
+      ],
+      "sha256": "aa6afeaf98babe3e9a2c9bd3fcdc9228c9871eb8b8e3386dddea92b77ad1bdb4",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject2.bvh",
+      "segments": [
+        {
+          "end_frame": 625,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 493,
+          "terminal_progress": 0.8702551126480103
+        },
+        {
+          "end_frame": 830,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 665,
+          "terminal_progress": 0.8527594804763794
+        },
+        {
+          "end_frame": 3704,
+          "initial_posture": "other",
+          "min_progress": 0.29843834042549133,
+          "start_frame": 3630,
+          "terminal_progress": 0.8519283533096313
+        }
+      ],
+      "sha256": "f6c3eb5e460b92a4cfeac18fd075614980a85588d66ed5d2ff63737299d64cb3",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject3.bvh",
+      "segments": [
+        {
+          "end_frame": 1016,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 853,
+          "terminal_progress": 0.8545092940330505
+        },
+        {
+          "end_frame": 2035,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 1814,
+          "terminal_progress": 0.8522998690605164
+        },
+        {
+          "end_frame": 4489,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4248,
+          "terminal_progress": 0.8538845181465149
+        }
+      ],
+      "sha256": "923624cca516ef39a9744895696762902c9234a525a5162ef5cdd1d36e3bc07b",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject4.bvh",
+      "segments": [
+        {
+          "end_frame": 347,
+          "initial_posture": "other",
+          "min_progress": 0.06640979647636414,
+          "start_frame": 287,
+          "terminal_progress": 0.8615056276321411
+        },
+        {
+          "end_frame": 573,
+          "initial_posture": "other",
+          "min_progress": 0.307536780834198,
+          "start_frame": 510,
+          "terminal_progress": 0.8552229404449463
+        },
+        {
+          "end_frame": 894,
+          "initial_posture": "prone",
+          "min_progress": 0.010236747562885284,
+          "start_frame": 786,
+          "terminal_progress": 0.8674039244651794
+        },
+        {
+          "end_frame": 1138,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1040,
+          "terminal_progress": 0.8761023879051208
+        },
+        {
+          "end_frame": 1529,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1295,
+          "terminal_progress": 0.8500537276268005
+        },
+        {
+          "end_frame": 1925,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1684,
+          "terminal_progress": 0.856256902217865
+        },
+        {
+          "end_frame": 2385,
+          "initial_posture": "other",
+          "min_progress": 0.18131829798221588,
+          "start_frame": 2342,
+          "terminal_progress": 0.868969738483429
+        },
+        {
+          "end_frame": 2465,
+          "initial_posture": "other",
+          "min_progress": 0.1873830109834671,
+          "start_frame": 2406,
+          "terminal_progress": 0.867076575756073
+        },
+        {
+          "end_frame": 2549,
+          "initial_posture": "other",
+          "min_progress": 0.2131231725215912,
+          "start_frame": 2508,
+          "terminal_progress": 0.8565122485160828
+        },
+        {
+          "end_frame": 2610,
+          "initial_posture": "other",
+          "min_progress": 0.09036056697368622,
+          "start_frame": 2569,
+          "terminal_progress": 0.8675210475921631
+        },
+        {
+          "end_frame": 2677,
+          "initial_posture": "other",
+          "min_progress": 0.31381481885910034,
+          "start_frame": 2617,
+          "terminal_progress": 0.8620121479034424
+        },
+        {
+          "end_frame": 2725,
+          "initial_posture": "other",
+          "min_progress": 0.319709837436676,
+          "start_frame": 2688,
+          "terminal_progress": 0.8692276477813721
+        },
+        {
+          "end_frame": 2899,
+          "initial_posture": "other",
+          "min_progress": 0.026844173669815063,
+          "start_frame": 2740,
+          "terminal_progress": 0.8564834594726562
+        },
+        {
+          "end_frame": 3151,
+          "initial_posture": "prone",
+          "min_progress": 0.06005116179585457,
+          "start_frame": 3104,
+          "terminal_progress": 0.8556187748908997
+        },
+        {
+          "end_frame": 3217,
+          "initial_posture": "prone",
+          "min_progress": 0.08245636522769928,
+          "start_frame": 3174,
+          "terminal_progress": 0.8659505248069763
+        },
+        {
+          "end_frame": 3287,
+          "initial_posture": "other",
+          "min_progress": 0.0581141859292984,
+          "start_frame": 3243,
+          "terminal_progress": 0.8733698725700378
+        },
+        {
+          "end_frame": 3355,
+          "initial_posture": "prone",
+          "min_progress": 0.14746485650539398,
+          "start_frame": 3312,
+          "terminal_progress": 0.8630133271217346
+        },
+        {
+          "end_frame": 3503,
+          "initial_posture": "other",
+          "min_progress": 0.05742540955543518,
+          "start_frame": 3456,
+          "terminal_progress": 0.8556181788444519
+        },
+        {
+          "end_frame": 3576,
+          "initial_posture": "prone",
+          "min_progress": 0.13936351239681244,
+          "start_frame": 3530,
+          "terminal_progress": 0.8598896861076355
+        },
+        {
+          "end_frame": 3656,
+          "initial_posture": "prone",
+          "min_progress": 0.1696464717388153,
+          "start_frame": 3608,
+          "terminal_progress": 0.8618291020393372
+        },
+        {
+          "end_frame": 3736,
+          "initial_posture": "prone",
+          "min_progress": 0.17803573608398438,
+          "start_frame": 3695,
+          "terminal_progress": 0.8730981945991516
+        },
+        {
+          "end_frame": 3834,
+          "initial_posture": "prone",
+          "min_progress": 0.2941170632839203,
+          "start_frame": 3762,
+          "terminal_progress": 0.8538391590118408
+        }
+      ],
+      "sha256": "f73d503584c1ba1566d85d2ca91f854d9278e9c4865fe697e69d0def3db223cb",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject1.bvh",
+      "segments": [],
+      "sha256": "deb0e6c5090b98ea204d8ca6b3ac2938ba76956f389d5ec519fd13519d0ca86a",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject2.bvh",
+      "segments": [],
+      "sha256": "0d6e74487c7eec295adc2582c799c87c9e29f6a8966cc789067e2f1a10dfa608",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject5.bvh",
+      "segments": [],
+      "sha256": "4176c6f2733531e1098904ac2cb7cad0588a1440d72ecd3d3c6a3dfe26a61399",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject1.bvh",
+      "segments": [],
+      "sha256": "098a5c8300eb667a06a190536e96332b3206909e3c90c036376ba72fd10c3e77",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject2.bvh",
+      "segments": [],
+      "sha256": "fa667a9d030cf15460c735d78983721ccad48f1bdb95da5ff9500e68c3cdd694",
+      "split": "validation",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject5.bvh",
+      "segments": [],
+      "sha256": "0ba70f43f18d280f9aed0a5698551c496721952f9d9f64ce7bd303c9d81fa828",
+      "split": "validation",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 131.065356,
+      "fps": 30.000300003000028,
+      "frame_count": 3933,
+      "recording": "obstacles3",
+      "recovery_source": false,
+      "relative_path": "obstacles3_subject3.bvh",
+      "segments": [],
+      "sha256": "beacc0566a776d3dfad91ba9b1e30093d330be50ac9ab6c04a8c0c99fa0a43e5",
+      "split": "validation",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 131.065356,
+      "fps": 30.000300003000028,
+      "frame_count": 3933,
+      "recording": "obstacles3",
+      "recovery_source": false,
+      "relative_path": "obstacles3_subject4.bvh",
+      "segments": [],
+      "sha256": "52084d594a7105fea643dcfb49dcaceee5ff7d25fb9c3a6711e888a174efe263",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject2.bvh",
+      "segments": [],
+      "sha256": "b95b8b18980fc2df4f59787cbd2aadbc6c08e6a71e1dee4f6f11d5ecfd78dead",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject3.bvh",
+      "segments": [],
+      "sha256": "971cb091da5e74c3ec7b5fdbabb9e56fe50e06f71175a44092b39bb67cbd5e64",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject4.bvh",
+      "segments": [],
+      "sha256": "fdf44cf61985b4727330e60184292c61de3ed43e17fc6573105d09eee13814d9",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject2.bvh",
+      "segments": [],
+      "sha256": "61fa1d720d12a5b675bc0b6e5922a1800f25381886b3a2c1505901927fa89a7b",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject3.bvh",
+      "segments": [],
+      "sha256": "26806bb17bbd6e22389f762586ffee2ca7d63aa34875ab61cab383852723aaa4",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject4.bvh",
+      "segments": [],
+      "sha256": "884468fd780359932a8807cd93082ff4d493d46eae09d88c5e5c56a9d2cf1335",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject1.bvh",
+      "segments": [],
+      "sha256": "0f5beed1a0abc5f1a78fa15c5ea6d99f9feec853f4c31f8fae744110da1cd657",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject4.bvh",
+      "segments": [],
+      "sha256": "ec8c37cb1bb691789f4f8742d9d16afe6bd5339de6b3d0d3508e14e35635dd86",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject5.bvh",
+      "segments": [],
+      "sha256": "c4f718bf1bf392a314a294f3789889b7fb1d12c5811e2351dcdc5018603c9c63",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 102.16564500000001,
+      "fps": 30.000300003000028,
+      "frame_count": 3066,
+      "recording": "push1",
+      "recovery_source": false,
+      "relative_path": "push1_subject2.bvh",
+      "segments": [],
+      "sha256": "c41a108f028ba09ace1d7ba677d11ba57f0ad4bd567ecb023b1db913afeea19c",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 165.265014,
+      "fps": 30.000300003000028,
+      "frame_count": 4959,
+      "recording": "pushAndFall1",
+      "recovery_source": true,
+      "relative_path": "pushAndFall1_subject1.bvh",
+      "segments": [
+        {
+          "end_frame": 1782,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1662,
+          "terminal_progress": 0.8581492304801941
+        },
+        {
+          "end_frame": 1974,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1854,
+          "terminal_progress": 0.8587123155593872
+        },
+        {
+          "end_frame": 2131,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2048,
+          "terminal_progress": 0.8576506972312927
+        },
+        {
+          "end_frame": 2383,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 2228,
+          "terminal_progress": 0.857130229473114
+        },
+        {
+          "end_frame": 3635,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 3560,
+          "terminal_progress": 0.8534349799156189
+        },
+        {
+          "end_frame": 3779,
+          "initial_posture": "prone",
+          "min_progress": 5.636157584376633e-05,
+          "start_frame": 3711,
+          "terminal_progress": 0.877871572971344
+        },
+        {
+          "end_frame": 4531,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4427,
+          "terminal_progress": 0.8538630604743958
+        },
+        {
+          "end_frame": 4696,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4639,
+          "terminal_progress": 0.8751479983329773
+        }
+      ],
+      "sha256": "f1ce49fdb8831e2dea48bfde73585d17cccd96531a389b1f73652fb0eaf9f8b1",
+      "split": "test",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 165.265014,
+      "fps": 30.000300003000028,
+      "frame_count": 4959,
+      "recording": "pushAndFall1",
+      "recovery_source": true,
+      "relative_path": "pushAndFall1_subject4.bvh",
+      "segments": [
+        {
+          "end_frame": 709,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 638,
+          "terminal_progress": 0.8757307529449463
+        },
+        {
+          "end_frame": 956,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 823,
+          "terminal_progress": 0.8620378971099854
+        },
+        {
+          "end_frame": 1239,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1095,
+          "terminal_progress": 0.8575083613395691
+        },
+        {
+          "end_frame": 1502,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 1371,
+          "terminal_progress": 0.856762170791626
+        },
+        {
+          "end_frame": 1932,
+          "initial_posture": "prone",
+          "min_progress": 0.2216225415468216,
+          "start_frame": 1830,
+          "terminal_progress": 0.8535487651824951
+        },
+        {
+          "end_frame": 2106,
+          "initial_posture": "prone",
+          "min_progress": 0.29951804876327515,
+          "start_frame": 2024,
+          "terminal_progress": 0.8628787994384766
+        },
+        {
+          "end_frame": 2252,
+          "initial_posture": "prone",
+          "min_progress": 0.1536969542503357,
+          "start_frame": 2201,
+          "terminal_progress": 0.853015661239624
+        },
+        {
+          "end_frame": 2683,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2536,
+          "terminal_progress": 0.8505691885948181
+        },
+        {
+          "end_frame": 2875,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2726,
+          "terminal_progress": 0.8727236390113831
+        },
+        {
+          "end_frame": 3063,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 2919,
+          "terminal_progress": 0.8731882572174072
+        },
+        {
+          "end_frame": 3242,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3101,
+          "terminal_progress": 0.873593270778656
+        },
+        {
+          "end_frame": 3451,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3279,
+          "terminal_progress": 0.8786114454269409
+        },
+        {
+          "end_frame": 4102,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 3912,
+          "terminal_progress": 0.8619751334190369
+        },
+        {
+          "end_frame": 4315,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4151,
+          "terminal_progress": 0.859821617603302
+        },
+        {
+          "end_frame": 4496,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4347,
+          "terminal_progress": 0.8648587465286255
+        },
+        {
+          "end_frame": 4698,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 4535,
+          "terminal_progress": 0.8639542460441589
+        }
+      ],
+      "sha256": "5f3370e561a6d5493d58d287c24cbecc8fe18781611e7f85be1ea8f0320d08bb",
+      "split": "test",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject2.bvh",
+      "segments": [
+        {
+          "end_frame": 1621,
+          "initial_posture": "other",
+          "min_progress": 0.17331501841545105,
+          "start_frame": 1554,
+          "terminal_progress": 0.8502922058105469
+        },
+        {
+          "end_frame": 2612,
+          "initial_posture": "right_side",
+          "min_progress": 0.3349074125289917,
+          "start_frame": 2376,
+          "terminal_progress": 0.8531349301338196
+        },
+        {
+          "end_frame": 5073,
+          "initial_posture": "other",
+          "min_progress": 0.0,
+          "start_frame": 4885,
+          "terminal_progress": 0.8503848314285278
+        },
+        {
+          "end_frame": 5679,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 5483,
+          "terminal_progress": 0.8510531783103943
+        }
+      ],
+      "sha256": "a88cb394febc368670ed379467cc97e500291c2c75cd96a4ed07f5f7dfc4e2ec",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject3.bvh",
+      "segments": [
+        {
+          "end_frame": 3491,
+          "initial_posture": "other",
+          "min_progress": 0.23685374855995178,
+          "start_frame": 3430,
+          "terminal_progress": 0.8523595333099365
+        },
+        {
+          "end_frame": 5188,
+          "initial_posture": "prone",
+          "min_progress": 0.10615493357181549,
+          "start_frame": 5092,
+          "terminal_progress": 0.8667340874671936
+        },
+        {
+          "end_frame": 5912,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 5671,
+          "terminal_progress": 0.8635125160217285
+        },
+        {
+          "end_frame": 6077,
+          "initial_posture": "prone",
+          "min_progress": 0.2591337263584137,
+          "start_frame": 5987,
+          "terminal_progress": 0.8516966700553894
+        }
+      ],
+      "sha256": "d5102f6cc32350c30220382377889386cfd6b2d32748c9445869f53d908f63c3",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject5.bvh",
+      "segments": [
+        {
+          "end_frame": 6142,
+          "initial_posture": "prone",
+          "min_progress": 0.0,
+          "start_frame": 6030,
+          "terminal_progress": 0.8528703451156616
+        },
+        {
+          "end_frame": 6312,
+          "initial_posture": "prone",
+          "min_progress": 0.13587640225887299,
+          "start_frame": 6264,
+          "terminal_progress": 0.8624232411384583
+        },
+        {
+          "end_frame": 6750,
+          "initial_posture": "prone",
+          "min_progress": 0.044038187712430954,
+          "start_frame": 6643,
+          "terminal_progress": 0.8507344722747803
+        }
+      ],
+      "sha256": "960eda292e8921d3c8ffcf9fbeee7d3083e36a6f9c187ab2e0460374ce66d646",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 237.79762200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7135,
+      "recording": "run1",
+      "recovery_source": false,
+      "relative_path": "run1_subject2.bvh",
+      "segments": [],
+      "sha256": "823dbe4f386a8c4a471999381a16cd0bc4d93a39907098442ccda886dcec9c95",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 237.79762200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7135,
+      "recording": "run1",
+      "recovery_source": false,
+      "relative_path": "run1_subject5.bvh",
+      "segments": [],
+      "sha256": "1eb77d39208ee93a15f5bf0235cc291c9680c93ffc524aa87007be67e9b4fcaa",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 244.79755200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7345,
+      "recording": "run2",
+      "recovery_source": false,
+      "relative_path": "run2_subject1.bvh",
+      "segments": [],
+      "sha256": "6a88975cfcc3b5cf24af703222389593a9a74ad752583ee999f79e52f0755dc8",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.79755200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7345,
+      "recording": "run2",
+      "recovery_source": false,
+      "relative_path": "run2_subject4.bvh",
+      "segments": [],
+      "sha256": "cecbb82267dae06e4aabfaa761f7126b8bf384b38c159d92f9677b9c687100e7",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 273.09726900000004,
+      "fps": 30.000300003000028,
+      "frame_count": 8194,
+      "recording": "sprint1",
+      "recovery_source": false,
+      "relative_path": "sprint1_subject2.bvh",
+      "segments": [],
+      "sha256": "441c2d5a2ecbfd14e925023a08071234c4db1c1149f87baea9b44bf825735c68",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 273.09726900000004,
+      "fps": 30.000300003000028,
+      "frame_count": 8194,
+      "recording": "sprint1",
+      "recovery_source": false,
+      "relative_path": "sprint1_subject4.bvh",
+      "segments": [],
+      "sha256": "b89283da1039622161e9526d937aa4b0f5235a66a3e944ac809e49d5aef1916f",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject1.bvh",
+      "segments": [],
+      "sha256": "4c9d591f323ffa660d9de6ef20c5d7077e66b2102a009feedf01afa22a6fbc73",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject2.bvh",
+      "segments": [],
+      "sha256": "d6f910fa34c31e657ecedb4088cf140fdccb61c5a432633345ccf93933dfc083",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject5.bvh",
+      "segments": [],
+      "sha256": "9e6bb69dfbb96469b33f8feed64c547521693151126b1fda4a20475354002521",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject1.bvh",
+      "segments": [],
+      "sha256": "8a19bcd8d476c40de3af7d8764d7b4ca42636c1704421e40ef025490197c343c",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject3.bvh",
+      "segments": [],
+      "sha256": "eeab80eb5ada7811904485aea813ec9e4a0d4c890c11cabadb72e5de672ddf67",
+      "split": "validation",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject4.bvh",
+      "segments": [],
+      "sha256": "c5422fad8431ee55d11e71e06c7debc80bdb2746a4c13fd337c283717617a8ea",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject1.bvh",
+      "segments": [],
+      "sha256": "b5b6d11093ca52a24f34466098c97e413170bc1c71c10f7bac02d11febb24cb1",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject2.bvh",
+      "segments": [],
+      "sha256": "8771962be56019ae9a2266f2bdf5052334f0f22c598e85f776a0af8ee3f81614",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject3.bvh",
+      "segments": [],
+      "sha256": "2bd2ca6c17a313dadb41ef8fad4a2dbee3b9288d5949334faac49ba3aa030d3f",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject4.bvh",
+      "segments": [],
+      "sha256": "13451e9a5b310cf5dba1ec976d1219673257bedb483195a2d35e189e7247c81c",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject5.bvh",
+      "segments": [],
+      "sha256": "393930b26932d7b3cdf8f949cd735661d1e1975abd5f169f9e575a0575e0eeaf",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "walk4",
+      "recovery_source": false,
+      "relative_path": "walk4_subject1.bvh",
+      "segments": [],
+      "sha256": "900a3b7806b6436d99b7725cef095c82418ee8521c7f1893530d173e21ab9900",
+      "split": "test",
+      "subject": "subject1"
+    }
+  ],
+  "dataset_name": "lafan1",
+  "failures": [],
+  "schema_version": "recovery-semantic-v3"
+}

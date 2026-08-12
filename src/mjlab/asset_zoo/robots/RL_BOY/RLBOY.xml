@@ -177,7 +177,7 @@
             <inertial pos="-0.0158815168816101 0.000149139681466764 -0.0407115407833609" quat="1 0 0 0" mass="0.186" diaginertia="8.304e-05 9.062e-05 5.939e-05"/>
             <joint name="left_shoulder_roll_joint" axis="1 0 0" range="-0.2 2.0"/>
             <geom class="visual" rgba="1 1 1 1" mesh="left_shoulder_roll_link"/>
-            <geom name="left_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045" axisangle="0 1 0 1.57"/>
+            <geom name="left_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045"/>
             <geom name="left_shoulder_roll_collision2" class="collision" type="sphere" size="0.03" pos="-0.02 0 0.005"/>
 
             <body name="left_shoulder_yaw_link" pos="-0.022771 0.0001351 -0.075197">
@@ -191,10 +191,10 @@
                 <geom class="visual" rgba="1 1 1 1" mesh="left_elbow_pitch_link"/>
                 <geom name="left_elbow_collision1" class="collision" type="cylinder" size="0.02 0.06" pos="0.076 0.013 0" quat="0.7071 0 0.7071 0"/>
                 <geom name="left_elbow_collision2" class="collision" type="sphere" size="0.025" pos="0.006 0.013 0"/>
-                <geom name="left_elbow_collision3" class="collision" type="sphere" size="0.025" pos="0.136 0.013 0"/>
 
                 <body name="left_wrist_link" pos="0 0.15 -0.02">
                   <site name="left_palm" pos="0 0 0" size="0.01"/>
+                  <geom name="left_hand_collision" class="collision" type="sphere" size="0.025" pos="0.136 -0.137 0.02"/>
                 </body>
               </body>
             </body>
@@ -210,7 +210,7 @@
             <inertial pos="-0.0158403302802371 -9.23318084443958E-05 -0.0407116397577024" quat="1 0 0 0" mass="0.186" diaginertia="8.325e-05 9.036e-05 5.935e-05"/>
             <joint name="right_shoulder_roll_joint" axis="1 0 0" range="-2.0 0.2"/>
             <geom class="visual" rgba="1 1 1 1" mesh="right_shoulder_roll_link"/>
-            <geom name="right_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045" axisangle="0 1 0 1.57"/>
+            <geom name="right_shoulder_roll_collision1" class="collision" type="cylinder" size="0.025 0.05" pos="-0.02 0 -0.045"/>
             <geom name="right_shoulder_roll_collision2" class="collision" type="sphere" size="0.03" pos="-0.02 0 0.005"/>
 
             <body name="right_shoulder_yaw_link" pos="-0.022771 -0.0001351 -0.075197">
@@ -224,10 +224,10 @@
                 <geom class="visual" rgba="1 1 1 1" mesh="right_elbow_pitch_link"/>
                 <geom name="right_elbow_collision1" class="collision" type="cylinder" size="0.02 0.06" pos="0.076 -0.013 0.0016" quat="0.7071 0 0.7071 0"/>
                 <geom name="right_elbow_collision2" class="collision" type="sphere" size="0.025" pos="0.006 -0.013 0.0016"/>
-                <geom name="right_elbow_collision3" class="collision" type="sphere" size="0.025" pos="0.136 -0.013 0.0016"/>
 
                 <body name="right_wrist_link" pos="0 -0.15 -0.02">
                   <site name="right_palm" pos="0 0 0" size="0.01"/>
+                  <geom name="right_hand_collision" class="collision" type="sphere" size="0.025" pos="0.136 0.137 0.0216"/>
                 </body>
               </body>
             </body>

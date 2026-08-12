@@ -1,0 +1,916 @@
+{
+  "frame_annotations": {},
+  "queue_sha256": "20ba0da9038736a490a331e0b44c7a74176507c679c3839b48455a6d0af17743",
+  "reviewer": "reviewer-01",
+  "schema_version": "recovery-review-state-v3",
+  "segment_annotations": {
+    "0ab64b9cf5e25f0848ff": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 4602,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": 4595,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 4566,
+      "support_complete_frame": 4594,
+      "support_start_frame": 4566,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "0fdcf54a1066c7d3ddd2": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 4873,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 4837,
+      "support_complete_frame": 4858,
+      "support_start_frame": 4837,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "108d5b1e74fe3ef3f0c5": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1451,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1399,
+      "support_complete_frame": 1431,
+      "support_start_frame": 1399,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "12965dcf03b261cdd01e": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "support_start"
+      ],
+      "decision": "rejected",
+      "end_frame": 799,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 790,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 764,
+      "support_complete_frame": 790,
+      "support_start_frame": 764,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "174b719f904cc0773a73": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 2995,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 2977,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 2922,
+      "support_complete_frame": 2977,
+      "support_start_frame": 2932,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "1ba8c0b6ccf8335bbfb3": {
+      "confirmed_choices": [],
+      "confirmed_events": [],
+      "decision": "rejected",
+      "end_frame": 308,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 299,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 176,
+      "support_complete_frame": 299,
+      "support_start_frame": null,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "1d0509d9d423c706ce77": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "support_start"
+      ],
+      "decision": "rejected",
+      "end_frame": 3531,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 3522,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 3461,
+      "support_complete_frame": 3522,
+      "support_start_frame": 3476,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "21373b643729354136ea": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 2714,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "sit",
+      "outcome": "partial",
+      "start_frame": 2689,
+      "support_complete_frame": 2713,
+      "support_start_frame": 2698,
+      "terminal_mode": "support_only",
+      "terminal_safe": true
+    },
+    "235986169ca56f59b8ee": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "support_start"
+      ],
+      "decision": "rejected",
+      "end_frame": 288,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": 279,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 240,
+      "support_complete_frame": 279,
+      "support_start_frame": 244,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "32023a6b6147d81f5243": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 291,
+      "initial_posture": "right_side",
+      "issues": [],
+      "locomotion_takeover_frame": 277,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 223,
+      "support_complete_frame": 274,
+      "support_start_frame": 223,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "3317d1ae6d2e316396d1": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1694,
+      "initial_posture": "right_side",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 1608,
+      "support_complete_frame": 1658,
+      "support_start_frame": 1608,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "33be5b905346d9a2c73d": {
+      "confirmed_choices": [
+        "terminal_mode"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 1173,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 1159,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1143,
+      "support_complete_frame": 1157,
+      "support_start_frame": 1143,
+      "terminal_mode": "locomotion",
+      "terminal_safe": false
+    },
+    "40f5a53bd0b39e94b119": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 575,
+      "initial_posture": "left_side",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 496,
+      "support_complete_frame": 538,
+      "support_start_frame": 496,
+      "terminal_mode": "support_only",
+      "terminal_safe": true
+    },
+    "4c8f0e75f9ac7c914eb6": {
+      "confirmed_choices": [],
+      "confirmed_events": [],
+      "decision": "rejected",
+      "end_frame": 922,
+      "initial_posture": "right_side",
+      "issues": [],
+      "locomotion_takeover_frame": 913,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 856,
+      "support_complete_frame": 913,
+      "support_start_frame": null,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "4e14ad9c66210f46c520": {
+      "confirmed_choices": [
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 560,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": 548,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 511,
+      "support_complete_frame": 545,
+      "support_start_frame": 511,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "5118c0a472dd2823652c": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1910,
+      "initial_posture": "left_side",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 1830,
+      "support_complete_frame": 1894,
+      "support_start_frame": 1830,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "5b56cfe5eeab3d1e1762": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 2416,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 2392,
+      "support_complete_frame": 2411,
+      "support_start_frame": 2392,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "5f5ec3519ecf3c557084": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 2190,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "great",
+      "outcome": "success",
+      "start_frame": 2078,
+      "support_complete_frame": 2174,
+      "support_start_frame": 2078,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "6879202254dce41564f7": {
+      "confirmed_choices": [
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 686,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": 682,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 642,
+      "support_complete_frame": 675,
+      "support_start_frame": 642,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "6901c7bcc3113113b4d9": {
+      "confirmed_choices": [],
+      "confirmed_events": [],
+      "decision": "rejected",
+      "end_frame": 508,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 499,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 362,
+      "support_complete_frame": 499,
+      "support_start_frame": null,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "6f795a90806757db89e9": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 4958,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 4874,
+      "support_complete_frame": 4930,
+      "support_start_frame": 4874,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "74327313538a0a1f7771": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1314,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1261,
+      "support_complete_frame": 1283,
+      "support_start_frame": 1261,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "77160e7a87d12a027312": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 790,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 714,
+      "support_complete_frame": 758,
+      "support_start_frame": 714,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "8463e4df58b2c11476e2": {
+      "confirmed_choices": [],
+      "confirmed_events": [],
+      "decision": "rejected",
+      "end_frame": 777,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 768,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 548,
+      "support_complete_frame": 768,
+      "support_start_frame": null,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "8996af889fa0f1dd51f9": {
+      "confirmed_choices": [
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 427,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 413,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 383,
+      "support_complete_frame": 408,
+      "support_start_frame": 383,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "938576e4e5782aa21084": {
+      "confirmed_choices": [
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 1047,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 1033,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1005,
+      "support_complete_frame": 1032,
+      "support_start_frame": 1005,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "9aa5e2541cd4961e9133": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1174,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1126,
+      "support_complete_frame": 1144,
+      "support_start_frame": 1126,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "aaea5282f926586d0da9": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 937,
+      "initial_posture": "left_side",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 881,
+      "support_complete_frame": 920,
+      "support_start_frame": 881,
+      "terminal_mode": "support_only",
+      "terminal_safe": true
+    },
+    "b01b17448e1f4b13a5d2": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 3075,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "sit",
+      "outcome": "partial",
+      "start_frame": 3030,
+      "support_complete_frame": 3058,
+      "support_start_frame": 3033,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "b3c95af56dae1e62e8b7": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "support_start"
+      ],
+      "decision": "rejected",
+      "end_frame": 1547,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": 1538,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 1497,
+      "support_complete_frame": 1538,
+      "support_start_frame": 1500,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "c7303b6dbdf5ee3b05af": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 3898,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 3886,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 3846,
+      "support_complete_frame": 3878,
+      "support_start_frame": 3848,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "d1d587e8249482f4bf65": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 3306,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 3294,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 3241,
+      "support_complete_frame": 3282,
+      "support_start_frame": 3249,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "d59f38e3601a4cbac362": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 3398,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "sit",
+      "outcome": "partial",
+      "start_frame": 3352,
+      "support_complete_frame": 3375,
+      "support_start_frame": 3355,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "de4598fd79bcd616f4b5": {
+      "confirmed_choices": [],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1140,
+      "initial_posture": "right_side",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 1070,
+      "support_complete_frame": 1105,
+      "support_start_frame": 1070,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "e424c1b179df449cf3d6": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 2710,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 2695,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 2625,
+      "support_complete_frame": 2693,
+      "support_start_frame": 2649,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "e6b2a7983b29355142b1": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 1291,
+      "initial_posture": "prone",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "partial",
+      "start_frame": 1233,
+      "support_complete_frame": 1269,
+      "support_start_frame": 1233,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "ef83fd61b2e8ad7aa19a": {
+      "confirmed_choices": [
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 1826,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 1822,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 1766,
+      "support_complete_frame": 1808,
+      "support_start_frame": 1766,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    },
+    "f84bd0982edb9d4e129f": {
+      "confirmed_choices": [
+        "terminal_mode",
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 2392,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "great",
+      "outcome": "success",
+      "start_frame": 2306,
+      "support_complete_frame": 2363,
+      "support_start_frame": 2306,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "fd09f298b2dfde12705b": {
+      "confirmed_choices": [
+        "outcome",
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete"
+      ],
+      "decision": "accepted",
+      "end_frame": 4662,
+      "initial_posture": "other",
+      "issues": [],
+      "locomotion_takeover_frame": null,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 4589,
+      "support_complete_frame": 4636,
+      "support_start_frame": 4589,
+      "terminal_mode": "stationary",
+      "terminal_safe": true
+    },
+    "fe2375f702fe4cf888be": {
+      "confirmed_choices": [
+        "initial_posture"
+      ],
+      "confirmed_events": [
+        "start",
+        "end",
+        "support_start",
+        "support_complete",
+        "locomotion_takeover"
+      ],
+      "decision": "accepted",
+      "end_frame": 2095,
+      "initial_posture": "supine",
+      "issues": [],
+      "locomotion_takeover_frame": 2081,
+      "notes": "",
+      "outcome": "success",
+      "start_frame": 2014,
+      "support_complete_frame": 2064,
+      "support_start_frame": 2018,
+      "terminal_mode": "locomotion",
+      "terminal_safe": true
+    }
+  }
+}

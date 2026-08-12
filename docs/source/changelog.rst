@@ -8,6 +8,34 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added the first robot-independent recovery-data module for Velocity tasks.
+  It parses LaFAN BVH files into a right-handed Z-up representation, projects
+  motion into a versioned 93-dimensional semantic schema, extracts recovery
+  intervals, and writes deterministic manifests with recording-grouped splits.
+  A colocated Viser review workflow prepares deterministic segment and blind
+  frame-audit queues, preserves both stationary and direct-to-locomotion
+  recoveries, saves resumable annotations atomically, evaluates phase/contact
+  F1, and compiles accepted segments into a reviewed manifest. Contact labels
+  use clearance, signed vertical velocity, and hysteresis so sliding or pivoting
+  supports are not rejected solely for high horizontal joint speed. Foot labels
+  additionally use a tighter core clearance, a speed-limited ambiguity band,
+  and temporal confirmation to avoid marking a fast swing as an early landing.
+  Segment event-frame fields are read-only displays populated by their adjacent
+  current-global-frame buttons. Automatic values have a gray ``AUTO`` marker;
+  values set by the reviewer have a green ``SET`` marker and green button,
+  preventing typed or automatic values from being confused with assignments.
+  Segment playback now uses a per-candidate global-frame slider. Finalized
+  Accept/Reject decisions lock all review controls; an explicit orange Modify
+  block unlocks them and restores the original automatic review window. The
+  pelvis trajectory is always drawn over that original window, independently
+  of any narrower finalized playback interval. Locomotion takeover is required
+  only for locomotion terminals: the UI provides Set/Clear controls, shows
+  required-but-unset values in red, disables Accept until they are supplied,
+  and automatically displays gray ``N/A`` for every other terminal mode.
+  Terminal mode, outcome, and initial posture also retain field-level review
+  provenance, showing gray ``AUTO`` values until a reviewer selects them and
+  green ``SET`` values afterward.
+  The offline pipeline does not produce or consume robot joint trajectories.
 - Added a fallen-recovery assistance curriculum to
   ``Mjlab-Velocity-Flat-Recovery``. Dedicated recovery environments receive a
   staged upward force at the waist, sampled once per episode from the active

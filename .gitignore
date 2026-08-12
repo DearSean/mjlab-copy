@@ -9,6 +9,13 @@ debug.py
 *.ipynb_checkpoints/
 *_rerun*
 artifacts/
+!artifacts/
+artifacts/*
+!artifacts/recovery/
+artifacts/recovery/*
+!artifacts/recovery/review/
+artifacts/recovery/review/*
+!artifacts/recovery/review/*.json
 .venv/
 render_robots.py
 benchmark_results/
