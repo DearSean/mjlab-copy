@@ -83,7 +83,8 @@ Changed
 ^^^^^^^
 
 - Removed ``base_lin_vel`` from actor observations in all registered training
-  tasks while retaining it as a privileged critic observation.
+  tasks while retaining it as a privileged critic observation, and aligned the
+  standalone MuJoCo deployment observation layout with the updated policies.
 - Added the ``Mjlab-Velocity-Flat-qlmini2`` task and configured its 19
   actuators as RS06, RS00, RS02, and EL05 groups using the supplied motor
   manuals. The temporary ``0.01`` joint armature was removed because the

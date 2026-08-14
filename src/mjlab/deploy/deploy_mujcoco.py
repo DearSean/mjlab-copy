@@ -109,6 +109,27 @@ def get_sensor_data(model: mujoco.MjModel, data: mujoco.MjData, name: str):
   return data.sensordata[start:stop].copy()
 
 
+def build_velocity_observation(
+  base_ang_vel: np.ndarray,
+  gravity_orientation: np.ndarray,
+  joint_pos: np.ndarray,
+  joint_vel: np.ndarray,
+  action: np.ndarray,
+  command: np.ndarray,
+) -> np.ndarray:
+  """Build an actor observation in velocity-task term order."""
+  return np.concatenate(
+    (
+      base_ang_vel,
+      gravity_orientation,
+      joint_pos,
+      joint_vel,
+      action,
+      command,
+    )
+  ).astype(np.float32, copy=False)
+
+
 def configure_tracking_camera(model: mujoco.MjModel, viewer) -> None:
   """Make the passive viewer follow the body attached to the free joint."""
   free_joint_type = mujoco.mjtJoint.mjJNT_FREE.value
@@ -446,7 +467,7 @@ if __name__ == "__main__":
     xml_path = args.xml_path or str(RLBOY_XML)
 
   num_actions = len(default_angles)
-  num_obs = 3 + 3 + 3 + num_actions * 3 + 3
+  num_obs = 3 + 3 + num_actions * 3 + 3
   cmd = np.array([0, 0, 0], dtype=np.float32)
 
   action = np.zeros(num_actions, dtype=np.float32)
@@ -531,7 +552,6 @@ if __name__ == "__main__":
 
           quat = d.qpos[3:7]
           # Match the velocity task exactly: IMU sensors are body-frame values.
-          base_lin_vel = get_sensor_data(m, d, "imu_lin_vel")
           base_ang_vel = get_sensor_data(m, d, "imu_ang_vel")
           gravity_orientation = projected_gravity(quat)
           qj = d.qpos[7:]
@@ -539,21 +559,14 @@ if __name__ == "__main__":
           dqj = d.qvel[6:]
           joint_vel = dqj
 
-          idx = 0
-          obs[idx : idx + 3] = base_lin_vel
-          idx += 3
-          obs[idx : idx + 3] = base_ang_vel
-          idx += 3
-          obs[idx : idx + 3] = gravity_orientation
-          idx += 3
-          obs[idx : idx + num_actions] = joint_pos
-          idx += num_actions
-          obs[idx : idx + num_actions] = joint_vel
-          idx += num_actions
-          obs[idx : idx + num_actions] = action
-          idx += num_actions
-          obs[idx : idx + 3] = cmd
-          idx += 3
+          obs[:] = build_velocity_observation(
+            base_ang_vel,
+            gravity_orientation,
+            joint_pos,
+            joint_vel,
+            action,
+            cmd,
+          )
 
           # runner.export_policy_as_onnx() embeds obs_normalizer in the ONNX
           # graph. Passing normalized data here would normalize it twice.
