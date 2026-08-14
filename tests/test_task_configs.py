@@ -84,6 +84,21 @@ def test_training_mode_observation_corruption_enabled(all_task_ids: list[str]) -
     )
 
 
+def test_actor_observations_exclude_base_linear_velocity(
+  all_task_ids: list[str],
+) -> None:
+  """Actor observations should not expose base linear velocity."""
+  for task_id in all_task_ids:
+    for play in (False, True):
+      cfg = load_env_cfg(task_id, play=play)
+      actor_terms = cfg.observations["actor"].terms
+      mode = "play" if play else "training"
+
+      assert "base_lin_vel" not in actor_terms, (
+        f"Task {task_id} ({mode} mode) has base_lin_vel in actor observations"
+      )
+
+
 def test_critic_observation_corruption_always_disabled(all_task_ids: list[str]) -> None:
   """Critic observations should always have corruption disabled."""
   for task_id in all_task_ids:
