@@ -82,6 +82,8 @@ Added
 Changed
 ^^^^^^^
 
+- Updated all qlmini2 link masses and full inertia tensors from the supplied
+  Qinglong Mini 2.0 URDF in both training and standalone deployment models.
 - Removed ``base_lin_vel`` from actor observations in all registered training
   tasks while retaining it as a privileged critic observation, and aligned the
   standalone MuJoCo deployment observation layout with the updated policies.
