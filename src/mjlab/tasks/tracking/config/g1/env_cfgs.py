@@ -75,7 +75,7 @@ def unitree_g1_flat_tracking_env_cfg(
     new_actor_terms = {
       k: v
       for k, v in cfg.observations["actor"].terms.items()
-      if k not in ["motion_anchor_pos_b", "base_lin_vel"]
+      if k != "motion_anchor_pos_b"
     }
     cfg.observations["actor"] = ObservationGroupCfg(
       terms=new_actor_terms,
