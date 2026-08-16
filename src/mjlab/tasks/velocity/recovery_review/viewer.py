@@ -669,7 +669,7 @@ class _SegmentReviewer(_ReviewerBase):
       semantic,
       global_frame,
       trajectory_interval=trajectory_interval,
-      show_auto_contacts=True,
+      show_auto_contacts=False,
     )
     annotation = self.app.state.segment_annotations.get(
       candidate.candidate_id,

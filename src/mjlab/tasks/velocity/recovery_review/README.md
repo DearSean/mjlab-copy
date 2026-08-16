@@ -141,9 +141,12 @@ current global frame plus one because intervals are half-open:
 orange `Modify` button before changing them. Gray `AUTO` fields are automatic
 defaults and green `SET` fields were explicitly selected by the reviewer.
 
-## 3. Blind frame-label audit
+## 3. Optional legacy frame-label audit
 
-Tune thresholds only with the validation partition:
+The contact-label-free 85D MLD/SMP dataset does not require this audit. It is
+kept only for diagnosing the legacy 93D automatic phase/contact heuristic. If
+you explicitly evaluate that legacy heuristic, tune thresholds only with the
+validation partition:
 
 ```bash
 uv run python -m mjlab.tasks.velocity.recovery_review.viewer \
@@ -158,7 +161,8 @@ The automatic label uses floor clearance, signed vertical velocity, and temporal
 hysteresis. Foot contact uses a `0.035H` core band plus a speed-limited `0.06H`
 ambiguity band and roughly 50 ms confirmation. Horizontal sliding or pivoting
 never invalidates a site already inside the core band; the wider band rejects a
-fast airborne swing. The 93D velocity channels retain motion information.
+fast airborne swing. These inferred binary labels are not copied into the 85D
+training representation.
 
 After thresholds are frozen, unlock the test partition explicitly:
 
@@ -183,3 +187,19 @@ uv run python -m mjlab.tasks.velocity.recovery_review.compile \
 Compilation refuses a mismatched queue/manifest and, by default, any pending
 segment. It never changes the source BVH or automatic manifest. Only accepted
 segments are written to `lafan_manifest.reviewed.json`.
+
+## 5. Compile the 85D MLD/SMP dataset
+
+Use the full 77-file LaFAN directory, not the minimal review bundle:
+
+```bash
+uv run python -m mjlab.tasks.velocity.scripts.build_recovery_dataset \
+  --dataset-root /path/to/full/lafan1
+```
+
+The compiler verifies every BVH hash, resamples the canonical skeleton from
+30 Hz to 20 Hz with quaternion SLERP, removes the eight inferred binary contact
+columns, and writes deterministic shards under `artifacts/recovery/dataset/`.
+All subjects from one synchronized recording remain in one split. Recovery
+recordings are balanced separately so the largest recovery group cannot consume
+the validation split.

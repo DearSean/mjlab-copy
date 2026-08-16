@@ -8,6 +8,14 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a deterministic contact-label-free LaFAN training-data compiler for
+  recovery MLD/SMP. It resamples canonical motion to 20 Hz with quaternion
+  SLERP, projects it into a versioned 85-dimensional kinematic schema, keeps
+  continuous ground clearance while excluding eight inferred binary contact
+  columns, preserves reviewed recovery events and provenance, balances splits
+  by synchronized recording, computes train-only normalization statistics, and
+  writes reproducible NPZ shards with source and artifact hashes. The legacy
+  93-dimensional representation remains available for review compatibility.
 - Added the first robot-independent recovery-data module for Velocity tasks.
   It parses LaFAN BVH files into a right-handed Z-up representation, projects
   motion into a versioned 93-dimensional semantic schema, extracts recovery

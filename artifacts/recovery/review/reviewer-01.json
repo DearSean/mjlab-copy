@@ -1,5 +1,160 @@
 {
-  "frame_annotations": {},
+  "frame_annotations": {
+    "03b06dcfb1b8524d67cf": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "contact",
+        "right_foot": "contact",
+        "right_hand": "no_contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "transition"
+    },
+    "0888a46b233e0cfddbef": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "no_contact",
+        "right_foot": "no_contact",
+        "right_hand": "no_contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "standing"
+    },
+    "330cdbfc6b17e76d573b": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "no_contact",
+        "right_foot": "contact",
+        "right_hand": "contact",
+        "right_knee": "contact"
+      },
+      "notes": "",
+      "phase": "transition"
+    },
+    "610f5411da4aa3d940aa": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "contact",
+        "left_knee": "contact",
+        "pelvis": "no_contact",
+        "right_foot": "contact",
+        "right_hand": "contact",
+        "right_knee": "contact"
+      },
+      "notes": "",
+      "phase": "fallen"
+    },
+    "62c04472a03bf78c7090": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "contact",
+        "left_knee": "no_contact",
+        "pelvis": "contact",
+        "right_foot": "contact",
+        "right_hand": "contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "transition"
+    },
+    "63ab57ce9d4b088df15b": {
+      "contacts": {
+        "chest": "contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "contact",
+        "right_foot": "no_contact",
+        "right_hand": "no_contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "fallen"
+    },
+    "81714073bae9f6a200b4": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "no_contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "no_contact",
+        "right_foot": "contact",
+        "right_hand": "no_contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "standing"
+    },
+    "b66c8d23b2df67fa4778": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "no_contact",
+        "right_foot": "contact",
+        "right_hand": "contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "transition"
+    },
+    "d96e43a209c0ffead81b": {
+      "contacts": {
+        "chest": "contact",
+        "left_foot": "no_contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "no_contact",
+        "right_foot": "no_contact",
+        "right_hand": "contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "fallen"
+    },
+    "ea38f632a4861b553799": {
+      "contacts": {
+        "chest": "contact",
+        "left_foot": "no_contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "contact",
+        "right_foot": "no_contact",
+        "right_hand": "contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "fallen"
+    },
+    "f8500ffe9774a7227178": {
+      "contacts": {
+        "chest": "no_contact",
+        "left_foot": "contact",
+        "left_hand": "no_contact",
+        "left_knee": "no_contact",
+        "pelvis": "contact",
+        "right_foot": "contact",
+        "right_hand": "no_contact",
+        "right_knee": "no_contact"
+      },
+      "notes": "",
+      "phase": "transition"
+    }
+  },
   "queue_sha256": "20ba0da9038736a490a331e0b44c7a74176507c679c3839b48455a6d0af17743",
   "reviewer": "reviewer-01",
   "schema_version": "recovery-review-state-v3",

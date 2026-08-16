@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from pathlib import Path
 
@@ -7,14 +9,20 @@ import numpy as np
 import pytest
 
 from mjlab.tasks.velocity.recovery_data import (
+  RECOVERY_KINEMATIC_DIM,
   RECOVERY_SEMANTIC_DIM,
   CanonicalMotionClip,
+  RecoveryDatasetCompilerCfg,
+  RecoveryKinematicEncoder,
   RecoverySemanticEncoder,
   Skeleton,
   build_recovery_manifest,
+  compile_recovery_dataset,
   load_lafan_bvh,
+  resample_canonical_motion,
   write_recovery_manifest,
 )
+from mjlab.tasks.velocity.recovery_data import dataset as recovery_dataset
 from mjlab.tasks.velocity.recovery_data.manifest import (
   RecoverySegmenterCfg,
   extract_recovery_segments,
@@ -57,6 +65,133 @@ def test_semantic_encoder_has_fixed_shape_and_is_similarity_invariant():
     atol=2e-5,
   )
   assert np.all(original_semantic.progress > 0.8)
+
+
+def test_kinematic_encoder_removes_only_binary_contact_labels():
+  clip = _standing_lafan_clip()
+  semantic = RecoverySemanticEncoder().encode(clip)
+  kinematic = RecoveryKinematicEncoder().encode(clip)
+
+  expected = np.concatenate(
+    [semantic.features[:, :75], semantic.features[:, 83:]], axis=-1
+  )
+  assert kinematic.features.shape == (clip.frame_count, RECOVERY_KINEMATIC_DIM)
+  np.testing.assert_array_equal(kinematic.features, expected)
+  assert not any(name.endswith("_contact") for name in kinematic.feature_names)
+  assert sum(name.endswith("_clearance") for name in kinematic.feature_names) == 8
+
+
+def test_resampling_uses_target_rate_and_preserves_bone_lengths():
+  clip = _standing_lafan_clip(frame_count=7, fps=30.0)
+
+  resampled = resample_canonical_motion(clip, 20.0)
+
+  assert resampled.fps == 20.0
+  assert resampled.frame_count == 5
+  parents = resampled.skeleton.parents[1:]
+  children = np.arange(1, len(resampled.skeleton.joint_names))
+  lengths = np.linalg.norm(
+    resampled.global_positions_m[:, children]
+    - resampled.global_positions_m[:, parents],
+    axis=-1,
+  )
+  expected = np.linalg.norm(resampled.skeleton.offsets_m[1:], axis=-1)
+  np.testing.assert_allclose(
+    lengths,
+    np.broadcast_to(expected, lengths.shape),
+    atol=1e-6,
+  )
+
+
+def test_dataset_compiler_is_deterministic_and_preserves_reviewed_events(
+  tmp_path: Path,
+  monkeypatch: pytest.MonkeyPatch,
+):
+  dataset_root = tmp_path / "lafan"
+  dataset_root.mkdir()
+  source_path = dataset_root / "fallAndGetUp1_subject1.bvh"
+  source_path.write_text("deterministic fixture", encoding="utf-8")
+  source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+  reviewed_manifest = tmp_path / "reviewed.json"
+  reviewed_manifest.write_text(
+    json.dumps(
+      {
+        "schema_version": "recovery-reviewed-manifest-v1",
+        "dataset_name": "lafan",
+        "review_queue_sha256": "queue-hash",
+        "review_summary": {
+          "accepted_count": 2,
+          "candidate_count": 2,
+          "pending_count": 0,
+          "rejected_count": 0,
+        },
+        "failures": [],
+        "clips": [
+          {
+            "relative_path": source_path.name,
+            "sha256": source_hash,
+            "recording": "fallAndGetUp1",
+            "subject": "subject1",
+            "split": "train",
+            "frame_count": 7,
+            "segments": [
+              _reviewed_segment(
+                candidate_id="complete",
+                start=0,
+                end=6,
+                support_start=0,
+                support_complete=4,
+                terminal_mode="stationary",
+                outcome="success",
+              ),
+              _reviewed_segment(
+                candidate_id="partial",
+                start=1,
+                end=7,
+                support_start=None,
+                support_complete=5,
+                terminal_mode="support_only",
+                outcome="success",
+              ),
+            ],
+          }
+        ],
+      },
+      sort_keys=True,
+    ),
+    encoding="utf-8",
+  )
+  clip = _standing_lafan_clip(frame_count=7, fps=30.0)
+  monkeypatch.setattr(recovery_dataset, "load_lafan_bvh", lambda _: clip)
+
+  outputs = []
+  for name in ("first", "second"):
+    output = tmp_path / name
+    compile_recovery_dataset(
+      RecoveryDatasetCompilerCfg(
+        dataset_root=dataset_root,
+        reviewed_manifest=reviewed_manifest,
+        output_dir=output,
+      )
+    )
+    outputs.append(output)
+
+  names = (
+    "train.npz",
+    "validation.npz",
+    "test.npz",
+    "normalizer.npz",
+    "quality_report.json",
+    "dataset_manifest.json",
+  )
+  for name in names:
+    assert (outputs[0] / name).read_bytes() == (outputs[1] / name).read_bytes()
+  with np.load(outputs[0] / "train.npz", allow_pickle=False) as shard:
+    assert shard["motion_features"].shape == (5, RECOVERY_KINEMATIC_DIM)
+    assert shard["recovery_candidate_ids"].tolist() == ["complete", "partial"]
+    assert shard["recovery_complete"].tolist() == [True, False]
+    assert shard["recovery_support_start_indices"].tolist()[1] == -1
+    assert shard["recovery_support_complete_indices"].tolist()[0] >= 0
 
 
 def test_contact_encoder_preserves_fast_horizontal_sliding_support():
@@ -192,6 +327,29 @@ Frame Time: 0.03333333333333333
 """,
     encoding="utf-8",
   )
+
+
+def _reviewed_segment(
+  *,
+  candidate_id: str,
+  start: int,
+  end: int,
+  support_start: int | None,
+  support_complete: int,
+  terminal_mode: str,
+  outcome: str,
+) -> dict[str, object]:
+  return {
+    "candidate_id": candidate_id,
+    "start_frame": start,
+    "end_frame": end,
+    "support_start_frame": support_start,
+    "support_complete_frame": support_complete,
+    "locomotion_takeover_frame": None,
+    "initial_posture": "supine",
+    "terminal_mode": terminal_mode,
+    "outcome": outcome,
+  }
 
 
 def _standing_lafan_clip(

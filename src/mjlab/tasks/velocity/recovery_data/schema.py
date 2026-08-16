@@ -10,6 +10,8 @@ from numpy.typing import NDArray
 
 RECOVERY_SEMANTIC_SCHEMA_VERSION = "recovery-semantic-v3"
 RECOVERY_SEMANTIC_DIM = 93
+RECOVERY_KINEMATIC_SCHEMA_VERSION = "recovery-kinematic-v1"
+RECOVERY_KINEMATIC_DIM = 85
 
 FloatArray = NDArray[np.floating]
 IntArray = NDArray[np.integer]
@@ -130,6 +132,35 @@ class SemanticMotion:
       raise ValueError("Semantic features contain NaN or Inf.")
     if not np.all((0.0 <= self.progress) & (self.progress <= 1.0)):
       raise ValueError("Recovery progress must lie in [0, 1].")
+    if not np.isfinite(self.floor_height_m):
+      raise ValueError("floor_height_m must be finite.")
+    if not np.isfinite(self.nominal_height_m) or self.nominal_height_m <= 0.0:
+      raise ValueError("nominal_height_m must be finite and positive.")
+
+
+@dataclass(frozen=True)
+class KinematicMotion:
+  """Contact-label-free motion used by MLD and the semantic motion prior."""
+
+  features: FloatArray
+  floor_height_m: float
+  nominal_height_m: float
+  feature_names: tuple[str, ...]
+
+  def __post_init__(self) -> None:
+    frame_count = self.features.shape[0]
+    if self.features.shape != (frame_count, RECOVERY_KINEMATIC_DIM):
+      raise ValueError(
+        "features must have shape "
+        f"(T, {RECOVERY_KINEMATIC_DIM}), got {self.features.shape}."
+      )
+    if len(self.feature_names) != RECOVERY_KINEMATIC_DIM:
+      raise ValueError(
+        f"Expected {RECOVERY_KINEMATIC_DIM} feature names, "
+        f"got {len(self.feature_names)}."
+      )
+    if not np.all(np.isfinite(self.features)):
+      raise ValueError("Kinematic features contain NaN or Inf.")
     if not np.isfinite(self.floor_height_m):
       raise ValueError("floor_height_m must be finite.")
     if not np.isfinite(self.nominal_height_m) or self.nominal_height_m <= 0.0:

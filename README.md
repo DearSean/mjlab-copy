@@ -27,6 +27,11 @@ The `academic` branch includes the review tool, current annotations, review
 queue, and the 17 LaFAN1 BVH files needed to resume on another computer. Follow
 the [recovery review instructions](src/mjlab/tasks/velocity/recovery_review/README.md#cross-computer-review-workflow).
 
+The completed data architecture is documented in
+[VELOCITY_RECOVERY_ARCHITECTURE.md](VELOCITY_RECOVERY_ARCHITECTURE.md). The next
+MLD/VAE implementation stage is specified in
+[MLD_RECOVERY_VAE_IMPLEMENTATION.md](MLD_RECOVERY_VAE_IMPLEMENTATION.md).
+
 ## Training Examples
 
 ### 1. Velocity Tracking
