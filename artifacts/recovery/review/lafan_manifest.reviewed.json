@@ -1,0 +1,3495 @@
+{
+  "clips": [
+    {
+      "duration_s": 239.43093900000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7184,
+      "recording": "aiming1",
+      "recovery_source": false,
+      "relative_path": "aiming1_subject1.bvh",
+      "segments": [],
+      "sha256": "53c90d858221d02a623776b6bca9d4cfed17ea832fc7bd641b35549055af912c",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 239.43093900000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7184,
+      "recording": "aiming1",
+      "recovery_source": false,
+      "relative_path": "aiming1_subject4.bvh",
+      "segments": [],
+      "sha256": "651f3c00bfe50fd19f6757faa31df2407ad70de11c30ae1f8525c6e49ab4b07b",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject2.bvh",
+      "segments": [],
+      "sha256": "76ddbd67bd40710f2196f732e7686823744c3fdfcd5c3410838f4c8508508d98",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject3.bvh",
+      "segments": [],
+      "sha256": "8f0bf3935998e1118dda8b01ded62d70bd3c679bdc5b5780a602924236a51cc9",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 305.69694300000003,
+      "fps": 30.000300003000028,
+      "frame_count": 9172,
+      "recording": "aiming2",
+      "recovery_source": false,
+      "relative_path": "aiming2_subject5.bvh",
+      "segments": [],
+      "sha256": "788d43f6ecd38a937e2423bf8139cd4c562e45502924034c9c23b7a0e83a7061",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject1.bvh",
+      "segments": [],
+      "sha256": "9a285b61bb0446aa4c919c62247ff895eb158bc693be3b7477d31ef070995d73",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject2.bvh",
+      "segments": [],
+      "sha256": "4f15d0b1caac72f9e58745f5ab9183d7dc051dd6fcdc4e1bd90af128b8cfab4d",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 131.465352,
+      "fps": 30.000300003000028,
+      "frame_count": 3945,
+      "recording": "dance1",
+      "recovery_source": false,
+      "relative_path": "dance1_subject3.bvh",
+      "segments": [],
+      "sha256": "886e68a0cba98d6a7a719e164b2601b473d54716a4f1b00364416cfe084d88a2",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject1.bvh",
+      "segments": [],
+      "sha256": "8af02061322ac5fcc58930450523c8bbcb576987dcc25dde2438acd77c487efc",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject2.bvh",
+      "segments": [],
+      "sha256": "c7d6d108ce6d7fb3c67c5c0c74c1db78643e5c0555ff8dad1375bcf135ad4358",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject3.bvh",
+      "segments": [],
+      "sha256": "5030908e46c4042381d1e8c1297bbda88cf94477906f9eaa07e571854c51b952",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject4.bvh",
+      "segments": [],
+      "sha256": "ef1b1448ab2fb4713431ddee96ad67833d443dc54a722cd136b9197b12205699",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 225.66441,
+      "fps": 30.000300003000028,
+      "frame_count": 6771,
+      "recording": "dance2",
+      "recovery_source": false,
+      "relative_path": "dance2_subject5.bvh",
+      "segments": [],
+      "sha256": "a40d811b75e2bdfaa9c35e9fd5e9f56ecab0bad92bf130af5b8f36ef6ce3d5c2",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject1.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 293,
+          "auto_start_frame": 160,
+          "auto_support_complete_frame": 284,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "32023a6b6147d81f5243",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 291,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": 277,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 223,
+          "support_complete_frame": 274,
+          "support_start_frame": 223,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 556,
+          "auto_start_frame": 426,
+          "auto_support_complete_frame": 547,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "40f5a53bd0b39e94b119",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 575,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 496,
+          "support_complete_frame": 538,
+          "support_start_frame": 496,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 778,
+          "auto_start_frame": 645,
+          "auto_support_complete_frame": 769,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "77160e7a87d12a027312",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 790,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 714,
+          "support_complete_frame": 758,
+          "support_start_frame": 714,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 925,
+          "auto_start_frame": 816,
+          "auto_support_complete_frame": 916,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "aaea5282f926586d0da9",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 937,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 881,
+          "support_complete_frame": 920,
+          "support_start_frame": 881,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1124,
+          "auto_start_frame": 997,
+          "auto_support_complete_frame": 1115,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "de4598fd79bcd616f4b5",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1140,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1070,
+          "support_complete_frame": 1105,
+          "support_start_frame": 1070,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1299,
+          "auto_start_frame": 1250,
+          "auto_support_complete_frame": 1290,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "74327313538a0a1f7771",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1314,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1261,
+          "support_complete_frame": 1283,
+          "support_start_frame": 1261,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1450,
+          "auto_start_frame": 1381,
+          "auto_support_complete_frame": 1441,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "108d5b1e74fe3ef3f0c5",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1451,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1399,
+          "support_complete_frame": 1431,
+          "support_start_frame": 1399,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1680,
+          "auto_start_frame": 1538,
+          "auto_support_complete_frame": 1671,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "3317d1ae6d2e316396d1",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1694,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1608,
+          "support_complete_frame": 1658,
+          "support_start_frame": 1608,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1914,
+          "auto_start_frame": 1764,
+          "auto_support_complete_frame": 1905,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "5118c0a472dd2823652c",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1910,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1830,
+          "support_complete_frame": 1894,
+          "support_start_frame": 1830,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2188,
+          "auto_start_frame": 1999,
+          "auto_support_complete_frame": 2179,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "5f5ec3519ecf3c557084",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2190,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "great",
+          "outcome": "success",
+          "start_frame": 2078,
+          "support_complete_frame": 2174,
+          "support_start_frame": 2078,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2378,
+          "auto_start_frame": 2247,
+          "auto_support_complete_frame": 2369,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "f84bd0982edb9d4e129f",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2392,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "great",
+          "outcome": "success",
+          "start_frame": 2306,
+          "support_complete_frame": 2363,
+          "support_start_frame": 2306,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2710,
+          "auto_start_frame": 2546,
+          "auto_support_complete_frame": 2701,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "e424c1b179df449cf3d6",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 2710,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 2695,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2625,
+          "support_complete_frame": 2693,
+          "support_start_frame": 2649,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2992,
+          "auto_start_frame": 2835,
+          "auto_support_complete_frame": 2983,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "174b719f904cc0773a73",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 2995,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 2977,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2922,
+          "support_complete_frame": 2977,
+          "support_start_frame": 2932,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3305,
+          "auto_start_frame": 3163,
+          "auto_support_complete_frame": 3296,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "d1d587e8249482f4bf65",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 3306,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 3294,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3241,
+          "support_complete_frame": 3282,
+          "support_start_frame": 3249,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3898,
+          "auto_start_frame": 3737,
+          "auto_support_complete_frame": 3889,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "c7303b6dbdf5ee3b05af",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 3898,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 3886,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3846,
+          "support_complete_frame": 3878,
+          "support_start_frame": 3848,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4610,
+          "auto_start_frame": 4496,
+          "auto_support_complete_frame": 4601,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "0ab64b9cf5e25f0848ff",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 4602,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": 4595,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4566,
+          "support_complete_frame": 4594,
+          "support_start_frame": 4566,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4946,
+          "auto_start_frame": 4843,
+          "auto_support_complete_frame": 4937,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "6f795a90806757db89e9",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4958,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4874,
+          "support_complete_frame": 4930,
+          "support_start_frame": 4874,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "8187569b98c3642fb1d491ad9fc483077804d8a6be2bc2e14180dfb26d56f495",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject4.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 1169,
+          "auto_start_frame": 919,
+          "auto_support_complete_frame": 1160,
+          "auto_terminal_mode": "support_only",
+          "candidate_id": "33be5b905346d9a2c73d",
+          "confirmed_choices": [
+            "terminal_mode"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 1173,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": 1159,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1143,
+          "support_complete_frame": 1157,
+          "support_start_frame": 1143,
+          "terminal_mode": "locomotion",
+          "terminal_safe": false
+        },
+        {
+          "auto_end_frame": 1833,
+          "auto_start_frame": 1687,
+          "auto_support_complete_frame": 1824,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "ef83fd61b2e8ad7aa19a",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 1826,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 1822,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1766,
+          "support_complete_frame": 1808,
+          "support_start_frame": 1766,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2079,
+          "auto_start_frame": 1913,
+          "auto_support_complete_frame": 2070,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "fe2375f702fe4cf888be",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 2095,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 2081,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2014,
+          "support_complete_frame": 2064,
+          "support_start_frame": 2018,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2427,
+          "auto_start_frame": 2220,
+          "auto_support_complete_frame": 2418,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "5b56cfe5eeab3d1e1762",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2416,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2392,
+          "support_complete_frame": 2411,
+          "support_start_frame": 2392,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2735,
+          "auto_start_frame": 2545,
+          "auto_support_complete_frame": 2726,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "21373b643729354136ea",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2714,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "sit",
+          "outcome": "partial",
+          "start_frame": 2689,
+          "support_complete_frame": 2713,
+          "support_start_frame": 2698,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3076,
+          "auto_start_frame": 2896,
+          "auto_support_complete_frame": 3067,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "b01b17448e1f4b13a5d2",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3075,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "sit",
+          "outcome": "partial",
+          "start_frame": 3030,
+          "support_complete_frame": 3058,
+          "support_start_frame": 3033,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3394,
+          "auto_start_frame": 3206,
+          "auto_support_complete_frame": 3385,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "d59f38e3601a4cbac362",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3398,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "sit",
+          "outcome": "partial",
+          "start_frame": 3352,
+          "support_complete_frame": 3375,
+          "support_start_frame": 3355,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4664,
+          "auto_start_frame": 4440,
+          "auto_support_complete_frame": 4655,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "fd09f298b2dfde12705b",
+          "confirmed_choices": [
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4662,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4589,
+          "support_complete_frame": 4636,
+          "support_start_frame": 4589,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4874,
+          "auto_start_frame": 4758,
+          "auto_support_complete_frame": 4865,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "0fdcf54a1066c7d3ddd2",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4873,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 4837,
+          "support_complete_frame": 4858,
+          "support_start_frame": 4837,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "d0cbd401a8abc5c0e5ac5892ffcc77eff6f19bc2725d4a51c8cb880f423fc53b",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 168.198318,
+      "fps": 30.000300003000028,
+      "frame_count": 5047,
+      "recording": "fallAndGetUp1",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp1_subject5.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 423,
+          "auto_start_frame": 347,
+          "auto_support_complete_frame": 414,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "8996af889fa0f1dd51f9",
+          "confirmed_choices": [
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 427,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 413,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 383,
+          "support_complete_frame": 408,
+          "support_start_frame": 383,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 564,
+          "auto_start_frame": 495,
+          "auto_support_complete_frame": 555,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "4e14ad9c66210f46c520",
+          "confirmed_choices": [
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 560,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": 548,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 511,
+          "support_complete_frame": 545,
+          "support_start_frame": 511,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 699,
+          "auto_start_frame": 611,
+          "auto_support_complete_frame": 690,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "6879202254dce41564f7",
+          "confirmed_choices": [
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 686,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": 682,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 642,
+          "support_complete_frame": 675,
+          "support_start_frame": 642,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1052,
+          "auto_start_frame": 960,
+          "auto_support_complete_frame": 1043,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "938576e4e5782aa21084",
+          "confirmed_choices": [
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 1047,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": 1033,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1005,
+          "support_complete_frame": 1032,
+          "support_start_frame": 1005,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1159,
+          "auto_start_frame": 1103,
+          "auto_support_complete_frame": 1150,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "9aa5e2541cd4961e9133",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1174,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1126,
+          "support_complete_frame": 1144,
+          "support_start_frame": 1126,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1284,
+          "auto_start_frame": 1222,
+          "auto_support_complete_frame": 1275,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "e6b2a7983b29355142b1",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1291,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1233,
+          "support_complete_frame": 1269,
+          "support_start_frame": 1233,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1562,
+          "auto_start_frame": 1353,
+          "auto_support_complete_frame": 1553,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "2aa4a8053b581d358ce9",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1540,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1500,
+          "support_complete_frame": 1539,
+          "support_start_frame": 1513,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1753,
+          "auto_start_frame": 1620,
+          "auto_support_complete_frame": 1744,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "58e6d65aa0a3bd343589",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1745,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1667,
+          "support_complete_frame": 1722,
+          "support_start_frame": 1678,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1923,
+          "auto_start_frame": 1804,
+          "auto_support_complete_frame": 1914,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "ad98e17a840ba6d9525d",
+          "confirmed_choices": [
+            "terminal_mode"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1903,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1850,
+          "support_complete_frame": 1902,
+          "support_start_frame": 1860,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2156,
+          "auto_start_frame": 2010,
+          "auto_support_complete_frame": 2147,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "d62ec4227c0d7cbdadd3",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2151,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2079,
+          "support_complete_frame": 2125,
+          "support_start_frame": 2079,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2370,
+          "auto_start_frame": 2249,
+          "auto_support_complete_frame": 2361,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "4a91cea9441b7a2f0178",
+          "confirmed_choices": [
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2371,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2312,
+          "support_complete_frame": 2352,
+          "support_start_frame": 2312,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2597,
+          "auto_start_frame": 2480,
+          "auto_support_complete_frame": 2588,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "35dd981b1ad6a9580a7d",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2596,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2533,
+          "support_complete_frame": 2576,
+          "support_start_frame": 2533,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3057,
+          "auto_start_frame": 2891,
+          "auto_support_complete_frame": 3048,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "0c37ea15dac92219e58a",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3020,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2962,
+          "support_complete_frame": 3019,
+          "support_start_frame": 2962,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3195,
+          "auto_start_frame": 3118,
+          "auto_support_complete_frame": 3186,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "819a855b0ad5ddd50ae3",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3179,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 3150,
+          "support_complete_frame": 3178,
+          "support_start_frame": 3150,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3546,
+          "auto_start_frame": 3463,
+          "auto_support_complete_frame": 3537,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "afc17164f32d2d8b5170",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3529,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 3503,
+          "support_complete_frame": 3522,
+          "support_start_frame": 3503,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3728,
+          "auto_start_frame": 3622,
+          "auto_support_complete_frame": 3719,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "d2e6f6bb1799ccb09380",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3708,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 3677,
+          "support_complete_frame": 3703,
+          "support_start_frame": 3677,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3985,
+          "auto_start_frame": 3829,
+          "auto_support_complete_frame": 3976,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "b46a93ef48731c8176e4",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3975,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3900,
+          "support_complete_frame": 3957,
+          "support_start_frame": 3900,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4145,
+          "auto_start_frame": 4079,
+          "auto_support_complete_frame": 4136,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "fcecadffb06cdd793c8b",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4130,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 4103,
+          "support_complete_frame": 4128,
+          "support_start_frame": 4103,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4325,
+          "auto_start_frame": 4231,
+          "auto_support_complete_frame": 4316,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "92377387275ac47d2c0c",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4311,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 4287,
+          "support_complete_frame": 4310,
+          "support_start_frame": 4296,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 5000,
+          "auto_start_frame": 4840,
+          "auto_support_complete_frame": 4991,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "9e1d72768f8e819524b6",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4996,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4897,
+          "support_complete_frame": 4970,
+          "support_start_frame": 4924,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "28b6583d317462d6884fccde7e0958fa867bd8386987d91e0a706b3255771fa2",
+      "split": "validation",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "fallAndGetUp2",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp2_subject2.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 1864,
+          "auto_start_frame": 1688,
+          "auto_support_complete_frame": 1855,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "dfff4d12d1cce2936536",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1854,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1756,
+          "support_complete_frame": 1842,
+          "support_start_frame": 1804,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2154,
+          "auto_start_frame": 1997,
+          "auto_support_complete_frame": 2145,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "f50eb4c3283649c25b42",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2160,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2104,
+          "support_complete_frame": 2136,
+          "support_start_frame": 2104,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2817,
+          "auto_start_frame": 2786,
+          "auto_support_complete_frame": 2808,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "e9b51f7446abb08c2106",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2807,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2782,
+          "support_complete_frame": 2806,
+          "support_start_frame": 2782,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4615,
+          "auto_start_frame": 4510,
+          "auto_support_complete_frame": 4606,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "b9dfacb15fa9bfb0f1ac",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4598,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4557,
+          "support_complete_frame": 4597,
+          "support_start_frame": 4564,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "6a165a1b3790c3acbf603df4c267edf7812f0bf3f648e20e5f49918ac4211d19",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "fallAndGetUp2",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp2_subject3.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 1899,
+          "auto_start_frame": 1704,
+          "auto_support_complete_frame": 1890,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "31fbcbd27ec6563eeb62",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1896,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1829,
+          "support_complete_frame": 1874,
+          "support_start_frame": 1838,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "e66fd460eeff103885dbf2ed54482d43761ba1fd8916a41baa6804e5da58725e",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 102.16564500000001,
+      "fps": 30.000300003000028,
+      "frame_count": 3066,
+      "recording": "fallAndGetUp3",
+      "recovery_source": true,
+      "relative_path": "fallAndGetUp3_subject1.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 326,
+          "auto_start_frame": 263,
+          "auto_support_complete_frame": 317,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "c4a8608fa6920080130e",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 316,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 296,
+          "support_complete_frame": 311,
+          "support_start_frame": 296,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 439,
+          "auto_start_frame": 408,
+          "auto_support_complete_frame": 430,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "a1f156b212d329bfff72",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 446,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 416,
+          "support_complete_frame": 425,
+          "support_start_frame": 416,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 566,
+          "auto_start_frame": 516,
+          "auto_support_complete_frame": 557,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "8e0b1c850e86f519e6cb",
+          "confirmed_choices": [
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 566,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 526,
+          "support_complete_frame": 545,
+          "support_start_frame": 526,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 772,
+          "auto_start_frame": 738,
+          "auto_support_complete_frame": 763,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "f9bb6413cec1793bc048",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 767,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 743,
+          "support_complete_frame": 757,
+          "support_start_frame": 743,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1112,
+          "auto_start_frame": 1053,
+          "auto_support_complete_frame": 1103,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "e720fc24b8540a3592f5",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1122,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1069,
+          "support_complete_frame": 1097,
+          "support_start_frame": 1077,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1269,
+          "auto_start_frame": 1197,
+          "auto_support_complete_frame": 1260,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "4d961a93caa6ca5f6f2e",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1265,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1221,
+          "support_complete_frame": 1246,
+          "support_start_frame": 1227,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1371,
+          "auto_start_frame": 1331,
+          "auto_support_complete_frame": 1362,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "f1569a72530df0883a4d",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1363,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1342,
+          "support_complete_frame": 1356,
+          "support_start_frame": 1342,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1515,
+          "auto_start_frame": 1472,
+          "auto_support_complete_frame": 1506,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "861ea47c65638fd4723e",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1498,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 1482,
+          "support_complete_frame": 1497,
+          "support_start_frame": 1482,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2078,
+          "auto_start_frame": 1944,
+          "auto_support_complete_frame": 2069,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "d3ba6ee0a8c4a5ee0d9f",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2062,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2024,
+          "support_complete_frame": 2061,
+          "support_start_frame": 2045,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2290,
+          "auto_start_frame": 2170,
+          "auto_support_complete_frame": 2281,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "7557e0cee7a4ba8260ce",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2283,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 2248,
+          "support_complete_frame": 2274,
+          "support_start_frame": 2248,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2520,
+          "auto_start_frame": 2389,
+          "auto_support_complete_frame": 2511,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "39e39de2911d6b184971",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2526,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2477,
+          "support_complete_frame": 2512,
+          "support_start_frame": 2477,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2756,
+          "auto_start_frame": 2644,
+          "auto_support_complete_frame": 2747,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "b9fc3fdc663114d1c4eb",
+          "confirmed_choices": [
+            "terminal_mode"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2756,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2720,
+          "support_complete_frame": 2743,
+          "support_start_frame": 2725,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "4a67afdd0ae0aaa1034a59b327fe558a6c8381939a7ac4afca324f4913ba0128",
+      "split": "test",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject2.bvh",
+      "segments": [],
+      "sha256": "f50c8a3502ed71a8b132cad83bbc9991bbf78bb848bf9b40534c25a7abe31593",
+      "split": "test",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject3.bvh",
+      "segments": [],
+      "sha256": "1678d40d5e5aa584bcf49b2d83765245589addcee37abe95c27a760b4e5e7de9",
+      "split": "test",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 244.86421800000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7347,
+      "recording": "fight1",
+      "recovery_source": false,
+      "relative_path": "fight1_subject5.bvh",
+      "segments": [],
+      "sha256": "e8af9a4f8d9a5ade73a7f1e1f9a219e32c23519215178f9cc30a40c5ee946887",
+      "split": "test",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 245.130882,
+      "fps": 30.000300003000028,
+      "frame_count": 7355,
+      "recording": "fightAndSports1",
+      "recovery_source": false,
+      "relative_path": "fightAndSports1_subject1.bvh",
+      "segments": [],
+      "sha256": "6317db16e0bf4f4398a08204f66e412bdd441fc2952430500a388b27a338c7f6",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 245.130882,
+      "fps": 30.000300003000028,
+      "frame_count": 7355,
+      "recording": "fightAndSports1",
+      "recovery_source": false,
+      "relative_path": "fightAndSports1_subject4.bvh",
+      "segments": [],
+      "sha256": "205396f5a212419b721c2d3b1f9072d625718567354ee623f89beacc84d5b98c",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject1.bvh",
+      "segments": [],
+      "sha256": "74125060069440a0c038a1404ca685ace42735c77dfd31526b556f4a3c3ded4e",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject4.bvh",
+      "segments": [],
+      "sha256": "c60898cb2f4be5a343ac919ca21c52a64fffd7b47b98d75deacea209b27f7653",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 158.031753,
+      "fps": 30.000300003000028,
+      "frame_count": 4742,
+      "recording": "ground1",
+      "recovery_source": true,
+      "relative_path": "ground1_subject5.bvh",
+      "segments": [],
+      "sha256": "4bbcd23182a49c70f4112cb92862cabe08d4b67ffc555d8108cfeecd7c898391",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 184.964817,
+      "fps": 30.000300003000028,
+      "frame_count": 5550,
+      "recording": "ground2",
+      "recovery_source": true,
+      "relative_path": "ground2_subject2.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 5459,
+          "auto_start_frame": 5273,
+          "auto_support_complete_frame": 5450,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "557560c5827160a249e2",
+          "confirmed_choices": [
+            "terminal_mode",
+            "outcome"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 5488,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "partial",
+          "start_frame": 5414,
+          "support_complete_frame": 5437,
+          "support_start_frame": 5414,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "da19db36053b6cd3a775a29c8a54e22e703199a0c5815458a5486e69229c4fea",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 184.964817,
+      "fps": 30.000300003000028,
+      "frame_count": 5550,
+      "recording": "ground2",
+      "recovery_source": true,
+      "relative_path": "ground2_subject3.bvh",
+      "segments": [],
+      "sha256": "33be36ec52d7818d1c0bbec85f1e98dbb97a30ebb241b717fb3f4df1e8715e26",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject1.bvh",
+      "segments": [],
+      "sha256": "877006b961a65fc46f1a3101452831c84f0f45f1065426d5dbc188005452b1fe",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject2.bvh",
+      "segments": [],
+      "sha256": "e059d1449b83de0897c7379237bb5f92d67ce4f74fa39dcd56929547b4d49ea0",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.430889,
+      "fps": 30.000300003000028,
+      "frame_count": 7334,
+      "recording": "jumps1",
+      "recovery_source": false,
+      "relative_path": "jumps1_subject5.bvh",
+      "segments": [],
+      "sha256": "1c89870da12edd65bbfc658301133792eeba9bc38dfcd534df5c5a2a3f14be18",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject1.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 325,
+          "auto_start_frame": 139,
+          "auto_support_complete_frame": 316,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "f419bf8c05636ef00b35",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 332,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 221,
+          "support_complete_frame": 304,
+          "support_start_frame": 237,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 543,
+          "auto_start_frame": 406,
+          "auto_support_complete_frame": 534,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "79a72c8ded58a8bab454",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 541,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 472,
+          "support_complete_frame": 526,
+          "support_start_frame": 486,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 856,
+          "auto_start_frame": 658,
+          "auto_support_complete_frame": 847,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "fa68b250afd341b2b8a4",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 854,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "great",
+          "outcome": "success",
+          "start_frame": 760,
+          "support_complete_frame": 829,
+          "support_start_frame": 785,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1131,
+          "auto_start_frame": 943,
+          "auto_support_complete_frame": 1122,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "a697298b157a51b0c04f",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1135,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1026,
+          "support_complete_frame": 1103,
+          "support_start_frame": 1026,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "aa6afeaf98babe3e9a2c9bd3fcdc9228c9871eb8b8e3386dddea92b77ad1bdb4",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject2.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 807,
+          "auto_start_frame": 665,
+          "auto_support_complete_frame": 798,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "d380e68c0e7c26b6e72c",
+          "confirmed_choices": [
+            "terminal_mode"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 811,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 725,
+          "support_complete_frame": 793,
+          "support_start_frame": 725,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "f6c3eb5e460b92a4cfeac18fd075614980a85588d66ed5d2ff63737299d64cb3",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject3.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 292,
+          "auto_start_frame": 76,
+          "auto_support_complete_frame": 283,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "5e121f149a5a09bf6a18",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 297,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 231,
+          "support_complete_frame": 276,
+          "support_start_frame": 253,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "923624cca516ef39a9744895696762902c9234a525a5162ef5cdd1d36e3bc07b",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 152.865138,
+      "fps": 30.000300003000028,
+      "frame_count": 4587,
+      "recording": "multipleActions1",
+      "recovery_source": true,
+      "relative_path": "multipleActions1_subject4.bvh",
+      "segments": [],
+      "sha256": "f73d503584c1ba1566d85d2ca91f854d9278e9c4865fe697e69d0def3db223cb",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject1.bvh",
+      "segments": [],
+      "sha256": "deb0e6c5090b98ea204d8ca6b3ac2938ba76956f389d5ec519fd13519d0ca86a",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject2.bvh",
+      "segments": [],
+      "sha256": "0d6e74487c7eec295adc2582c799c87c9e29f6a8966cc789067e2f1a10dfa608",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 179.66487,
+      "fps": 30.000300003000028,
+      "frame_count": 5391,
+      "recording": "obstacles1",
+      "recovery_source": false,
+      "relative_path": "obstacles1_subject5.bvh",
+      "segments": [],
+      "sha256": "4176c6f2733531e1098904ac2cb7cad0588a1440d72ecd3d3c6a3dfe26a61399",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject1.bvh",
+      "segments": [],
+      "sha256": "098a5c8300eb667a06a190536e96332b3206909e3c90c036376ba72fd10c3e77",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject2.bvh",
+      "segments": [],
+      "sha256": "fa667a9d030cf15460c735d78983721ccad48f1bdb95da5ff9500e68c3cdd694",
+      "split": "validation",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 244.06422600000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7323,
+      "recording": "obstacles2",
+      "recovery_source": false,
+      "relative_path": "obstacles2_subject5.bvh",
+      "segments": [],
+      "sha256": "0ba70f43f18d280f9aed0a5698551c496721952f9d9f64ce7bd303c9d81fa828",
+      "split": "validation",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 131.065356,
+      "fps": 30.000300003000028,
+      "frame_count": 3933,
+      "recording": "obstacles3",
+      "recovery_source": false,
+      "relative_path": "obstacles3_subject3.bvh",
+      "segments": [],
+      "sha256": "beacc0566a776d3dfad91ba9b1e30093d330be50ac9ab6c04a8c0c99fa0a43e5",
+      "split": "validation",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 131.065356,
+      "fps": 30.000300003000028,
+      "frame_count": 3933,
+      "recording": "obstacles3",
+      "recovery_source": false,
+      "relative_path": "obstacles3_subject4.bvh",
+      "segments": [],
+      "sha256": "52084d594a7105fea643dcfb49dcaceee5ff7d25fb9c3a6711e888a174efe263",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject2.bvh",
+      "segments": [],
+      "sha256": "b95b8b18980fc2df4f59787cbd2aadbc6c08e6a71e1dee4f6f11d5ecfd78dead",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject3.bvh",
+      "segments": [],
+      "sha256": "971cb091da5e74c3ec7b5fdbabb9e56fe50e06f71175a44092b39bb67cbd5e64",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.66420000000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7401,
+      "recording": "obstacles4",
+      "recovery_source": false,
+      "relative_path": "obstacles4_subject4.bvh",
+      "segments": [],
+      "sha256": "fdf44cf61985b4727330e60184292c61de3ed43e17fc6573105d09eee13814d9",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject2.bvh",
+      "segments": [],
+      "sha256": "61fa1d720d12a5b675bc0b6e5922a1800f25381886b3a2c1505901927fa89a7b",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject3.bvh",
+      "segments": [],
+      "sha256": "26806bb17bbd6e22389f762586ffee2ca7d63aa34875ab61cab383852723aaa4",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.164205,
+      "fps": 30.000300003000028,
+      "frame_count": 7386,
+      "recording": "obstacles5",
+      "recovery_source": false,
+      "relative_path": "obstacles5_subject4.bvh",
+      "segments": [],
+      "sha256": "884468fd780359932a8807cd93082ff4d493d46eae09d88c5e5c56a9d2cf1335",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject1.bvh",
+      "segments": [],
+      "sha256": "0f5beed1a0abc5f1a78fa15c5ea6d99f9feec853f4c31f8fae744110da1cd657",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject4.bvh",
+      "segments": [],
+      "sha256": "ec8c37cb1bb691789f4f8742d9d16afe6bd5339de6b3d0d3508e14e35635dd86",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 251.66415,
+      "fps": 30.000300003000028,
+      "frame_count": 7551,
+      "recording": "obstacles6",
+      "recovery_source": false,
+      "relative_path": "obstacles6_subject5.bvh",
+      "segments": [],
+      "sha256": "c4f718bf1bf392a314a294f3789889b7fb1d12c5811e2351dcdc5018603c9c63",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 102.16564500000001,
+      "fps": 30.000300003000028,
+      "frame_count": 3066,
+      "recording": "push1",
+      "recovery_source": false,
+      "relative_path": "push1_subject2.bvh",
+      "segments": [],
+      "sha256": "c41a108f028ba09ace1d7ba677d11ba57f0ad4bd567ecb023b1db913afeea19c",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 165.265014,
+      "fps": 30.000300003000028,
+      "frame_count": 4959,
+      "recording": "pushAndFall1",
+      "recovery_source": true,
+      "relative_path": "pushAndFall1_subject1.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 1771,
+          "auto_start_frame": 1662,
+          "auto_support_complete_frame": 1762,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "3b3fe7cc096c30726bc3",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1762,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1709,
+          "support_complete_frame": 1748,
+          "support_start_frame": 1715,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1960,
+          "auto_start_frame": 1854,
+          "auto_support_complete_frame": 1951,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "ad556eca92fbb9be4ff1",
+          "confirmed_choices": [
+            "terminal_mode"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1956,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1890,
+          "support_complete_frame": 1935,
+          "support_start_frame": 1896,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2124,
+          "auto_start_frame": 2048,
+          "auto_support_complete_frame": 2115,
+          "auto_terminal_mode": "stationary",
+          "candidate_id": "0ae15a15e688b10a58b9",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2117,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2059,
+          "support_complete_frame": 2099,
+          "support_start_frame": 2059,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2287,
+          "auto_start_frame": 2228,
+          "auto_support_complete_frame": 2278,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "93a04a6436f7a9fcab23",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 2291,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": 2277,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2250,
+          "support_complete_frame": 2273,
+          "support_start_frame": 2250,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3615,
+          "auto_start_frame": 3560,
+          "auto_support_complete_frame": 3606,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "80fd43d2418078d6e04d",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3622,
+          "initial_posture": "other",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3577,
+          "support_complete_frame": 3598,
+          "support_start_frame": 3598,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "f1ce49fdb8831e2dea48bfde73585d17cccd96531a389b1f73652fb0eaf9f8b1",
+      "split": "test",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 165.265014,
+      "fps": 30.000300003000028,
+      "frame_count": 4959,
+      "recording": "pushAndFall1",
+      "recovery_source": true,
+      "relative_path": "pushAndFall1_subject4.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 932,
+          "auto_start_frame": 823,
+          "auto_support_complete_frame": 923,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "58ce1fba374761f2385e",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 934,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": 917,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 870,
+          "support_complete_frame": 916,
+          "support_start_frame": 870,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1203,
+          "auto_start_frame": 1095,
+          "auto_support_complete_frame": 1194,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "7231b03692552125b283",
+          "confirmed_choices": [
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 1207,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": 1187,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1142,
+          "support_complete_frame": 1186,
+          "support_start_frame": 1142,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 1488,
+          "auto_start_frame": 1371,
+          "auto_support_complete_frame": 1479,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "7fc5df5f8e18d54ac99b",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 1496,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 1418,
+          "support_complete_frame": 1473,
+          "support_start_frame": 1418,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2672,
+          "auto_start_frame": 2536,
+          "auto_support_complete_frame": 2663,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "0189deadf62343608a51",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2674,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2602,
+          "support_complete_frame": 2654,
+          "support_start_frame": 2618,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 2862,
+          "auto_start_frame": 2726,
+          "auto_support_complete_frame": 2853,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "3a111e44efd23cc1c30a",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 2870,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2788,
+          "support_complete_frame": 2847,
+          "support_start_frame": 2797,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3050,
+          "auto_start_frame": 2919,
+          "auto_support_complete_frame": 3041,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "c552d1a5d96652262983",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3055,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 2981,
+          "support_complete_frame": 3035,
+          "support_start_frame": 2981,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3228,
+          "auto_start_frame": 3101,
+          "auto_support_complete_frame": 3219,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "301fa0454fd765e47ea6",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3232,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3152,
+          "support_complete_frame": 3213,
+          "support_start_frame": 3173,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 3413,
+          "auto_start_frame": 3279,
+          "auto_support_complete_frame": 3404,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "eb3d8e15ebbe6bb76b77",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 3395,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3324,
+          "support_complete_frame": 3387,
+          "support_start_frame": 3343,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4093,
+          "auto_start_frame": 3912,
+          "auto_support_complete_frame": 4084,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "e44d9743e5c3997d736e",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4096,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 3982,
+          "support_complete_frame": 4076,
+          "support_start_frame": 3997,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4303,
+          "auto_start_frame": 4151,
+          "auto_support_complete_frame": 4294,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "591b3b6a7866397f5684",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4310,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4209,
+          "support_complete_frame": 4288,
+          "support_start_frame": 4241,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4483,
+          "auto_start_frame": 4347,
+          "auto_support_complete_frame": 4474,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "b733eccc22d7638b6f28",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4494,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4411,
+          "support_complete_frame": 4467,
+          "support_start_frame": 4417,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4680,
+          "auto_start_frame": 4535,
+          "auto_support_complete_frame": 4671,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "bf85500059edde32fa61",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4657,
+          "initial_posture": "supine",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4582,
+          "support_complete_frame": 4649,
+          "support_start_frame": 4582,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "5f3370e561a6d5493d58d287c24cbecc8fe18781611e7f85be1ea8f0320d08bb",
+      "split": "test",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject2.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 4787,
+          "auto_start_frame": 4670,
+          "auto_support_complete_frame": 4778,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "795a51b348b8a3f09666",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4771,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4721,
+          "support_complete_frame": 4770,
+          "support_start_frame": 4724,
+          "terminal_mode": "support_only",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 5638,
+          "auto_start_frame": 5483,
+          "auto_support_complete_frame": 5629,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "cbdb43bbeab9d7a69a1c",
+          "confirmed_choices": [],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete",
+            "locomotion_takeover"
+          ],
+          "end_frame": 5644,
+          "initial_posture": "prone",
+          "issues": [],
+          "locomotion_takeover_frame": 5624,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 5536,
+          "support_complete_frame": 5620,
+          "support_start_frame": 5536,
+          "terminal_mode": "locomotion",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "a88cb394febc368670ed379467cc97e500291c2c75cd96a4ed07f5f7dfc4e2ec",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject3.bvh",
+      "segments": [
+        {
+          "auto_end_frame": 4613,
+          "auto_start_frame": 4498,
+          "auto_support_complete_frame": 4604,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "2fb3bdf653e42eba73d8",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4610,
+          "initial_posture": "left_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4550,
+          "support_complete_frame": 4588,
+          "support_start_frame": 4550,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        },
+        {
+          "auto_end_frame": 4922,
+          "auto_start_frame": 4712,
+          "auto_support_complete_frame": 4913,
+          "auto_terminal_mode": "locomotion",
+          "candidate_id": "2e4ff87a3de58c5fa85d",
+          "confirmed_choices": [
+            "terminal_mode",
+            "initial_posture"
+          ],
+          "confirmed_events": [
+            "start",
+            "end",
+            "support_start",
+            "support_complete"
+          ],
+          "end_frame": 4927,
+          "initial_posture": "right_side",
+          "issues": [],
+          "locomotion_takeover_frame": null,
+          "notes": "",
+          "outcome": "success",
+          "start_frame": 4866,
+          "support_complete_frame": 4901,
+          "support_start_frame": 4866,
+          "terminal_mode": "stationary",
+          "terminal_safe": true
+        }
+      ],
+      "sha256": "d5102f6cc32350c30220382377889386cfd6b2d32748c9445869f53d908f63c3",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 226.66440000000003,
+      "fps": 30.000300003000028,
+      "frame_count": 6801,
+      "recording": "pushAndStumble1",
+      "recovery_source": true,
+      "relative_path": "pushAndStumble1_subject5.bvh",
+      "segments": [],
+      "sha256": "960eda292e8921d3c8ffcf9fbeee7d3083e36a6f9c187ab2e0460374ce66d646",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 237.79762200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7135,
+      "recording": "run1",
+      "recovery_source": false,
+      "relative_path": "run1_subject2.bvh",
+      "segments": [],
+      "sha256": "823dbe4f386a8c4a471999381a16cd0bc4d93a39907098442ccda886dcec9c95",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 237.79762200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7135,
+      "recording": "run1",
+      "recovery_source": false,
+      "relative_path": "run1_subject5.bvh",
+      "segments": [],
+      "sha256": "1eb77d39208ee93a15f5bf0235cc291c9680c93ffc524aa87007be67e9b4fcaa",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 244.79755200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7345,
+      "recording": "run2",
+      "recovery_source": false,
+      "relative_path": "run2_subject1.bvh",
+      "segments": [],
+      "sha256": "6a88975cfcc3b5cf24af703222389593a9a74ad752583ee999f79e52f0755dc8",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 244.79755200000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7345,
+      "recording": "run2",
+      "recovery_source": false,
+      "relative_path": "run2_subject4.bvh",
+      "segments": [],
+      "sha256": "cecbb82267dae06e4aabfaa761f7126b8bf384b38c159d92f9677b9c687100e7",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 273.09726900000004,
+      "fps": 30.000300003000028,
+      "frame_count": 8194,
+      "recording": "sprint1",
+      "recovery_source": false,
+      "relative_path": "sprint1_subject2.bvh",
+      "segments": [],
+      "sha256": "441c2d5a2ecbfd14e925023a08071234c4db1c1149f87baea9b44bf825735c68",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 273.09726900000004,
+      "fps": 30.000300003000028,
+      "frame_count": 8194,
+      "recording": "sprint1",
+      "recovery_source": false,
+      "relative_path": "sprint1_subject4.bvh",
+      "segments": [],
+      "sha256": "b89283da1039622161e9526d937aa4b0f5235a66a3e944ac809e49d5aef1916f",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject1.bvh",
+      "segments": [],
+      "sha256": "4c9d591f323ffa660d9de6ef20c5d7077e66b2102a009feedf01afa22a6fbc73",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject2.bvh",
+      "segments": [],
+      "sha256": "d6f910fa34c31e657ecedb4088cf140fdccb61c5a432633345ccf93933dfc083",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 261.297387,
+      "fps": 30.000300003000028,
+      "frame_count": 7840,
+      "recording": "walk1",
+      "recovery_source": false,
+      "relative_path": "walk1_subject5.bvh",
+      "segments": [],
+      "sha256": "9e6bb69dfbb96469b33f8feed64c547521693151126b1fda4a20475354002521",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject1.bvh",
+      "segments": [],
+      "sha256": "8a19bcd8d476c40de3af7d8764d7b4ca42636c1704421e40ef025490197c343c",
+      "split": "validation",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject3.bvh",
+      "segments": [],
+      "sha256": "eeab80eb5ada7811904485aea813ec9e4a0d4c890c11cabadb72e5de672ddf67",
+      "split": "validation",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 238.164285,
+      "fps": 30.000300003000028,
+      "frame_count": 7146,
+      "recording": "walk2",
+      "recovery_source": false,
+      "relative_path": "walk2_subject4.bvh",
+      "segments": [],
+      "sha256": "c5422fad8431ee55d11e71e06c7debc80bdb2746a4c13fd337c283717617a8ea",
+      "split": "validation",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject1.bvh",
+      "segments": [],
+      "sha256": "b5b6d11093ca52a24f34466098c97e413170bc1c71c10f7bac02d11febb24cb1",
+      "split": "train",
+      "subject": "subject1"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject2.bvh",
+      "segments": [],
+      "sha256": "8771962be56019ae9a2266f2bdf5052334f0f22c598e85f776a0af8ee3f81614",
+      "split": "train",
+      "subject": "subject2"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject3.bvh",
+      "segments": [],
+      "sha256": "2bd2ca6c17a313dadb41ef8fad4a2dbee3b9288d5949334faac49ba3aa030d3f",
+      "split": "train",
+      "subject": "subject3"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject4.bvh",
+      "segments": [],
+      "sha256": "13451e9a5b310cf5dba1ec976d1219673257bedb483195a2d35e189e7247c81c",
+      "split": "train",
+      "subject": "subject4"
+    },
+    {
+      "duration_s": 246.59753400000002,
+      "fps": 30.000300003000028,
+      "frame_count": 7399,
+      "recording": "walk3",
+      "recovery_source": false,
+      "relative_path": "walk3_subject5.bvh",
+      "segments": [],
+      "sha256": "393930b26932d7b3cdf8f949cd735661d1e1975abd5f169f9e575a0575e0eeaf",
+      "split": "train",
+      "subject": "subject5"
+    },
+    {
+      "duration_s": 163.89836100000002,
+      "fps": 30.000300003000028,
+      "frame_count": 4918,
+      "recording": "walk4",
+      "recovery_source": false,
+      "relative_path": "walk4_subject1.bvh",
+      "segments": [],
+      "sha256": "900a3b7806b6436d99b7725cef095c82418ee8521c7f1893530d173e21ab9900",
+      "split": "test",
+      "subject": "subject1"
+    }
+  ],
+  "dataset_name": "lafan1",
+  "failures": [],
+  "review_queue_sha256": "20ba0da9038736a490a331e0b44c7a74176507c679c3839b48455a6d0af17743",
+  "review_summary": {
+    "accepted_count": 91,
+    "candidate_count": 191,
+    "pending_count": 0,
+    "rejected_count": 100
+  },
+  "reviewer": "reviewer-01",
+  "schema_version": "recovery-reviewed-manifest-v1",
+  "source_manifest_schema_version": "recovery-semantic-v3",
+  "source_manifest_sha256": "2a71b9b748512f9aae8bd050d647947c02451074aa936221e6cfce642440a0af"
+}
