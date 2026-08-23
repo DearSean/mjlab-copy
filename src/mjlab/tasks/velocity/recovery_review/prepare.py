@@ -11,7 +11,7 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import tyro
@@ -30,9 +30,11 @@ from mjlab.tasks.velocity.recovery_review.candidates import (
 )
 from mjlab.tasks.velocity.recovery_review.schema import (
   REVIEW_QUEUE_SCHEMA_VERSION,
+  InitialPosture,
   RecoveryReviewCandidate,
   ReviewFrame,
   ReviewQueue,
+  candidate_id,
   file_sha256,
   frame_id,
   save_review_queue,
@@ -53,6 +55,12 @@ class PrepareReviewCfg:
 
   manifest: Path | None = None
   """Optional existing manifest; otherwise it is rebuilt in output_dir."""
+
+  recovery_source_all: bool = False
+  """Treat every BVH in dataset_root as a recovery source (for CMU-style sets)."""
+
+  source_length_scale_m: float = 0.01
+  """Metres represented by one source BVH length unit (CMU get-up: 0.1)."""
 
   validation_frames: int = 200
   """Number of validation frames sampled for threshold tuning."""
@@ -80,7 +88,11 @@ def prepare_review_directory(cfg: PrepareReviewCfg) -> ReviewQueue:
   cfg.output_dir.mkdir(parents=True, exist_ok=True)
   local_manifest_path = cfg.output_dir / "lafan_manifest.json"
   if cfg.manifest is None:
-    manifest = build_recovery_manifest(dataset_root)
+    manifest = build_recovery_manifest(
+      dataset_root,
+      recovery_source_all=cfg.recovery_source_all,
+      source_length_scale_m=cfg.source_length_scale_m,
+    )
     write_recovery_manifest(manifest, local_manifest_path)
   else:
     source_manifest = cfg.manifest.resolve()
@@ -100,7 +112,10 @@ def prepare_review_directory(cfg: PrepareReviewCfg) -> ReviewQueue:
     if not clip_data["recovery_source"]:
       continue
     relative_path = str(clip_data["relative_path"])
-    motion = load_lafan_bvh(dataset_root / relative_path)
+    motion = load_lafan_bvh(
+      dataset_root / relative_path,
+      source_length_scale_m=cfg.source_length_scale_m,
+    )
     if file_sha256(dataset_root / relative_path) != clip_data["sha256"]:
       raise ValueError(f"Dataset file changed after manifesting: {relative_path}")
     semantic = encoder.encode(motion)
@@ -114,6 +129,11 @@ def prepare_review_directory(cfg: PrepareReviewCfg) -> ReviewQueue:
       split=str(clip_data["split"]),
       cfg=detector_cfg,
     )
+    if not clip_candidates:
+      # The conservative review detector can miss a short CMU get-up.  The
+      # manifest segmenter already identified it as a plausible recovery, so
+      # retain it as a reviewable fallback instead of silently omitting a BVH.
+      clip_candidates = _manifest_segment_candidates(clip_data)
     candidates.extend(clip_candidates)
     audit_records.extend(
       _AuditRecord(candidate=candidate, semantic=semantic)
@@ -150,6 +170,35 @@ def prepare_review_directory(cfg: PrepareReviewCfg) -> ReviewQueue:
   )
   save_review_queue(queue, cfg.output_dir / "review_queue.json")
   return queue
+
+
+def _manifest_segment_candidates(
+  clip_data: dict[str, Any],
+) -> tuple[RecoveryReviewCandidate, ...]:
+  candidates: list[RecoveryReviewCandidate] = []
+  for segment in clip_data.get("segments", []):
+    start_frame = int(segment["start_frame"])
+    end_frame = int(segment["end_frame"])
+    candidates.append(
+      RecoveryReviewCandidate(
+        candidate_id=candidate_id(str(clip_data["sha256"]), start_frame, end_frame),
+        relative_path=str(clip_data["relative_path"]),
+        clip_sha256=str(clip_data["sha256"]),
+        recording=str(clip_data["recording"]),
+        subject=str(clip_data["subject"]),
+        split=str(clip_data["split"]),
+        clip_frame_count=int(clip_data["frame_count"]),
+        fps=float(clip_data["fps"]),
+        auto_start_frame=start_frame,
+        auto_end_frame=end_frame,
+        auto_support_complete_frame=end_frame - 1,
+        auto_terminal_mode="stationary",
+        auto_initial_posture=cast(InitialPosture, segment["initial_posture"]),
+        auto_min_progress=float(segment["min_progress"]),
+        auto_terminal_progress=float(segment["terminal_progress"]),
+      )
+    )
+  return tuple(candidates)
 
 
 def _sample_audit_frames(

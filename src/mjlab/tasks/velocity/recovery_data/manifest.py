@@ -99,6 +99,8 @@ def build_recovery_manifest(
   *,
   strict: bool = True,
   segmenter_cfg: RecoverySegmenterCfg | None = None,
+  recovery_source_all: bool = False,
+  source_length_scale_m: float = 0.01,
 ) -> RecoveryManifest:
   """Build a deterministic manifest without loading the full corpus at once."""
   root = Path(dataset_root).resolve()
@@ -115,9 +117,13 @@ def build_recovery_manifest(
   for path in paths:
     relative_path = path.relative_to(root).as_posix()
     try:
-      recording, subject = _parse_source_identity(path.stem)
-      motion = load_lafan_bvh(path)
-      recovery_source = recording.startswith(_RECOVERY_RECORDING_PREFIXES)
+      recording, subject = _parse_source_identity(
+        path.stem, allow_subjectless=recovery_source_all
+      )
+      motion = load_lafan_bvh(path, source_length_scale_m=source_length_scale_m)
+      recovery_source = recovery_source_all or recording.startswith(
+        _RECOVERY_RECORDING_PREFIXES
+      )
       if recovery_source:
         semantic = encoder.encode(motion)
         segments = extract_recovery_segments(motion, semantic.progress, cfg)
@@ -250,10 +256,14 @@ def _first_stable_ready_frame(
   return None
 
 
-def _parse_source_identity(stem: str) -> tuple[str, str]:
+def _parse_source_identity(
+  stem: str, *, allow_subjectless: bool = False
+) -> tuple[str, str]:
   try:
     recording, subject = stem.rsplit("_", maxsplit=1)
   except ValueError as exc:
+    if allow_subjectless and stem:
+      return stem, "unknown"
     raise ValueError(
       f"Expected filename '<recording>_<subject>.bvh', got {stem!r}."
     ) from exc

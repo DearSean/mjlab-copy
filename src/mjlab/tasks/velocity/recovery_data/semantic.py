@@ -57,6 +57,26 @@ _LAFAN_CONTACT_JOINTS = (
   "RightToe",
 )
 
+# CMU BVH files use ``Spine1`` and ``*ToeBase`` where LaFAN uses ``Spine2``
+# and ``*Toe``.  Keep the semantic schema stable while accepting either
+# convention at ingestion time.
+_JOINT_ALIASES: dict[str, tuple[str, ...]] = {
+  "Spine2": ("Spine2", "Spine1", "Spine"),
+  "LeftToe": ("LeftToe", "LeftToeBase"),
+  "RightToe": ("RightToe", "RightToeBase"),
+}
+
+
+def recovery_joint_index(clip: CanonicalMotionClip, name: str) -> int:
+  """Resolve a recovery-schema joint name against LaFAN or CMU BVHs."""
+  for candidate in _JOINT_ALIASES.get(name, (name,)):
+    try:
+      return clip.skeleton.index(candidate)
+    except KeyError:
+      continue
+  aliases = ", ".join(_JOINT_ALIASES.get(name, (name,)))
+  raise KeyError(f"None of the required joints ({aliases}) exist in the BVH.")
+
 
 @dataclass(frozen=True, kw_only=True)
 class RecoverySemanticEncoderCfg:
@@ -237,26 +257,36 @@ class RecoverySemanticEncoder:
 
   @staticmethod
   def _resolve_indices(clip: CanonicalMotionClip) -> dict[str, int | NDArray[np.int64]]:
-    skeleton = clip.skeleton
+    def index(name: str) -> int:
+      return recovery_joint_index(clip, name)
+
     return {
-      "root": skeleton.index("Hips"),
-      "left_hip": skeleton.index("LeftUpLeg"),
-      "right_hip": skeleton.index("RightUpLeg"),
-      "left_shoulder": skeleton.index("LeftShoulder"),
-      "right_shoulder": skeleton.index("RightShoulder"),
-      "chest": skeleton.index("Spine2"),
-      "head": skeleton.index("Head"),
-      "left_toe": skeleton.index("LeftToe"),
-      "right_toe": skeleton.index("RightToe"),
+      "root": index("Hips"),
+      "left_hip": index("LeftUpLeg"),
+      "right_hip": index("RightUpLeg"),
+      "left_shoulder": index("LeftShoulder"),
+      "right_shoulder": index("RightShoulder"),
+      "chest": index("Spine2"),
+      "head": index("Head"),
+      "left_toe": index("LeftToe"),
+      "right_toe": index("RightToe"),
       "landmarks": np.asarray(
-        [skeleton.index(name) for name in _LAFAN_LANDMARK_JOINTS],
+        [index(name) for name in _LAFAN_LANDMARK_JOINTS],
         dtype=np.int64,
       ),
       "contacts": np.asarray(
-        [skeleton.index(name) for name in _LAFAN_CONTACT_JOINTS],
+        [index(name) for name in _LAFAN_CONTACT_JOINTS],
         dtype=np.int64,
       ),
     }
+
+
+def recovery_contact_joint_indices(clip: CanonicalMotionClip) -> NDArray[np.int64]:
+  """Return the skeleton indices corresponding to the eight review contacts."""
+  return np.asarray(
+    [recovery_joint_index(clip, name) for name in _LAFAN_CONTACT_JOINTS],
+    dtype=np.int64,
+  )
 
 
 def recovery_semantic_feature_names() -> tuple[str, ...]:
@@ -302,7 +332,7 @@ def _nominal_height(clip: CanonicalMotionClip) -> float:
   skeleton = clip.skeleton
 
   def path_length(joint_name: str) -> float:
-    index = skeleton.index(joint_name)
+    index = recovery_joint_index(clip, joint_name)
     total = 0.0
     while index > 0:
       total += float(np.linalg.norm(skeleton.offsets_m[index]))

@@ -24,7 +24,10 @@ from mjlab.tasks.velocity.recovery_data import (
   SemanticMotion,
   load_lafan_bvh,
 )
-from mjlab.tasks.velocity.recovery_data.semantic import CONTACT_NAMES
+from mjlab.tasks.velocity.recovery_data.semantic import (
+  CONTACT_NAMES,
+  recovery_contact_joint_indices,
+)
 from mjlab.tasks.velocity.recovery_review.prepare import DEFAULT_REVIEW_DIR
 from mjlab.tasks.velocity.recovery_review.schema import (
   ContactLabel,
@@ -46,16 +49,6 @@ from mjlab.tasks.velocity.recovery_review.schema import (
   save_review_state,
 )
 
-_CONTACT_JOINTS = (
-  "Hips",
-  "Spine2",
-  "LeftHand",
-  "RightHand",
-  "LeftLeg",
-  "RightLeg",
-  "LeftToe",
-  "RightToe",
-)
 _POSTURES: tuple[InitialPosture, ...] = (
   "supine",
   "prone",
@@ -106,14 +99,17 @@ class RecoveryReviewViewerCfg:
   review_dir: Path = DEFAULT_REVIEW_DIR
   mode: Literal["segments", "validation", "test"] = "segments"
   review_file: Path | None = None
+  source_length_scale_m: float = 0.01
+  """Metres represented by one source BVH length unit (CMU get-up: 0.1)."""
   allow_test: bool = False
   host: str = "127.0.0.1"
   port: int = 8080
 
 
 class _MotionRepository:
-  def __init__(self, dataset_root: Path) -> None:
+  def __init__(self, dataset_root: Path, source_length_scale_m: float) -> None:
     self.dataset_root = dataset_root.resolve()
+    self.source_length_scale_m = source_length_scale_m
     self.encoder = RecoverySemanticEncoder()
     self._cache: OrderedDict[str, tuple[CanonicalMotionClip, SemanticMotion]] = (
       OrderedDict()
@@ -124,7 +120,10 @@ class _MotionRepository:
     if cached is not None:
       self._cache.move_to_end(relative_path)
       return cached
-    clip = load_lafan_bvh(self.dataset_root / relative_path)
+    clip = load_lafan_bvh(
+      self.dataset_root / relative_path,
+      source_length_scale_m=self.source_length_scale_m,
+    )
     result = (clip, self.encoder.encode(clip))
     self._cache[relative_path] = result
     if len(self._cache) > 2:
@@ -166,7 +165,7 @@ class _SkeletonRenderer:
       ],
       dtype=np.float32,
     )
-    contact_indices = [clip.skeleton.index(name) for name in _CONTACT_JOINTS]
+    contact_indices = recovery_contact_joint_indices(clip)
     contact_points = positions[contact_indices]
     if show_auto_contacts:
       contact_colors = np.asarray(
@@ -233,7 +232,9 @@ class _ReviewApplication:
       if self.review_path.exists()
       else ReviewState.empty(self.queue_path, cfg.reviewer)
     )
-    self.repository = _MotionRepository(cfg.dataset_root)
+    self.repository = _MotionRepository(
+      cfg.dataset_root, cfg.source_length_scale_m
+    )
     self.server = viser.ViserServer(
       host=cfg.host,
       port=cfg.port,

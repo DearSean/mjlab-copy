@@ -59,13 +59,17 @@ class _TokenStream:
     return self._index == len(self._tokens)
 
 
-def load_lafan_bvh(path: str | Path) -> CanonicalMotionClip:
+def load_lafan_bvh(
+  path: str | Path, *, source_length_scale_m: float = 0.01
+) -> CanonicalMotionClip:
   """Load one LaFAN BVH into the canonical right-handed Z-up representation.
 
   LaFAN stores root translations in the motion channels and repeats the first
   root translation as the hierarchy root offset. The offset is deliberately
   ignored for the root so it is not added twice.
   """
+  if not np.isfinite(source_length_scale_m) or source_length_scale_m <= 0.0:
+    raise ValueError("source_length_scale_m must be a finite positive value.")
   source_path = Path(path)
   text = source_path.read_text(encoding="utf-8")
   motion_match = re.search(r"(?m)^\s*MOTION\s*$", text)
@@ -80,11 +84,15 @@ def load_lafan_bvh(path: str | Path) -> CanonicalMotionClip:
   local_positions_cm, local_rotations = _decode_channels(hierarchy, channel_data)
 
   conversion = _Y_UP_TO_Z_UP
-  local_positions_m = np.einsum("ij,tkj->tki", conversion, local_positions_cm * 0.01)
+  local_positions_m = np.einsum(
+    "ij,tkj->tki", conversion, local_positions_cm * source_length_scale_m
+  )
   local_rotations = np.einsum(
     "ij,tkjl,ml->tkim", conversion, local_rotations, conversion
   )
-  offsets_m = np.einsum("ij,kj->ki", conversion, hierarchy.offsets_cm * 0.01)
+  offsets_m = np.einsum(
+    "ij,kj->ki", conversion, hierarchy.offsets_cm * source_length_scale_m
+  )
   offsets_m[0] = 0.0
 
   global_positions_m, global_rotations = _forward_kinematics(

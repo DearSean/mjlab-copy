@@ -8,6 +8,14 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a recovery-review exporter that writes every accepted human-annotated
+  interval as a standalone source-format BVH with a provenance index.
+- Added CMU-style BVH compatibility to the recovery review workflow. The
+  preparer can treat every source BVH as a recovery candidate, supports numeric
+  recording names, and maps ``Spine1``/``*ToeBase`` skeleton joints to the
+  existing semantic schema so the local Viser reviewer can annotate CMU get-up
+  clips without modifying their source files. Source BVH length scales are now
+  configurable, allowing the CMU files to render at human scale.
 - Added a deterministic contact-label-free LaFAN training-data compiler for
   recovery MLD/SMP. It resamples canonical motion to 20 Hz with quaternion
   SLERP, projects it into a versioned 85-dimensional kinematic schema, keeps
