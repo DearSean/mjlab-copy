@@ -55,6 +55,7 @@ class _SplitBuffer:
   motion_offsets: list[int] = field(default_factory=lambda: [0])
   motion_clip_ids: list[str] = field(default_factory=list)
   motion_source_fps: list[float] = field(default_factory=list)
+  motion_nominal_heights_m: list[float] = field(default_factory=list)
   recovery_features: list[NDArray[np.float32]] = field(default_factory=list)
   recovery_offsets: list[int] = field(default_factory=lambda: [0])
   candidate_ids: list[str] = field(default_factory=list)
@@ -71,6 +72,7 @@ class _SplitBuffer:
   terminal_modes: list[str] = field(default_factory=list)
   outcomes: list[str] = field(default_factory=list)
   complete_recovery: list[bool] = field(default_factory=list)
+  recovery_nominal_heights_m: list[float] = field(default_factory=list)
 
   def add_motion(
     self,
@@ -78,11 +80,13 @@ class _SplitBuffer:
     *,
     clip_id: str,
     source_fps: float,
+    nominal_height_m: float,
   ) -> None:
     self.motion_features.append(features)
     self.motion_offsets.append(self.motion_offsets[-1] + features.shape[0])
     self.motion_clip_ids.append(clip_id)
     self.motion_source_fps.append(source_fps)
+    self.motion_nominal_heights_m.append(nominal_height_m)
 
   def add_recovery(
     self,
@@ -92,6 +96,7 @@ class _SplitBuffer:
     source_fps: float,
     target_fps: float,
     target_start: int,
+    nominal_height_m: float,
     segment: dict[str, Any],
   ) -> None:
     self.recovery_features.append(features)
@@ -144,6 +149,7 @@ class _SplitBuffer:
     self.complete_recovery.append(
       outcome == "success" and terminal_mode in {"stationary", "locomotion"}
     )
+    self.recovery_nominal_heights_m.append(nominal_height_m)
 
   def arrays(self) -> dict[str, NDArray[Any]]:
     return {
@@ -151,6 +157,9 @@ class _SplitBuffer:
       "motion_offsets": np.asarray(self.motion_offsets, dtype=np.int64),
       "motion_clip_ids": _string_array(self.motion_clip_ids),
       "motion_source_fps": np.asarray(self.motion_source_fps, dtype=np.float64),
+      "motion_nominal_heights_m": np.asarray(
+        self.motion_nominal_heights_m, dtype=np.float32
+      ),
       "recovery_features": _concatenate_features(self.recovery_features),
       "recovery_offsets": np.asarray(self.recovery_offsets, dtype=np.int64),
       "recovery_candidate_ids": _string_array(self.candidate_ids),
@@ -181,6 +190,9 @@ class _SplitBuffer:
       "recovery_terminal_modes": _string_array(self.terminal_modes),
       "recovery_outcomes": _string_array(self.outcomes),
       "recovery_complete": np.asarray(self.complete_recovery, dtype=np.bool_),
+      "recovery_nominal_heights_m": np.asarray(
+        self.recovery_nominal_heights_m, dtype=np.float32
+      ),
     }
 
 
@@ -245,6 +257,7 @@ def compile_recovery_dataset(cfg: RecoveryDatasetCompilerCfg) -> dict[str, Any]:
       features,
       clip_id=relative_path,
       source_fps=source_motion.fps,
+      nominal_height_m=kinematic.nominal_height_m,
     )
 
     segments = clip_data.get("segments", [])
@@ -273,6 +286,7 @@ def compile_recovery_dataset(cfg: RecoveryDatasetCompilerCfg) -> dict[str, Any]:
         source_fps=source_motion.fps,
         target_fps=cfg.target_fps,
         target_start=target_start,
+        nominal_height_m=kinematic.nominal_height_m,
         segment=segment,
       )
     print(

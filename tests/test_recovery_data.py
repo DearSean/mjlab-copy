@@ -188,7 +188,9 @@ def test_dataset_compiler_is_deterministic_and_preserves_reviewed_events(
     assert (outputs[0] / name).read_bytes() == (outputs[1] / name).read_bytes()
   with np.load(outputs[0] / "train.npz", allow_pickle=False) as shard:
     assert shard["motion_features"].shape == (5, RECOVERY_KINEMATIC_DIM)
+    assert shard["motion_nominal_heights_m"].shape == (1,)
     assert shard["recovery_candidate_ids"].tolist() == ["complete", "partial"]
+    assert shard["recovery_nominal_heights_m"].shape == (2,)
     assert shard["recovery_complete"].tolist() == [True, False]
     assert shard["recovery_support_start_indices"].tolist()[1] == -1
     assert shard["recovery_support_complete_indices"].tolist()[0] >= 0
