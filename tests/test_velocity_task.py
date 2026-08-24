@@ -1,6 +1,9 @@
 """Tests specific to velocity tasks."""
 
+from types import SimpleNamespace
+
 import pytest
+import torch
 
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
@@ -9,7 +12,11 @@ from mjlab.asset_zoo.robots import (
 )
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.mdp import (
+  UniformVelocityCommand,
+  UniformVelocityCommandCfg,
+  adaptive_velocity_progression,
+)
 
 
 @pytest.fixture(scope="module")
@@ -41,6 +48,108 @@ def test_velocity_tasks_have_twist_command(velocity_task_ids: list[str]) -> None
     assert isinstance(twist_cmd, UniformVelocityCommandCfg), (
       f"Task {task_id} twist command is not UniformVelocityCommandCfg"
     )
+
+
+def test_qlmini2_uses_categorical_direct_velocity_commands() -> None:
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-qlmini2")
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  assert twist_cmd.heading_command is False
+  assert twist_cmd.rel_heading_envs == 0.0
+  assert twist_cmd.mode_probabilities is not None
+  assert twist_cmd.mode_probabilities.values() == (0.10, 0.15, 0.15, 0.15, 0.20, 0.25)
+  twist_cmd.validate()
+  progression = cfg.curriculum["command_vel"]
+  assert progression.func is adaptive_velocity_progression
+  stages = progression.params["stages"]
+  assert [stage["step"] for stage in stages] == [
+    0,
+    500 * 24,
+    1000 * 24,
+    1750 * 24,
+    2400 * 24,
+    3000 * 24,
+  ]
+  assert stages[0]["mode_probabilities"]["forward"] == 0.60
+  assert stages[0]["mode_probabilities"]["backward"] == 0.0
+  assert stages[-1]["lin_vel_x"] == (-0.80, 1.20)
+
+
+def test_qlmini2_gait_rewards_discourage_shuffling() -> None:
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-qlmini2")
+  assert cfg.rewards["air_time"].params["command_threshold"] == 0.05
+  assert cfg.rewards["foot_clearance"].weight == -0.75
+  assert cfg.rewards["foot_clearance"].params["normalize_by_target"] is True
+  assert cfg.rewards["foot_swing_height"].weight == -0.75
+  assert cfg.rewards["foot_slip"].weight == -0.35
+  assert cfg.rewards["foot_slip"].params["l1_weight"] == 0.10
+  assert cfg.rewards["soft_landing"].weight == 0.0
+  assert cfg.rewards["soft_landing"].params["force_threshold"] == 200.0
+  assert cfg.rewards["soft_landing"].params["force_scale"] == 140.0
+  assert cfg.rewards["soft_landing"].params["squared"] is True
+  stages = cfg.curriculum["command_vel"].params["stages"]
+  assert stages[0]["reward_weights"]["soft_landing"] == 0.0
+  assert stages[-1]["reward_weights"]["soft_landing"] == -0.10
+
+
+def test_qlmini2_penalizes_requested_torque_beyond_motor_limits() -> None:
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-qlmini2")
+  continuous = cfg.rewards["torque_continuous_excess"]
+  peak = cfg.rewards["torque_peak_usage"]
+  assert continuous.weight == -0.05
+  assert continuous.params["limit"] == "continuous"
+  assert peak.weight == -0.02
+  assert peak.params["limit"] == "peak"
+  assert peak.params["peak_threshold"] == 0.95
+
+
+def test_qlmini2_pushes_follow_the_adaptive_curriculum() -> None:
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-qlmini2")
+  push_stages = cfg.curriculum["command_vel"].params["stages"]
+  assert [stage["step"] for stage in push_stages] == [
+    0,
+    500 * 24,
+    1000 * 24,
+    1750 * 24,
+    2400 * 24,
+    3000 * 24,
+  ]
+  assert push_stages[0]["velocity_range"]["x"] == (0.0, 0.0)
+  assert push_stages[1]["interval_range_s"] == (10.0, 14.0)
+  assert push_stages[-1]["velocity_range"]["yaw"] == (-0.78, 0.78)
+
+
+def test_qlmini2_categorical_commands_cover_pure_axes() -> None:
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-qlmini2").commands["twist"]
+  assert isinstance(cfg, UniformVelocityCommandCfg)
+
+  num_samples = 20_000
+  command = object.__new__(UniformVelocityCommand)
+  command.cfg = cfg
+  command._env = SimpleNamespace(device="cpu")
+  command.vel_command_b = torch.zeros(num_samples, 3)
+  command.vel_command_w = torch.zeros_like(command.vel_command_b)
+  command.is_heading_env = torch.zeros(num_samples, dtype=torch.bool)
+  command.is_standing_env = torch.zeros(num_samples, dtype=torch.bool)
+  command.is_world_env = torch.zeros(num_samples, dtype=torch.bool)
+  command.is_forward_env = torch.zeros(num_samples, dtype=torch.bool)
+  command._resample_categorical_command(torch.arange(num_samples))
+
+  sampled = command.vel_command_b
+  groups = {
+    "standing": (sampled == 0).all(dim=1),
+    "forward": (sampled[:, 0] > 0) & (sampled[:, 1:] == 0).all(dim=1),
+    "backward": (sampled[:, 0] < 0) & (sampled[:, 1:] == 0).all(dim=1),
+    "lateral": (sampled[:, 1] != 0) & (sampled[:, (0, 2)] == 0).all(dim=1),
+    "yaw": (sampled[:, 2] != 0) & (sampled[:, :2] == 0).all(dim=1),
+  }
+  groups["mixed"] = ~torch.stack(tuple(groups.values())).any(dim=0)
+  expected = (0.10, 0.15, 0.15, 0.15, 0.20, 0.25)
+  for sampled_fraction, target_fraction in zip(
+    (group.float().mean().item() for group in groups.values()), expected, strict=True
+  ):
+    assert sampled_fraction == pytest.approx(target_fraction, abs=0.02)
+  assert torch.equal(command.vel_command_b, command.vel_command_w)
 
 
 def test_velocity_task_set_is_supported(velocity_task_ids: list[str]) -> None:

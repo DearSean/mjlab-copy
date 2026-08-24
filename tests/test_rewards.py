@@ -1,5 +1,7 @@
 """Tests for reward manager functionality."""
 
+from types import SimpleNamespace
+from typing import cast
 from unittest.mock import Mock
 
 import mujoco
@@ -7,12 +9,17 @@ import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.actuator import BuiltinPositionActuatorCfg, DcMotorActuator
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
+from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.rewards import electrical_power_cost, joint_torques_l2
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.tasks.velocity.mdp.rewards import (
+  requested_torque_limit_penalty,
+  soft_landing,
+)
 
 PARTIALLY_ACTUATED_ROBOT_XML = """
 <mujoco>
@@ -68,6 +75,31 @@ class StatelessReward:
 
   def __call__(self, env, **kwargs):
     return torch.ones(env.num_envs)
+
+
+def test_requested_torque_limit_penalty_uses_unclipped_dc_motor_effort():
+  actuator = object.__new__(DcMotorActuator)
+  actuator._ctrl_ids = torch.tensor([0, 1])
+  actuator.computed_effort = torch.tensor([[12.0, 5.0]])
+  actuator.force_limit = torch.tensor([[10.0, 5.0]])
+  actuator.saturation_effort = torch.tensor([[20.0, 10.0]])
+  asset = SimpleNamespace(
+    data=SimpleNamespace(actuator_force=torch.zeros(1, 2)), actuators=[actuator]
+  )
+  env = SimpleNamespace(
+    device="cpu", scene={"robot": asset}, extras={"log": {}}, num_envs=1
+  )
+  asset_cfg = SceneEntityCfg("robot", actuator_ids=[0, 1])
+  cfg = SimpleNamespace(params={"asset_cfg": asset_cfg})
+  typed_env = cast(ManagerBasedRlEnv, env)
+  penalty = requested_torque_limit_penalty(cast(RewardTermCfg, cfg), typed_env)
+
+  continuous = penalty(typed_env, asset_cfg, limit="continuous")
+  torch.testing.assert_close(continuous, torch.tensor([0.02]))
+
+  actuator.computed_effort = torch.tensor([[20.0, 9.5]])
+  peak = penalty(typed_env, asset_cfg, limit="peak", peak_threshold=0.95)
+  torch.testing.assert_close(peak, torch.tensor([0.5]))
 
 
 @pytest.fixture
@@ -377,3 +409,27 @@ def test_joint_torques_l2_all_actuators(mock_env):
   # All actuators: 1^2 + 2^2 + 3^2 = 14.0
   expected = torch.full((4,), 14.0)
   assert torch.allclose(result, expected)
+
+
+def test_soft_landing_penalizes_only_excess_force():
+  contact_sensor = SimpleNamespace(
+    data=SimpleNamespace(force=torch.tensor([[[340.0, 0.0, 0.0]]])),
+    compute_first_contact=Mock(return_value=torch.tensor([[True]])),
+  )
+  env = SimpleNamespace(
+    step_dt=0.02,
+    scene={"feet_ground_contact": contact_sensor},
+    command_manager=SimpleNamespace(get_command=Mock(return_value=None)),
+    extras={"log": {}},
+  )
+
+  cost = soft_landing(
+    cast(ManagerBasedRlEnv, env),
+    sensor_name="feet_ground_contact",
+    force_threshold=200.0,
+    force_scale=140.0,
+    squared=True,
+  )
+
+  torch.testing.assert_close(cost, torch.ones(1))
+  assert env.extras["log"]["Metrics/landing_force_mean"] == 340.0

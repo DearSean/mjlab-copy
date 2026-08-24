@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import torch
 
+from mjlab.actuator import DcMotorActuator
 from mjlab.entity import Entity
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -22,6 +23,80 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
+
+
+class requested_torque_limit_penalty:
+  """Penalize DC-motor PD torque requests beyond continuous and peak limits.
+
+  qlmini2's physical actuator output is clamped at its continuous rating, so
+  the applied torque itself cannot exceed that value. This term instead reads
+  each DC actuator's unclipped ``computed_effort``: it discourages policies
+  from repeatedly requesting torque that the motor cannot sustainably supply.
+  """
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self._asset_cfg: SceneEntityCfg = cfg.params["asset_cfg"]
+    self._asset: Entity = env.scene[self._asset_cfg.name]
+    self._requested_effort = torch.zeros_like(self._asset.data.actuator_force)
+    self._continuous_limit = torch.zeros_like(self._requested_effort)
+    self._peak_limit = torch.zeros_like(self._requested_effort)
+    self._is_dc_motor = torch.zeros(
+      self._requested_effort.shape[1], dtype=torch.bool, device=env.device
+    )
+
+    for actuator in self._asset.actuators:
+      if not isinstance(actuator, DcMotorActuator):
+        continue
+      assert actuator.computed_effort is not None
+      assert actuator.force_limit is not None
+      assert actuator.saturation_effort is not None
+      self._is_dc_motor[actuator.ctrl_ids] = True
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    asset_cfg: SceneEntityCfg,
+    limit: str,
+    peak_threshold: float = 0.95,
+  ) -> torch.Tensor:
+    del asset_cfg  # Resolved at initialization.
+    self._requested_effort.zero_()
+    self._continuous_limit.zero_()
+    self._peak_limit.zero_()
+    for actuator in self._asset.actuators:
+      if not isinstance(actuator, DcMotorActuator):
+        continue
+      assert actuator.computed_effort is not None
+      assert actuator.force_limit is not None
+      assert actuator.saturation_effort is not None
+      self._requested_effort[:, actuator.ctrl_ids] = actuator.computed_effort
+      self._continuous_limit[:, actuator.ctrl_ids] = actuator.force_limit
+      self._peak_limit[:, actuator.ctrl_ids] = actuator.saturation_effort
+
+    actuator_ids = self._asset_cfg.actuator_ids
+    if isinstance(actuator_ids, slice):
+      actuator_ids = torch.arange(
+        self._requested_effort.shape[1], device=self._requested_effort.device
+      )
+    if not self._is_dc_motor[actuator_ids].all():
+      raise ValueError("requested_torque_limit_penalty requires DC motor actuators.")
+
+    requested = self._requested_effort[:, actuator_ids].abs()
+    if limit == "continuous":
+      ratio = requested / self._continuous_limit[:, actuator_ids].clamp_min(1e-6)
+      excess = torch.relu(ratio - 1.0)
+      env.extras["log"]["Metrics/torque_continuous_ratio_mean"] = ratio.mean()
+      return torch.mean(torch.square(excess), dim=1)
+    if limit == "peak":
+      if not 0.0 < peak_threshold < 1.0:
+        raise ValueError("peak_threshold must lie strictly between zero and one.")
+      ratio = requested / self._peak_limit[:, actuator_ids].clamp_min(1e-6)
+      excess = torch.relu(ratio - peak_threshold) / (1.0 - peak_threshold)
+      env.extras["log"]["Metrics/torque_peak_ratio_mean"] = ratio.mean()
+      return torch.mean(torch.square(excess), dim=1)
+    raise ValueError(
+      f"Unknown torque limit {limit!r}; expected 'continuous' or 'peak'."
+    )
 
 
 def _command_motion_gate(
@@ -232,7 +307,7 @@ def paired_joint_antiphase_l2(
   therefore a near-zero sum.  The term deliberately does not prescribe a gait
   frequency or a swing amplitude.
   """
-  if len(asset_cfg.joint_ids) != 2:
+  if not isinstance(asset_cfg.joint_ids, list) or len(asset_cfg.joint_ids) != 2:
     raise ValueError("paired_joint_antiphase_l2 requires exactly two joints.")
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
@@ -334,8 +409,14 @@ def feet_clearance(
   command_name: str | None = None,
   command_threshold: float = 0.01,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  normalize_by_target: bool = False,
 ) -> torch.Tensor:
-  """Penalize deviation from target clearance height, weighted by foot velocity."""
+  """Penalize clearance error during swing, weighted by foot velocity.
+
+  When ``normalize_by_target`` is true, express the height error as a fraction
+  of the target height. This makes small humanoid foot-clearance targets have
+  a useful reward scale without changing existing tasks by default.
+  """
   asset: Entity = env.scene[asset_cfg.name]
   height_sensor = env.scene[height_sensor_name]
   assert isinstance(height_sensor, TerrainHeightSensor), (
@@ -345,6 +426,8 @@ def feet_clearance(
   foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, F, 2]
   vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, F]
   delta = torch.abs(foot_height - target_height)  # [B, F]
+  if normalize_by_target:
+    delta = delta / max(target_height, 1e-6)
   cost = torch.sum(delta * vel_norm, dim=1)  # [B]
   if command_name is not None:
     command = env.command_manager.get_command(command_name)
@@ -418,8 +501,13 @@ def feet_slip(
   command_name: str,
   command_threshold: float = 0.01,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  l1_weight: float = 0.0,
 ) -> torch.Tensor:
-  """Penalize foot sliding (xy velocity while in contact)."""
+  """Penalize foot sliding (xy velocity while in contact).
+
+  ``l1_weight`` supplements the quadratic cost to make low-speed shuffling
+  costly. The default preserves the existing quadratic-only behavior.
+  """
   asset: Entity = env.scene[asset_cfg.name]
   contact_sensor: ContactSensor = env.scene[sensor_name]
   command = env.command_manager.get_command(command_name)
@@ -433,7 +521,9 @@ def feet_slip(
   foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, N, 2]
   vel_xy_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, N]
   vel_xy_norm_sq = torch.square(vel_xy_norm)  # [B, N]
-  cost = torch.sum(vel_xy_norm_sq * in_contact, dim=1) * active
+  cost = (
+    torch.sum((vel_xy_norm_sq + l1_weight * vel_xy_norm) * in_contact, dim=1) * active
+  )
   num_in_contact = torch.sum(in_contact)
   mean_slip_vel = torch.sum(vel_xy_norm * in_contact) / torch.clamp(
     num_in_contact, min=1
@@ -447,18 +537,34 @@ def soft_landing(
   sensor_name: str,
   command_name: str | None = None,
   command_threshold: float = 0.05,
+  force_threshold: float = 0.0,
+  force_scale: float = 1.0,
+  squared: bool = False,
 ) -> torch.Tensor:
-  """Penalize high impact forces at landing to encourage soft footfalls."""
+  """Penalize landing-force excess above an optional safe threshold.
+
+  The default is the legacy raw-force penalty. A threshold and scale make the
+  cost insensitive to normal support force and portable across robot masses.
+  """
+  if force_threshold < 0.0:
+    raise ValueError("force_threshold must be non-negative.")
+  if force_scale <= 0.0:
+    raise ValueError("force_scale must be positive.")
   contact_sensor: ContactSensor = env.scene[sensor_name]
   sensor_data = contact_sensor.data
   assert sensor_data.force is not None
   forces = sensor_data.force  # [B, N, 3]
   force_magnitude = torch.norm(forces, dim=-1)  # [B, N]
   first_contact = contact_sensor.compute_first_contact(dt=env.step_dt)  # [B, N]
-  landing_impact = force_magnitude * first_contact.float()  # [B, N]
+  raw_landing_force = force_magnitude * first_contact.float()
+  landing_impact = torch.clamp(force_magnitude - force_threshold, min=0.0)
+  landing_impact = landing_impact / force_scale
+  if squared:
+    landing_impact = torch.square(landing_impact)
+  landing_impact = landing_impact * first_contact.float()
   cost = torch.sum(landing_impact, dim=1)  # [B]
   num_landings = torch.sum(first_contact.float())
-  mean_landing_force = torch.sum(landing_impact) / torch.clamp(num_landings, min=1)
+  mean_landing_force = torch.sum(raw_landing_force) / torch.clamp(num_landings, min=1)
   env.extras["log"]["Metrics/landing_force_mean"] = mean_landing_force
   if command_name is not None:
     command = env.command_manager.get_command(command_name)

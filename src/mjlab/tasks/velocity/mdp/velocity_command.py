@@ -28,10 +28,7 @@ class UniformVelocityCommand(CommandTerm):
   def __init__(self, cfg: UniformVelocityCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
-    if self.cfg.heading_command and self.cfg.ranges.heading is None:
-      raise ValueError("heading_command=True but ranges.heading is set to None.")
-    if self.cfg.ranges.heading and not self.cfg.heading_command:
-      raise ValueError("ranges.heading is set but heading_command=False.")
+    self.cfg.validate()
 
     self.robot: Entity = env.scene[cfg.entity_name]
 
@@ -73,6 +70,29 @@ class UniformVelocityCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
+    if self.cfg.mode_probabilities is not None:
+      self._resample_categorical_command(env_ids)
+    else:
+      self._resample_legacy_command(env_ids)
+
+    init_vel_mask = (
+      torch.rand(len(env_ids), device=self.device) < self.cfg.init_velocity_prob
+    )
+    init_vel_env_ids = env_ids[init_vel_mask]
+    if len(init_vel_env_ids) > 0:
+      root_pos = self.robot.data.root_link_pos_w[init_vel_env_ids]
+      root_quat = self.robot.data.root_link_quat_w[init_vel_env_ids]
+      lin_vel_b = self.robot.data.root_link_lin_vel_b[init_vel_env_ids]
+      lin_vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
+      root_lin_vel_w = quat_apply(root_quat, lin_vel_b)
+      root_ang_vel_b = self.robot.data.root_link_ang_vel_b[init_vel_env_ids]
+      root_ang_vel_b[:, 2] = self.vel_command_b[init_vel_env_ids, 2]
+      root_state = torch.cat(
+        [root_pos, root_quat, root_lin_vel_w, root_ang_vel_b], dim=-1
+      )
+      self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
+
+  def _resample_legacy_command(self, env_ids: torch.Tensor) -> None:
     r = torch.empty(len(env_ids), device=self.device)
     self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
     self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
@@ -98,20 +118,73 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
 
-    init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
-    init_vel_env_ids = env_ids[init_vel_mask]
-    if len(init_vel_env_ids) > 0:
-      root_pos = self.robot.data.root_link_pos_w[init_vel_env_ids]
-      root_quat = self.robot.data.root_link_quat_w[init_vel_env_ids]
-      lin_vel_b = self.robot.data.root_link_lin_vel_b[init_vel_env_ids]
-      lin_vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
-      root_lin_vel_w = quat_apply(root_quat, lin_vel_b)
-      root_ang_vel_b = self.robot.data.root_link_ang_vel_b[init_vel_env_ids]
-      root_ang_vel_b[:, 2] = self.vel_command_b[init_vel_env_ids, 2]
-      root_state = torch.cat(
-        [root_pos, root_quat, root_lin_vel_w, root_ang_vel_b], dim=-1
+  def _resample_categorical_command(self, env_ids: torch.Tensor) -> None:
+    """Sample mutually exclusive locomotion command categories."""
+    probabilities_cfg = self.cfg.mode_probabilities
+    assert probabilities_cfg is not None
+    probabilities = torch.tensor(
+      probabilities_cfg.values(), device=self.device, dtype=torch.float32
+    )
+    modes = torch.multinomial(probabilities, len(env_ids), replacement=True)
+    command = self.vel_command_b[env_ids]
+    command[:, 0].uniform_(*self.cfg.ranges.lin_vel_x)
+    command[:, 1].uniform_(*self.cfg.ranges.lin_vel_y)
+    command[:, 2].uniform_(*self.cfg.ranges.ang_vel_z)
+
+    standing = modes == 0
+    forward = modes == 1
+    backward = modes == 2
+    lateral = modes == 3
+    yaw = modes == 4
+    # Mode 5 is mixed and retains the independent uniform sample above.
+
+    command[standing] = 0.0
+
+    if forward.any():
+      command[forward] = 0.0
+      command[forward, 0] = torch.empty(
+        int(forward.sum()), device=self.device
+      ).uniform_(
+        probabilities_cfg.min_linear_speed,
+        self.cfg.ranges.lin_vel_x[1],
       )
-      self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
+    if backward.any():
+      command[backward] = 0.0
+      command[backward, 0] = torch.empty(
+        int(backward.sum()), device=self.device
+      ).uniform_(
+        self.cfg.ranges.lin_vel_x[0],
+        -probabilities_cfg.min_linear_speed,
+      )
+    if lateral.any():
+      command[lateral] = 0.0
+      lateral_sign = torch.randint(0, 2, (int(lateral.sum()),), device=self.device)
+      positive = lateral_sign.bool()
+      positive_speed = torch.empty(int(lateral.sum()), device=self.device).uniform_(
+        probabilities_cfg.min_linear_speed, self.cfg.ranges.lin_vel_y[1]
+      )
+      negative_speed = torch.empty(int(lateral.sum()), device=self.device).uniform_(
+        self.cfg.ranges.lin_vel_y[0], -probabilities_cfg.min_linear_speed
+      )
+      command[lateral, 1] = torch.where(positive, positive_speed, negative_speed)
+    if yaw.any():
+      command[yaw] = 0.0
+      yaw_sign = torch.randint(0, 2, (int(yaw.sum()),), device=self.device)
+      positive = yaw_sign.bool()
+      positive_speed = torch.empty(int(yaw.sum()), device=self.device).uniform_(
+        probabilities_cfg.min_angular_speed, self.cfg.ranges.ang_vel_z[1]
+      )
+      negative_speed = torch.empty(int(yaw.sum()), device=self.device).uniform_(
+        self.cfg.ranges.ang_vel_z[0], -probabilities_cfg.min_angular_speed
+      )
+      command[yaw, 2] = torch.where(positive, positive_speed, negative_speed)
+
+    self.is_heading_env[env_ids] = False
+    self.is_standing_env[env_ids] = standing
+    self.is_world_env[env_ids] = False
+    self.is_forward_env[env_ids] = forward
+    self.vel_command_b[env_ids] = command
+    self.vel_command_w[env_ids] = command
 
   def _update_command(self) -> None:
     if self.cfg.heading_command:
@@ -295,6 +368,44 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   init_velocity_prob: float = 0.0
 
   @dataclass
+  class ModeProbabilities:
+    """Probabilities for mutually exclusive velocity-command categories."""
+
+    standing: float
+    forward: float
+    backward: float
+    lateral: float
+    yaw: float
+    mixed: float
+    min_linear_speed: float = 0.15
+    min_angular_speed: float = 0.25
+
+    def values(self) -> tuple[float, float, float, float, float, float]:
+      return (
+        self.standing,
+        self.forward,
+        self.backward,
+        self.lateral,
+        self.yaw,
+        self.mixed,
+      )
+
+    def __post_init__(self) -> None:
+      if any(value < 0.0 for value in self.values()):
+        raise ValueError("Velocity command probabilities must be non-negative.")
+      if not np.isclose(sum(self.values()), 1.0):
+        raise ValueError("Velocity command probabilities must sum to 1.")
+      if self.min_linear_speed <= 0.0 or self.min_angular_speed <= 0.0:
+        raise ValueError("Pure-command minimum speeds must be positive.")
+
+  mode_probabilities: ModeProbabilities | None = None
+  """Optional mutually exclusive command-category distribution.
+
+  When set, it replaces the legacy independent-axis sampling and its standing,
+  heading, world-frame, and forward-only masks.
+  """
+
+  @dataclass
   class Ranges:
     lin_vel_x: tuple[float, float]
     lin_vel_y: tuple[float, float]
@@ -313,9 +424,34 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   def build(self, env: ManagerBasedRlEnv) -> UniformVelocityCommand:
     return UniformVelocityCommand(self, env)
 
-  def __post_init__(self):
+  def __post_init__(self) -> None:
+    self.validate()
+
+  def validate(self) -> None:
     if self.heading_command and self.ranges.heading is None:
       raise ValueError(
         "The velocity command has heading commands active (heading_command=True) but "
         "the `ranges.heading` parameter is set to None."
       )
+    if self.ranges.heading is not None and not self.heading_command:
+      raise ValueError("heading must be None when heading_command=False.")
+    if self.mode_probabilities is not None:
+      if self.heading_command or self.rel_heading_envs != 0.0:
+        raise ValueError(
+          "Categorical velocity sampling does not support heading commands."
+        )
+      if self.rel_standing_envs != 0.0 or self.rel_world_envs != 0.0:
+        raise ValueError(
+          "Categorical velocity sampling owns standing and world-frame sampling."
+        )
+      if self.rel_forward_envs != 0.0:
+        raise ValueError("Categorical velocity sampling owns forward-only sampling.")
+      ranges = self.ranges
+      min_linear = self.mode_probabilities.min_linear_speed
+      min_angular = self.mode_probabilities.min_angular_speed
+      if ranges.lin_vel_x[0] > -min_linear or ranges.lin_vel_x[1] < min_linear:
+        raise ValueError("lin_vel_x range cannot represent pure forward and backward.")
+      if ranges.lin_vel_y[0] > -min_linear or ranges.lin_vel_y[1] < min_linear:
+        raise ValueError("lin_vel_y range cannot represent pure lateral commands.")
+      if ranges.ang_vel_z[0] > -min_angular or ranges.ang_vel_z[1] < min_angular:
+        raise ValueError("ang_vel_z range cannot represent pure yaw commands.")
