@@ -6,21 +6,21 @@
   "skipped_segment_count": 28,
   "segments": [
     {
-      "file": "001_fallAndGetUp1_subject1_frames_00223-00291.csv",
+      "file": "001_fallAndGetUp1_subject1_frames_00223-00275.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 223,
-      "end_frame": 291,
-      "frame_count": 68,
+      "end_frame": 275,
+      "frame_count": 52,
       "source_bvh_segment": "001_fallAndGetUp1_subject1_frames_00223-00291.bvh",
       "candidate_id": "32023a6b6147d81f5243",
       "annotation": {
         "decision": "accepted",
         "start_frame": 223,
-        "end_frame": 291,
+        "end_frame": 275,
         "support_start_frame": 223,
         "support_complete_frame": 274,
-        "locomotion_takeover_frame": 277,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "right_side",
         "terminal_safe": true,
@@ -28,8 +28,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [],
         "issues": [],
@@ -361,21 +360,21 @@
       }
     },
     {
-      "file": "012_fallAndGetUp1_subject1_frames_02625-02710.csv",
+      "file": "012_fallAndGetUp1_subject1_frames_02625-02694.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 2625,
-      "end_frame": 2710,
-      "frame_count": 85,
+      "end_frame": 2694,
+      "frame_count": 69,
       "source_bvh_segment": "012_fallAndGetUp1_subject1_frames_02625-02710.bvh",
       "candidate_id": "e424c1b179df449cf3d6",
       "annotation": {
         "decision": "accepted",
         "start_frame": 2625,
-        "end_frame": 2710,
+        "end_frame": 2694,
         "support_start_frame": 2649,
         "support_complete_frame": 2693,
-        "locomotion_takeover_frame": 2695,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -383,8 +382,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "terminal_mode",
@@ -396,21 +394,21 @@
       }
     },
     {
-      "file": "013_fallAndGetUp1_subject1_frames_02922-02995.csv",
+      "file": "013_fallAndGetUp1_subject1_frames_02922-02978.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 2922,
-      "end_frame": 2995,
-      "frame_count": 73,
+      "end_frame": 2978,
+      "frame_count": 56,
       "source_bvh_segment": "013_fallAndGetUp1_subject1_frames_02922-02995.bvh",
       "candidate_id": "174b719f904cc0773a73",
       "annotation": {
         "decision": "accepted",
         "start_frame": 2922,
-        "end_frame": 2995,
+        "end_frame": 2978,
         "support_start_frame": 2932,
         "support_complete_frame": 2977,
-        "locomotion_takeover_frame": 2977,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -418,8 +416,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "terminal_mode",
@@ -431,21 +428,21 @@
       }
     },
     {
-      "file": "014_fallAndGetUp1_subject1_frames_03241-03306.csv",
+      "file": "014_fallAndGetUp1_subject1_frames_03241-03283.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 3241,
-      "end_frame": 3306,
-      "frame_count": 65,
+      "end_frame": 3283,
+      "frame_count": 42,
       "source_bvh_segment": "014_fallAndGetUp1_subject1_frames_03241-03306.bvh",
       "candidate_id": "d1d587e8249482f4bf65",
       "annotation": {
         "decision": "accepted",
         "start_frame": 3241,
-        "end_frame": 3306,
+        "end_frame": 3283,
         "support_start_frame": 3249,
         "support_complete_frame": 3282,
-        "locomotion_takeover_frame": 3294,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -453,8 +450,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "terminal_mode",
@@ -466,21 +462,21 @@
       }
     },
     {
-      "file": "015_fallAndGetUp1_subject1_frames_03846-03898.csv",
+      "file": "015_fallAndGetUp1_subject1_frames_03846-03879.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 3846,
-      "end_frame": 3898,
-      "frame_count": 52,
+      "end_frame": 3879,
+      "frame_count": 33,
       "source_bvh_segment": "015_fallAndGetUp1_subject1_frames_03846-03898.bvh",
       "candidate_id": "c7303b6dbdf5ee3b05af",
       "annotation": {
         "decision": "accepted",
         "start_frame": 3846,
-        "end_frame": 3898,
+        "end_frame": 3879,
         "support_start_frame": 3848,
         "support_complete_frame": 3878,
-        "locomotion_takeover_frame": 3886,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -488,8 +484,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "terminal_mode",
@@ -501,21 +496,21 @@
       }
     },
     {
-      "file": "016_fallAndGetUp1_subject1_frames_04566-04602.csv",
+      "file": "016_fallAndGetUp1_subject1_frames_04566-04595.csv",
       "source_csv": "fallAndGetUp1_subject1.csv",
       "start_frame": 4566,
-      "end_frame": 4602,
-      "frame_count": 36,
+      "end_frame": 4595,
+      "frame_count": 29,
       "source_bvh_segment": "016_fallAndGetUp1_subject1_frames_04566-04602.bvh",
       "candidate_id": "0ab64b9cf5e25f0848ff",
       "annotation": {
         "decision": "accepted",
         "start_frame": 4566,
-        "end_frame": 4602,
+        "end_frame": 4595,
         "support_start_frame": 4566,
         "support_complete_frame": 4594,
-        "locomotion_takeover_frame": 4595,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "prone",
         "terminal_safe": true,
@@ -523,8 +518,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [],
         "issues": [],
@@ -565,21 +559,21 @@
       }
     },
     {
-      "file": "018_fallAndGetUp1_subject4_frames_01143-01173.csv",
+      "file": "018_fallAndGetUp1_subject4_frames_01143-01158.csv",
       "source_csv": "fallAndGetUp1_subject4.csv",
       "start_frame": 1143,
-      "end_frame": 1173,
-      "frame_count": 30,
+      "end_frame": 1158,
+      "frame_count": 15,
       "source_bvh_segment": "018_fallAndGetUp1_subject4_frames_01143-01173.bvh",
       "candidate_id": "33be5b905346d9a2c73d",
       "annotation": {
         "decision": "accepted",
         "start_frame": 1143,
-        "end_frame": 1173,
+        "end_frame": 1158,
         "support_start_frame": 1143,
         "support_complete_frame": 1157,
-        "locomotion_takeover_frame": 1159,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "partial",
         "initial_posture": "other",
         "terminal_safe": false,
@@ -587,8 +581,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "terminal_mode"
@@ -598,21 +591,21 @@
       }
     },
     {
-      "file": "019_fallAndGetUp1_subject4_frames_01766-01826.csv",
+      "file": "019_fallAndGetUp1_subject4_frames_01766-01809.csv",
       "source_csv": "fallAndGetUp1_subject4.csv",
       "start_frame": 1766,
-      "end_frame": 1826,
-      "frame_count": 60,
+      "end_frame": 1809,
+      "frame_count": 43,
       "source_bvh_segment": "019_fallAndGetUp1_subject4_frames_01766-01826.bvh",
       "candidate_id": "ef83fd61b2e8ad7aa19a",
       "annotation": {
         "decision": "accepted",
         "start_frame": 1766,
-        "end_frame": 1826,
+        "end_frame": 1809,
         "support_start_frame": 1766,
         "support_complete_frame": 1808,
-        "locomotion_takeover_frame": 1822,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -620,8 +613,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "initial_posture"
@@ -631,21 +623,21 @@
       }
     },
     {
-      "file": "020_fallAndGetUp1_subject4_frames_02014-02095.csv",
+      "file": "020_fallAndGetUp1_subject4_frames_02014-02065.csv",
       "source_csv": "fallAndGetUp1_subject4.csv",
       "start_frame": 2014,
-      "end_frame": 2095,
-      "frame_count": 81,
+      "end_frame": 2065,
+      "frame_count": 51,
       "source_bvh_segment": "020_fallAndGetUp1_subject4_frames_02014-02095.bvh",
       "candidate_id": "fe2375f702fe4cf888be",
       "annotation": {
         "decision": "accepted",
         "start_frame": 2014,
-        "end_frame": 2095,
+        "end_frame": 2065,
         "support_start_frame": 2018,
         "support_complete_frame": 2064,
-        "locomotion_takeover_frame": 2081,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "success",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -653,8 +645,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "initial_posture"
@@ -862,21 +853,21 @@
       }
     },
     {
-      "file": "027_fallAndGetUp1_subject5_frames_00383-00427.csv",
+      "file": "027_fallAndGetUp1_subject5_frames_00383-00409.csv",
       "source_csv": "fallAndGetUp1_subject5.csv",
       "start_frame": 383,
-      "end_frame": 427,
-      "frame_count": 44,
+      "end_frame": 409,
+      "frame_count": 26,
       "source_bvh_segment": "027_fallAndGetUp1_subject5_frames_00383-00427.bvh",
       "candidate_id": "8996af889fa0f1dd51f9",
       "annotation": {
         "decision": "accepted",
         "start_frame": 383,
-        "end_frame": 427,
+        "end_frame": 409,
         "support_start_frame": 383,
         "support_complete_frame": 408,
-        "locomotion_takeover_frame": 413,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "partial",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -884,8 +875,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "outcome",
@@ -896,21 +886,21 @@
       }
     },
     {
-      "file": "028_fallAndGetUp1_subject5_frames_00511-00560.csv",
+      "file": "028_fallAndGetUp1_subject5_frames_00511-00546.csv",
       "source_csv": "fallAndGetUp1_subject5.csv",
       "start_frame": 511,
-      "end_frame": 560,
-      "frame_count": 49,
+      "end_frame": 546,
+      "frame_count": 35,
       "source_bvh_segment": "028_fallAndGetUp1_subject5_frames_00511-00560.bvh",
       "candidate_id": "4e14ad9c66210f46c520",
       "annotation": {
         "decision": "accepted",
         "start_frame": 511,
-        "end_frame": 560,
+        "end_frame": 546,
         "support_start_frame": 511,
         "support_complete_frame": 545,
-        "locomotion_takeover_frame": 548,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "partial",
         "initial_posture": "prone",
         "terminal_safe": true,
@@ -918,8 +908,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "outcome"
@@ -929,21 +918,21 @@
       }
     },
     {
-      "file": "029_fallAndGetUp1_subject5_frames_00642-00686.csv",
+      "file": "029_fallAndGetUp1_subject5_frames_00642-00676.csv",
       "source_csv": "fallAndGetUp1_subject5.csv",
       "start_frame": 642,
-      "end_frame": 686,
-      "frame_count": 44,
+      "end_frame": 676,
+      "frame_count": 34,
       "source_bvh_segment": "029_fallAndGetUp1_subject5_frames_00642-00686.bvh",
       "candidate_id": "6879202254dce41564f7",
       "annotation": {
         "decision": "accepted",
         "start_frame": 642,
-        "end_frame": 686,
+        "end_frame": 676,
         "support_start_frame": 642,
         "support_complete_frame": 675,
-        "locomotion_takeover_frame": 682,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "partial",
         "initial_posture": "prone",
         "terminal_safe": true,
@@ -951,8 +940,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "outcome"
@@ -962,21 +950,21 @@
       }
     },
     {
-      "file": "030_fallAndGetUp1_subject5_frames_01005-01047.csv",
+      "file": "030_fallAndGetUp1_subject5_frames_01005-01033.csv",
       "source_csv": "fallAndGetUp1_subject5.csv",
       "start_frame": 1005,
-      "end_frame": 1047,
-      "frame_count": 42,
+      "end_frame": 1033,
+      "frame_count": 28,
       "source_bvh_segment": "030_fallAndGetUp1_subject5_frames_01005-01047.bvh",
       "candidate_id": "938576e4e5782aa21084",
       "annotation": {
         "decision": "accepted",
         "start_frame": 1005,
-        "end_frame": 1047,
+        "end_frame": 1033,
         "support_start_frame": 1005,
         "support_complete_frame": 1032,
-        "locomotion_takeover_frame": 1033,
-        "terminal_mode": "locomotion",
+        "locomotion_takeover_frame": null,
+        "terminal_mode": "support_only",
         "outcome": "partial",
         "initial_posture": "supine",
         "terminal_safe": true,
@@ -984,8 +972,7 @@
           "start",
           "end",
           "support_start",
-          "support_complete",
-          "locomotion_takeover"
+          "support_complete"
         ],
         "confirmed_choices": [
           "outcome",
