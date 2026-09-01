@@ -9,9 +9,10 @@ Added
 ^^^^^
 
 - Added a reproducible NVIDIA/Conda installation path with pinned CUDA 12.8
-  PyTorch, MuJoCo nightly, MuJoCo Warp, and mjviser sources, plus a Chinese
+  PyTorch, stable MuJoCo, MuJoCo Warp, and mjviser sources, plus a Chinese
   setup, GPU verification, recovery-data validation, training, and
-  troubleshooting guide.
+  troubleshooting guide. TensorBoard is the default and only required logger;
+  Weights & Biases is now an optional dependency loaded only when requested.
 - Added ``Mjlab-Velocity-Flat-Unitree-G1-Recovery``, a trainable G1 recovery
   Flow Policy Optimization task with autonomous reference-frame initialization,
   assisted fallen and
@@ -193,6 +194,13 @@ Added
 Changed
 ^^^^^^^
 
+- G1 recovery curriculum evidence windows now scale from a 1024-environment
+  baseline when training with larger parallel batches. Completed episodes count
+  only toward the posture and assistance levels under which they were reset,
+  and consecutive advances require one 24-step rollout of fresh policy evidence.
+  Fallen resets retain their existing mixture weights but open progress
+  ``[0.15, 0.25)``, ``[0.10, 0.25)``, ``[0.05, 0.25)``, then ``[0, 0.25)``
+  over posture levels 9--12 instead of exposing the hardest states at level 9.
 - Removed ``base_lin_vel`` from actor observations in all registered training
   tasks while retaining it as a privileged critic observation.
 - Added the ``Mjlab-Velocity-Flat-qlmini2`` task and configured its 19

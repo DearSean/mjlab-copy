@@ -1,5 +1,3 @@
-import wandb
-
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import (
   attach_metadata_to_onnx,
@@ -16,12 +14,14 @@ class ManipulationOnPolicyRunner(MjlabOnPolicyRunner):
     policy_dir, filename, onnx_path = self._get_export_paths(path)
     try:
       self.export_policy_to_onnx(str(policy_dir), filename)
-      run_name: str = (
-        wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
-      )  # type: ignore[assignment]
+      use_wandb = self.logger.logger_type == "wandb"
+      if use_wandb:
+        import wandb
+
+      run_name: str = wandb.run.name or "local" if use_wandb and wandb.run else "local"
       metadata = get_base_metadata(self.env.unwrapped, run_name)
       attach_metadata_to_onnx(str(onnx_path), metadata)
-      if self.logger.logger_type in ["wandb"] and self.cfg["upload_model"]:
+      if use_wandb and self.cfg["upload_model"]:
         wandb.save(
           str(onnx_path),
           base_path=str(policy_dir),

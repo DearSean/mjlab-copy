@@ -1676,7 +1676,6 @@ dependencies = [
     { name = "trimesh" },
     { name = "tyro" },
     { name = "viser" },
-    { name = "wandb" },
     { name = "warp-lang" },
 ]
 
@@ -1688,6 +1687,9 @@ cpu = [
 cu128 = [
     { name = "torch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu128') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
     { name = "torch", version = "2.9.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu128') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+]
+wandb = [
+    { name = "wandb" },
 ]
 
 [package.dev-dependencies]
@@ -1743,11 +1745,11 @@ requires-dist = [
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
     { name = "viser", specifier = ">=1.0.27" },
-    { name = "wandb", specifier = ">=0.22.3" },
+    { name = "wandb", marker = "extra == 'wandb'", specifier = ">=0.22.3" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.12.0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.12.0" },
 ]
-provides-extras = ["cu128", "cpu"]
+provides-extras = ["cu128", "cpu", "wandb"]
 
 [package.metadata.requires-dev]
 dev = [

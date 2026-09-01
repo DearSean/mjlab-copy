@@ -86,6 +86,21 @@ _POSTURE_REFERENCE_MIN_PROGRESS = (
   0.10,
   0.10,
 )
+_POSTURE_FALLEN_MIN_PROGRESS = (
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.15,
+  0.10,
+  0.05,
+  0.00,
+)
 _POSTURE_SUCCESS_WINDOWS = (
   500,
   750,
@@ -150,7 +165,12 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
       "assist_success_windows": _ASSIST_SUCCESS_WINDOWS,
       "posture_mode_probabilities": _POSTURE_MODE_PROBABILITIES,
       "posture_reference_min_progress": _POSTURE_REFERENCE_MIN_PROGRESS,
+      "posture_fallen_min_progress": _POSTURE_FALLEN_MIN_PROGRESS,
       "posture_success_windows": _POSTURE_SUCCESS_WINDOWS,
+      # Keep each success window comparable when a larger GPU raises num_envs.
+      # The cooldown prevents one frozen policy from crossing several levels.
+      "curriculum_reference_num_envs": 1024,
+      "curriculum_minimum_level_steps": 24,
       "reference_frontier_probability": 0.5,
       "adaptive_bin_duration_s": 0.2,
       "adaptive_ema_rate": 0.01,

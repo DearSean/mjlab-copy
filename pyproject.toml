@@ -48,7 +48,6 @@ dependencies = [
   "rsl-rl-lib==5.2.0",
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
-  "wandb>=0.22.3",
   "onnxruntime>=1.24.3",
   "pynput>=1.8.2",
 ]
@@ -94,6 +93,7 @@ docs = [
 [project.optional-dependencies]
 cu128 = ["torch>=2.7.0"]
 cpu = ["torch>=2.7.0"]
+wandb = ["wandb>=0.22.3"]
 
 [tool.uv]
 conflicts = [

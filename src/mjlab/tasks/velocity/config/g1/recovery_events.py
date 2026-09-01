@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -43,9 +44,22 @@ class G1RecoveryReset:
     self._posture_reference_min_progress = tuple(
       float(value) for value in params["posture_reference_min_progress"]
     )
+    self._posture_fallen_min_progress = tuple(
+      float(value) for value in params["posture_fallen_min_progress"]
+    )
     self._posture_success_windows = tuple(
       int(value) for value in params["posture_success_windows"]
     )
+    curriculum_reference_num_envs = int(params["curriculum_reference_num_envs"])
+    self._minimum_level_steps = int(params["curriculum_minimum_level_steps"])
+    if curriculum_reference_num_envs <= 0:
+      raise ValueError("curriculum_reference_num_envs must be positive.")
+    if self._minimum_level_steps < 0:
+      raise ValueError("curriculum_minimum_level_steps must be non-negative.")
+    self._curriculum_window_scale = max(
+      1.0, env.num_envs / curriculum_reference_num_envs
+    )
+    self._level_enter_step = int(env.common_step_counter)
     self._reference_frontier_probability = float(
       params["reference_frontier_probability"]
     )
@@ -86,6 +100,8 @@ class G1RecoveryReset:
       self._posture_mode_probabilities
     ):
       raise ValueError("reference progress must define every posture level.")
+    if len(self._posture_fallen_min_progress) != len(self._posture_mode_probabilities):
+      raise ValueError("fallen progress must define every posture level.")
     for probabilities in self._posture_mode_probabilities:
       if len(probabilities) != 3:
         raise ValueError("mode probabilities must contain reference, fallen, stand.")
@@ -129,6 +145,20 @@ class G1RecoveryReset:
       raise ValueError("hard_bin_report_interval must be positive.")
     if not 0.0 < self._fallen_max_progress < self._reference_max_progress:
       raise ValueError("fallen progress must remain below the initial reference band.")
+    if any(
+      not 0.0 <= progress < self._fallen_max_progress
+      for progress in self._posture_fallen_min_progress
+    ):
+      raise ValueError("fallen minimum progress curriculum bounds are invalid.")
+    if any(
+      later > earlier
+      for earlier, later in zip(
+        self._posture_fallen_min_progress,
+        self._posture_fallen_min_progress[1:],
+        strict=False,
+      )
+    ):
+      raise ValueError("fallen minimum progress must not rise at later levels.")
     if bool((self._force_ranges < 0.0).any()) or bool(
       (self._force_ranges[:, 0] > self._force_ranges[:, 1]).any()
     ):
@@ -160,6 +190,8 @@ class G1RecoveryReset:
     self.reset_clip = torch.full_like(self.mode, -1)
     self.reset_frame = torch.full_like(self.mode, -1)
     self.reset_temporal_bin = torch.full_like(self.mode, -1)
+    self.reset_posture_level = torch.full_like(self.mode, -1)
+    self.reset_assist_level = torch.full_like(self.mode, -1)
     self.curriculum_probe = torch.zeros(
       env.num_envs, dtype=torch.bool, device=env.device
     )
@@ -174,6 +206,8 @@ class G1RecoveryReset:
     self.training_attempts = torch.zeros_like(self.attempts)
     self.training_successes = torch.zeros_like(self.attempts)
     self.last_training_success_rate = torch.zeros((), device=env.device)
+    self.excluded_stale_attempts = torch.zeros_like(self.attempts)
+    self.last_excluded_stale_attempts = torch.zeros_like(self.attempts)
     self.bin_failure_ema = torch.ones(
       self.reference.num_temporal_bins, device=env.device
     )
@@ -201,7 +235,10 @@ class G1RecoveryReset:
     assist_success_windows: tuple[int, ...],
     posture_mode_probabilities: tuple[tuple[float, float, float], ...],
     posture_reference_min_progress: tuple[float, ...],
+    posture_fallen_min_progress: tuple[float, ...],
     posture_success_windows: tuple[int, ...],
+    curriculum_reference_num_envs: int,
+    curriculum_minimum_level_steps: int,
     reference_frontier_probability: float,
     adaptive_bin_duration_s: float,
     adaptive_ema_rate: float,
@@ -227,7 +264,10 @@ class G1RecoveryReset:
       assist_success_windows,
       posture_mode_probabilities,
       posture_reference_min_progress,
+      posture_fallen_min_progress,
       posture_success_windows,
+      curriculum_reference_num_envs,
+      curriculum_minimum_level_steps,
       reference_frontier_probability,
       adaptive_bin_duration_s,
       adaptive_ema_rate,
@@ -247,6 +287,8 @@ class G1RecoveryReset:
     self.mode[env_ids] = torch.multinomial(
       probabilities, len(env_ids), replacement=True
     )
+    self.reset_posture_level[env_ids] = self.posture_level
+    self.reset_assist_level[env_ids] = self.assist_level
     recovery_mask = self.mode[env_ids] != STAND_MODE
     self.curriculum_probe[env_ids] = recovery_mask & (
       torch.rand(len(env_ids), device=self._env.device)
@@ -380,8 +422,9 @@ class G1RecoveryReset:
   def _sample_fallen(
     self, count: int, adaptive: bool
   ) -> tuple[torch.Tensor, torch.Tensor]:
-    return self.reference.sample_fallen(
+    return self.reference.sample_progress(
       count,
+      self.fallen_min_progress,
       self._fallen_max_progress,
       bin_difficulty=self.adaptive_bin_difficulty if adaptive else None,
       uniform_probability=self._adaptive_uniform_probability,
@@ -406,6 +449,11 @@ class G1RecoveryReset:
   def reference_min_progress(self) -> float:
     """Lower the autonomous reset band only after demonstrated success."""
     return self._posture_reference_min_progress[self.posture_level]
+
+  @property
+  def fallen_min_progress(self) -> float:
+    """Open the physically hardest fallen states in successive bands."""
+    return self._posture_fallen_min_progress[self.posture_level]
 
   @property
   def reference_frontier_max_progress(self) -> float | None:
@@ -438,6 +486,16 @@ class G1RecoveryReset:
 
   @property
   def required_window(self) -> int:
+    if not self.posture_complete:
+      base_window = self._posture_success_windows[self.posture_level]
+    elif self.assist_complete:
+      base_window = self._assist_success_windows[-1]
+    else:
+      base_window = self._assist_success_windows[self.assist_level]
+    return math.ceil(base_window * self._curriculum_window_scale)
+
+  @property
+  def base_required_window(self) -> int:
     if not self.posture_complete:
       return self._posture_success_windows[self.posture_level]
     if self.assist_complete:
@@ -475,15 +533,20 @@ class G1RecoveryReset:
     )
 
   def record_outcomes(self, env_ids: torch.Tensor) -> None:
-    """Count completed non-stand recovery episodes toward curriculum progress."""
+    """Count only episodes reset under the active curriculum level."""
     valid = self.episode_started[env_ids] & (self.mode[env_ids] != STAND_MODE)
     recovery_ids = env_ids[valid]
     if len(recovery_ids) == 0:
       return
     self._record_adaptive_outcomes(recovery_ids)
-    self.training_attempts += len(recovery_ids)
-    self.training_successes += self.succeeded[recovery_ids].sum()
-    probe_ids = recovery_ids[self.curriculum_probe[recovery_ids]]
+    active_level = (self.reset_posture_level[recovery_ids] == self.posture_level) & (
+      self.reset_assist_level[recovery_ids] == self.assist_level
+    )
+    self.excluded_stale_attempts += (~active_level).sum()
+    current_ids = recovery_ids[active_level]
+    self.training_attempts += len(current_ids)
+    self.training_successes += self.succeeded[current_ids].sum()
+    probe_ids = current_ids[self.curriculum_probe[current_ids]]
     self.attempts += len(probe_ids)
     self.successes += self.succeeded[probe_ids].sum()
 
@@ -519,7 +582,9 @@ class G1RecoveryReset:
       self.reference_min_progress, self._reference_max_progress
     )
     if float(self.mode_probabilities[FALLEN_MODE].item()) > 0.0:
-      fallen = self.reference.temporal_bins_in_progress(0.0, self._fallen_max_progress)
+      fallen = self.reference.temporal_bins_in_progress(
+        self.fallen_min_progress, self._fallen_max_progress
+      )
       bins = torch.unique(torch.cat((bins, fallen)), sorted=True)
     return bins
 
@@ -541,11 +606,15 @@ class G1RecoveryReset:
       raise ValueError("success_threshold must be between zero and one.")
     if int(self.attempts.item()) < self.required_window:
       return False
+    level_age_steps = int(self._env.common_step_counter) - self._level_enter_step
+    if level_age_steps < self._minimum_level_steps:
+      return False
     self.last_window_attempts.copy_(self.attempts)
     self.last_success_rate.copy_(self.successes.float() / self.attempts.clamp_min(1))
     self.last_training_success_rate.copy_(
       self.training_successes.float() / self.training_attempts.clamp_min(1)
     )
+    self.last_excluded_stale_attempts.copy_(self.excluded_stale_attempts)
     advanced = False
     if float(self.last_success_rate.item()) >= success_threshold:
       if not self.posture_complete:
@@ -554,10 +623,13 @@ class G1RecoveryReset:
       elif not self.assist_complete:
         self.assist_level += 1
         advanced = True
+    if advanced:
+      self._level_enter_step = int(self._env.common_step_counter)
     self.attempts.zero_()
     self.successes.zero_()
     self.training_attempts.zero_()
     self.training_successes.zero_()
+    self.excluded_stale_attempts.zero_()
     return advanced
 
   def curriculum_state(self) -> dict[str, torch.Tensor]:
@@ -577,6 +649,19 @@ class G1RecoveryReset:
       "force_max_n": torch.tensor(force_max, device=self._env.device),
       "attempts": self.attempts,
       "required_window": torch.tensor(self.required_window, device=self._env.device),
+      "base_required_window": torch.tensor(
+        self.base_required_window, device=self._env.device
+      ),
+      "curriculum_window_scale": torch.tensor(
+        self._curriculum_window_scale, device=self._env.device
+      ),
+      "level_age_steps": torch.tensor(
+        int(self._env.common_step_counter) - self._level_enter_step,
+        device=self._env.device,
+      ),
+      "minimum_level_steps": torch.tensor(
+        self._minimum_level_steps, device=self._env.device
+      ),
       "current_success_rate": current_rate,
       "last_window_attempts": self.last_window_attempts,
       "last_success_rate": self.last_success_rate,
@@ -586,11 +671,16 @@ class G1RecoveryReset:
       "training_attempts": self.training_attempts,
       "current_training_success_rate": current_training_rate,
       "last_training_success_rate": self.last_training_success_rate,
+      "excluded_stale_attempts": self.excluded_stale_attempts,
+      "last_excluded_stale_attempts": self.last_excluded_stale_attempts,
       "reference_probability": probabilities[REFERENCE_MODE],
       "fallen_probability": probabilities[FALLEN_MODE],
       "stand_probability": probabilities[STAND_MODE],
       "reference_min_progress": torch.tensor(
         self.reference_min_progress, device=self._env.device
+      ),
+      "fallen_min_progress": torch.tensor(
+        self.fallen_min_progress, device=self._env.device
       ),
       "reference_frontier_max_progress": torch.tensor(
         -1.0 if frontier_maximum is None else frontier_maximum,

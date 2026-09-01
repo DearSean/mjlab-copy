@@ -44,9 +44,10 @@ python -m pip install -r requirements-conda.txt
 python -m pip install --no-deps -e .
 ```
 
-`requirements-conda.txt` 固定了当前验证过的 PyTorch、Warp、MuJoCo nightly、
+`requirements-conda.txt` 固定了当前验证过的 PyTorch、Warp、MuJoCo、
 MuJoCo Warp 和 mjviser 提交。最后一条命令使用 `--no-deps`，是为了让 mjlab
 保持可编辑安装，同时避免 pip 再次从 PyPI 替换这些锁定来源。
+Weights & Biases 不属于必装依赖，训练默认只写 TensorBoard 日志。
 
 安装 Git 依赖时必须能够访问 GitHub。如果系统缺少本地编译工具，可安装：
 
@@ -120,6 +121,20 @@ python -m mjlab.scripts.train \
 logs/rsl_rl/g1_recovery_s2/<时间戳>_<run-name>/
 ```
 
+查看 TensorBoard：
+
+```bash
+tensorboard --logdir logs/rsl_rl --port 6006
+```
+
+然后在浏览器访问 `http://localhost:6006`。只有显式使用
+`--agent.logger wandb`、W&B checkpoint 或 W&B motion registry 时，才需要
+额外安装：
+
+```bash
+python -m pip install "wandb>=0.22.3"
+```
+
 由于物理初始化分布和全身接触模型已经变化，应当新建训练，不建议续接修改前
 的 checkpoint。
 
@@ -161,6 +176,18 @@ Conda 训练命令不要加 `uv run`，直接使用当前环境的 `python -m ..
 
 ```bash
 python -m pip install -r requirements-conda.txt
+```
+
+### 提示找不到旧的 MuJoCo nightly 或 NumPy 被 yanked
+
+当前 requirements 使用稳定的 `mujoco==3.8.1` 和未撤回的
+`numpy==2.3.3`，不依赖 `py.mujoco.org` 的历史 nightly。如果之前的安装
+已经失败，直接更新仓库中的 requirements 后重新运行即可；不需要删除 Conda
+环境：
+
+```bash
+python -m pip install -r requirements-conda.txt
+python -m pip install --no-deps -e .
 ```
 
 ### 更换环境后是否要重新生成动作数据

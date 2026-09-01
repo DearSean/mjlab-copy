@@ -6,14 +6,15 @@
 
 --extra-index-url https://download.pytorch.org/whl/cu128
 --extra-index-url https://pypi.nvidia.com/
---extra-index-url https://py.mujoco.org
---pre
 
 # Versions exercised by the G1 recovery GPU smoke test.
-numpy==2.3.4
+# NumPy 2.3.4 was yanked from PyPI; 2.3.3 supports Python 3.13 and the same API.
+numpy==2.3.3
 torch==2.9.0+cu128
 warp-lang==1.12.0
-mujoco==3.8.1.dev907177387
+# Use the stable release. The old uv lock referenced a nightly build that is no
+# longer retained by py.mujoco.org.
+mujoco==3.8.1
 mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@88b55fc2696960b927bc12584994bb8412b36558
 mjviser @ git+https://github.com/mujocolab/mjviser@1bdfd6fe79066b847a5f430000fcfbb53ec31a6f
 rsl-rl-lib==5.2.0
@@ -30,7 +31,6 @@ imageio-ffmpeg
 tensordict
 tensorboard>=2.20.0
 onnxscript>=0.5.4
-wandb>=0.22.3
 onnxruntime>=1.24.3
 pynput>=1.8.2
 GitPython>=3.1.49

@@ -1623,7 +1623,38 @@ uv run --python .venv/bin/python --no-sync python -m \
 训练模式要求该文件存在，防止无意间退回未经物理验证的原始reset；play模式在
 文件存在时同样使用它。
 
-## 25. 参考来源
+## 25. 大并行课程窗口与 Fallen 分段开放
+
+4096 环境远程训练在 10 个 optimizer iteration 内从 posture level 0 到达 level
+9，随后约 330 轮停在 63% 左右。该阶段 reference 条件成功率约 70%，fallen
+约 22%；按 level 9 的 85:15 混合后正好得到约 63%。分 progress 统计显示
+`[0.15,0.25)` 已有约 50%--77% 成功率，但 `[0,0.10)` 仅约 2%，而原 level 9
+会一次性从整个 `[0,0.25)` fallen 库采样，且物理初始化库中 52.9% 的 fallen
+帧集中在 `[0,0.10)`。因此这里的瓶颈是课程分布突变，不是 FPO 数值失稳；同期
+ratio、clipping、gradient、动作饱和度和 value loss 均正常，所以不调整
+Actor/FPO 超参数和奖励权重。
+
+课程统计和采样现采用以下补丁：
+
+1. 每个回合在 reset 时记录 posture level 与 assist level。只有在当前等级 reset
+   的回合才进入当前 90% 进阶窗口；切级时尚未结束的旧回合仍进入 temporal-bin
+   诊断，但记为 `excluded_stale_attempts`，不能为新等级提供成功证据。
+2. 成功窗口以 1024 环境为基准随并行数只增不减。4096 环境下所有窗口扩大 4
+   倍，例如 level 0 从 500 变为 2000，level 9 从 3500 变为 14000。日志同时
+   输出 `base_required_window`、`curriculum_window_scale` 和实际
+   `required_window`。
+3. 两次进阶至少相隔 24 个环境 step，即默认一个完整 rollout，使新等级至少经过
+   一次策略更新后才能再次被验证。进阶仍必须达到 90% 总非 stand 成功率，这个
+   间隔不是按轮次替代成功率课程。
+4. Fallen 比例仍按原计划在 level 9--12 为 15%、30%、35%、45%，但 progress
+   下界分别为 0.15、0.10、0.05、0.00，上界保持 0.25。最难的
+   `[0,0.05)` 状态只在姿态课程最后一级开放；辅助力课程仍要等姿态课程满级后
+   才开始，并在每个回合施加当前等级的完整辅助力。
+
+Actor/Critic 观测、SMP/pose 权重、reference 的 50:50 frontier 采样、FPO 和
+0.9 成功率阈值均未改变。
+
+## 26. 参考来源
 
 - [SMP: Reusable Score-Matching Motion Priors for Physics-Based Character
   Control](https://arxiv.org/html/2512.03028v3)：Diffusion 噪声预测、SMP

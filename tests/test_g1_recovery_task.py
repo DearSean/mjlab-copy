@@ -284,6 +284,11 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
     0.10,
     0.10,
   )
+  assert event_params["posture_fallen_min_progress"] == (
+    (0.15,) * 10 + (0.10, 0.05, 0.00)
+  )
+  assert event_params["curriculum_reference_num_envs"] == 1024
+  assert event_params["curriculum_minimum_level_steps"] == 24
   assert event_params["fallen_max_progress"] == 0.25
   assert event_params["reference_frontier_probability"] == 0.5
   assert event_params["adaptive_bin_duration_s"] == 0.2
@@ -350,7 +355,7 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
 
 def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   state = G1RecoveryReset.__new__(G1RecoveryReset)
-  state._env = cast(Any, SimpleNamespace(device="cpu"))
+  state._env = cast(Any, SimpleNamespace(device="cpu", common_step_counter=0))
   state._force_ranges = torch.tensor(((0.0, 200.0), (0.0, 100.0), (0.0, 0.0)))
   state._posture_mode_probabilities = (
     (1.0, 0.0, 0.0),
@@ -358,8 +363,12 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
     (0.45, 0.45, 0.1),
   )
   state._posture_reference_min_progress = (0.7, 0.4, 0.1)
+  state._posture_fallen_min_progress = (0.15, 0.1, 0.0)
   state._posture_success_windows = (2, 4)
   state._assist_success_windows = (6, 8)
+  state._curriculum_window_scale = 1.0
+  state._minimum_level_steps = 0
+  state._level_enter_step = 0
   state.posture_level = 0
   state.assist_level = 0
   state.attempts = torch.zeros((), dtype=torch.long)
@@ -369,6 +378,8 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   state.training_attempts = torch.zeros_like(state.attempts)
   state.training_successes = torch.zeros_like(state.attempts)
   state.last_training_success_rate = torch.zeros(())
+  state.excluded_stale_attempts = torch.zeros_like(state.attempts)
+  state.last_excluded_stale_attempts = torch.zeros_like(state.attempts)
   state.reset_temporal_bin = torch.tensor((0, 0, 1, 1, -1))
   state.bin_failure_ema = torch.ones(2)
   state.bin_attempts = torch.zeros(2, dtype=torch.long)
@@ -381,6 +392,8 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
     (FALLEN_MODE, FALLEN_MODE, REFERENCE_MODE, FALLEN_MODE, STAND_MODE)
   )
   state.curriculum_probe = torch.tensor((True, True, True, True, False))
+  state.reset_posture_level = torch.zeros(5, dtype=torch.long)
+  state.reset_assist_level = torch.zeros(5, dtype=torch.long)
   state.succeeded = torch.tensor((True, True, True, False, True))
   state.episode_started = torch.zeros(5, dtype=torch.bool)
 
@@ -399,12 +412,19 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   assert state.required_window == 4
   assert state.attempts.item() == 0
 
+  # Outcomes from episodes reset at level 0 must not certify level 1.
+  state.record_outcomes(torch.tensor((0, 1, 2, 3, 4)))
+  assert state.attempts.item() == 0
+  assert state.excluded_stale_attempts.item() == 4
+  state.reset_posture_level.fill_(1)
+  assert not state.update_curriculum(success_threshold=0.9)
   state.record_outcomes(torch.tensor((0, 1, 2, 3, 4)))
   assert not state.update_curriculum(success_threshold=0.9)
   assert state.level == 1
   assert state.attempts.item() == 0
   assert state.last_window_attempts.item() == 4
   torch.testing.assert_close(state.last_success_rate, torch.tensor(0.75))
+  assert state.last_excluded_stale_attempts.item() == 4
 
   state.succeeded[:] = True
   state.record_outcomes(torch.tensor((0, 1, 3, 4)))
@@ -417,6 +437,7 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   assert state.assist_level == 0
   assert state.required_window == 6
 
+  state.reset_posture_level.fill_(2)
   state.record_outcomes(torch.tensor((0, 1, 2, 3)))
   state.record_outcomes(torch.tensor((0, 1)))
   assert state.update_curriculum(success_threshold=0.9)
@@ -424,6 +445,42 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   assert state.assist_level == 1
   assert state.level == 3
   assert state.required_window == 8
+
+
+def test_g1_curriculum_scales_evidence_and_enforces_rollout_cooldown():
+  state = G1RecoveryReset.__new__(G1RecoveryReset)
+  state._env = cast(Any, SimpleNamespace(device="cpu", common_step_counter=23))
+  state._force_ranges = torch.tensor(((0.0, 100.0), (0.0, 0.0)))
+  state._posture_mode_probabilities = ((1.0, 0.0, 0.0), (0.5, 0.5, 0.0))
+  state._posture_reference_min_progress = (0.7, 0.1)
+  state._posture_fallen_min_progress = (0.15, 0.0)
+  state._posture_success_windows = (500,)
+  state._assist_success_windows = (1000,)
+  state._curriculum_window_scale = 4.0
+  state._minimum_level_steps = 24
+  state._level_enter_step = 0
+  state.posture_level = 0
+  state.assist_level = 0
+  state.attempts = torch.tensor(2000, dtype=torch.long)
+  state.successes = torch.tensor(2000, dtype=torch.long)
+  state.last_window_attempts = torch.zeros((), dtype=torch.long)
+  state.last_success_rate = torch.zeros(())
+  state.training_attempts = torch.tensor(2000, dtype=torch.long)
+  state.training_successes = torch.tensor(2000, dtype=torch.long)
+  state.last_training_success_rate = torch.zeros(())
+  state.excluded_stale_attempts = torch.zeros((), dtype=torch.long)
+  state.last_excluded_stale_attempts = torch.zeros((), dtype=torch.long)
+
+  assert state.base_required_window == 500
+  assert state.required_window == 2000
+  assert not state.update_curriculum(success_threshold=0.9)
+  assert state.posture_level == 0
+  assert state.attempts.item() == 2000
+
+  state._env.common_step_counter = 24
+  assert state.update_curriculum(success_threshold=0.9)
+  assert state.posture_level == 1
+  assert state._level_enter_step == 24
 
 
 def test_smp_reward_is_calibrated_without_assistance_level_scaling():
