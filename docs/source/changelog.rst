@@ -8,6 +8,73 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a reproducible NVIDIA/Conda installation path with pinned CUDA 12.8
+  PyTorch, MuJoCo nightly, MuJoCo Warp, and mjviser sources, plus a Chinese
+  setup, GPU verification, recovery-data validation, training, and
+  troubleshooting guide.
+- Added ``Mjlab-Velocity-Flat-Unitree-G1-Recovery``, a trainable G1 recovery
+  Flow Policy Optimization task with autonomous reference-frame initialization,
+  assisted fallen and
+  stand resets, recovery-to-standing reward gates, dt-corrected progress and
+  terminal events, assisted hold success, and an upward-force curriculum.
+  Training begins entirely from late reference states and expands the reference
+  progress band before fallen and stand resets are introduced. A first
+  success-rate curriculum increases posture difficulty while holding assistance
+  at 160--200 N; only after posture difficulty is complete does a second
+  success-rate curriculum anneal assistance to zero. Each level requires a 90%
+  aggregate non-stand recovery success rate, and evidence windows grow strictly
+  across both stages; stand resets are excluded from that statistic. The sampled
+  reference states split evenly between the newly opened progress frontier and
+  the previously mastered interval while the reference lower bound is expanding.
+  This keeps the aggregate 90% gate sensitive to the current difficulty without
+  discarding rehearsal of easier recovery states. The default long-run
+  experiment samples eligible frames uniformly inside both 50% allocations;
+  every non-stand recovery contributes to the aggregate 90% curriculum gate.
+  Online failure EMA and 0.2-second temporal bins remain diagnostic only, and
+  stable top-five reports map persistent failures back to source recording frame
+  ranges without changing reset probability or exposing clip or bin identity to
+  either network. The sampled
+  force acts at full strength throughout each active reference or fallen episode.
+  The final reference, fallen, and stand mixture is 45%, 45%, and 10%. A causal Transformer
+  conditions one shared multimodal flow actor using only deployable
+  proprioceptive history; reset mode, assistance, and the constant velocity
+  command are excluded. Moderate base noise, per-step input normalization,
+  bounded flow velocity, smooth tanh environment actions, deterministic
+  zero-sampling for deployment, and per-MC-sample FPO++ ratios with ASPO
+  negative-advantage updates prevent cumulative flow drift. CFM supervision
+  remains in the unsquashed flow-latent space and uses variance-preserving
+  square-root action-dimension reduction, with absolute CFM-loss and advantage
+  clamps plus AdamW regularization. Small training-only latent action
+  perturbations regularize entropy without exposing assistance or reset context
+  to the Actor. Flow endpoint spread and action saturation are logged directly.
+  Per-reset-mode terminal
+  metrics expose
+  reference, fallen, and stand recovery success separately. Initial-progress-bin
+  denominator and success metrics expose curriculum bottlenecks from 0.00 through
+  0.85. Composite
+  height/upright progress,
+  non-repeatable best-progress lift milestones, autonomous hold shaping, and
+  recovery-gated collision costs provide dense recovery feedback. Milestone
+  lift initializes from the reset progress, so inherited reference velocity,
+  assistance-driven motion, and repeated vertical oscillation cannot repeatedly
+  earn lift reward. The standing-pose reward now slides from zero at recovery
+  progress 0.65 to a doubled terminal weight at 0.85, preserving early recovery
+  freedom while counteracting the low support posture prevalent in the motion
+  dataset. Its frozen G1 SMP denoiser contributes at weight 10 from the beginning
+  of FPO and remains independent of the assistance curriculum. Recovery progress
+  0.65--0.85 now cross-fades that prior weight smoothly from 10 to 2.5 while the
+  standing-pose weight rises from zero to two, preventing support-heavy motion
+  data from opposing the terminal standing target. Held-out ESM calibration and
+  task-progress clipping continue to bound the prior score.
+- Added a native MuJoCo viewer for compiled G1 recovery NPZ clips, including
+  half-open target-frame selection, looping, and slow-motion playback for
+  inspecting persistent curriculum failures.
+- Added a separate simulator-validated G1 recovery reset-state bank. Its builder
+  performs bounded support-contact projection and a gravity/PD settling rollout,
+  rejects deep penetration and unstable states, and leaves the original SMP
+  trajectories unchanged. G1 velocity environments now use tangential friction
+  on all collision geoms so hands, wrists, shins, and the torso can support
+  recovery; tracking and other G1 tasks keep their existing collision model.
 - Added a recovery-review exporter that writes every accepted human-annotated
   interval as a standalone source-format BVH with a provenance index.
 - Added CMU-style BVH compatibility to the recovery review workflow. The

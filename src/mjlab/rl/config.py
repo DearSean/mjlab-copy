@@ -28,6 +28,8 @@ class RslRlModelCfg:
 
   ``None`` means deterministic output (use for critic).
   """
+  model_kwargs: dict[str, Any] = field(default_factory=dict)
+  """Additional keyword arguments passed to a custom model class."""
   rnn_type: str | None = None
   """RNN type ("lstm" or "gru"). When set, class_name should be "RNNModel"."""
   rnn_hidden_dim: int = 256
@@ -79,6 +81,32 @@ class RslRlPpoAlgorithmCfg:
   """Share CNN encoders between actor and critic."""
   class_name: str = "PPO"
   """Algorithm class name resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlFpoAlgorithmCfg(RslRlPpoAlgorithmCfg):
+  """Configuration for per-sample FPO++ with an ASPO trust region."""
+
+  num_mc_samples: int = 16
+  """Number of fixed timestep/noise pairs used to estimate each FPO ratio."""
+  ratio_log_clip: float = 3.0
+  """Gradient-preserving numerical bound on each MC sample's log ratio."""
+  cfm_loss_clamp: float = 3.0
+  """Maximum old and new CFM loss before their difference is computed."""
+  advantage_clamp: tuple[float, float] = (5.0, 5.0)
+  """Maximum positive and negative advantages used by the Actor objective."""
+  weight_decay: float = 1.0e-4
+  """AdamW weight decay used by the joint Actor/Critic optimizer."""
+  adam_betas: tuple[float, float] = (0.9, 0.999)
+  """AdamW first- and second-moment decay coefficients."""
+  diversity_loss_coef: float = 0.0
+  """Weight for preserving same-observation Flow endpoint diversity."""
+  diversity_target_std: float = 0.12
+  """Minimum RMS action spread targeted across two independent Flow noises."""
+  diversity_batch_size: int = 64
+  """Maximum observation subset used by the endpoint diversity diagnostic."""
+  class_name: str = "mjlab.rl.fpo:FlowPolicyOptimization"
+  """Qualified algorithm class resolved by RSL-RL."""
 
 
 @dataclass

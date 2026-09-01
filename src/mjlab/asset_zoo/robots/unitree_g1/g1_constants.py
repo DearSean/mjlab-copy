@@ -224,6 +224,17 @@ FULL_COLLISION = CollisionCfg(
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
 )
 
+# Velocity tasks use hands, wrists, shins, and the torso as temporary terrain
+# supports during falls and recovery. ``condim=1`` cannot transmit tangential
+# friction, so velocity environments opt into whole-body friction while the
+# default robot model used by tracking and other tasks remains unchanged.
+G1_VELOCITY_COLLISION = CollisionCfg(
+  geom_names_expr=(".*_collision",),
+  condim=3,
+  priority=1,
+  friction=(0.6,),
+)
+
 FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   geom_names_expr=(".*_collision",),
   contype=0,

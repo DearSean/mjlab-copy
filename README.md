@@ -21,6 +21,9 @@ uv run demo
 
 For alternative installation methods (PyPI, Docker), see the [Installation Guide](https://mujocolab.github.io/mjlab/main/source/installation.html).
 
+For this repository's NVIDIA/Conda setup, including the G1 recovery training
+command, see the [Conda training guide](README_CONDA.md).
+
 ## Continue the LaFAN Recovery Review
 
 The `academic` branch includes the review tool, current annotations, review

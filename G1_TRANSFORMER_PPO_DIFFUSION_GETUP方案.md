@@ -1,18 +1,19 @@
-# G1 RGMT–SMP–PPO 起身训练详细方案
+# G1 Conditional Flow–SMP–FPO 起身训练详细方案
 
 ## 1. 方案目标
 
 本方案在当前 mjlab 项目中训练 Unitree G1 从随机倒地状态自主恢复到 velocity
 环境默认屈膝站姿。`lafan-g1-getup/` 中的 G1 动作片段用于学习支撑、翻转、
-抬升和姿态转换；PPO 在 MuJoCo 接触动力学中将这些局部能力组合成完整起身。
+抬升和姿态转换；FPO 在 MuJoCo 接触动力学中将这些局部能力组合成完整起身。
 
 采用的方法包括：
 
-1. [RGMT](https://arxiv.org/html/2601.23080v1) 的本体历史 Transformer、
-   动力学条件参考窗口注意力、关节残差控制和非对称 Actor–Critic；
-2. [SMP](https://arxiv.org/html/2512.03028v3) 的冻结动作 Diffusion、
+1. 轻量 causal Transformer 编码真机可获得的 10 步本体历史；
+2. [Flow Matching Policy Gradients](https://arxiv.org/html/2507.21053) 的统一
+   conditional flow Actor 和 PPO-compatible FPO clipped objective；
+3. [SMP](https://arxiv.org/html/2512.03028v3) 的冻结动作 Diffusion、
    Ensemble Score Matching 奖励和 Reference State Initialization；
-3. [Extreme-RGMT](https://arxiv.org/html/2607.20110v1) 的困难时间窗自适应
+4. [Extreme-RGMT](https://arxiv.org/html/2607.20110v1) 的困难时间窗自适应
    采样。
 
 系统链路：
@@ -20,12 +21,11 @@
 ```text
 G1 动作片段
   ├── 参考状态初始化
-  ├── 21 步参考命令窗口 ───────────┐
-  └── 10 步动作窗口 → SMP Diffusion ─┤ 训练时冻结奖励
-                                      ↓
-机器人最近 10 步本体状态 → Transformer Actor → 29 维关节目标
-随机倒地状态 ────────────────────────────┘
-默认屈膝站姿 → 站立任务奖励 ──────────────┘
+  └── 10 步动作窗口 → SMP Diffusion ─┐ 训练时冻结奖励
+                                     ↓
+机器人最近 10 步本体状态 → Conditional Flow Actor → 29 维关节目标
+随机倒地状态 ─────────────────────────────┘
+默认屈膝站姿 → 站立任务奖励 ───────────────┘
                                       ↓
                             MuJoCo 接触动力学
                                       ↓
@@ -94,7 +94,7 @@ state(t) = {
 action(t) ∈ [-1, 1]²⁹
 ```
 
-PPO 最大化折扣累计回报：
+FPO 与 PPO 一样最大化折扣累计回报：
 
 ```text
 单条轨迹回报
@@ -160,12 +160,12 @@ success(t) = 过去连续 25 步的 is_standing 全部等于 1
 
 | 模式 | 初始状态 | 参考窗口 | 训练目的 |
 |---|---|---|---|
-| reference | 动作片段中的安全帧 | 有 | 学习局部支撑和姿态转换 |
-| fallen | 随机物理倒地状态 | 无，使用 null command | 学习完整自主恢复 |
+| reference | 动作片段中的中后段安全帧 | 无 | 自主完成较短的剩余恢复 |
+| fallen | 低进度起身数据帧 | 无 | 在辅助力下学习完整自主恢复 |
 | stand | 默认姿态附近的扰动状态 | 无，使用默认姿态 | 学习站立吸引域和接管 |
 
-Actor 额外接收三维 one-hot mode。部署起身时使用 fallen mode；稳定站立后进入
-stand/velocity mode。
+reset mode 只用于环境统计、课程和奖励 gating，不进入 Actor 或 Critic。策略只能
+根据本体状态历史判断当前恢复方式；辅助力大小和课程等级同样不进入观测。
 
 ## 4. 动作数据编译
 
@@ -293,72 +293,18 @@ bucket ≥ 90       → test
 由于当前 source 数量较少，最终允许在 manifest 中固定分配，但不能按单帧随机
 划分。
 
-## 5. 参考命令窗口
+## 5. 不使用参考命令
 
-### 5.1 单帧 38 维命令
+当前自主起身任务明确禁用原 21×38 reference command、valid mask、cross-attention、
+reference confidence 和 reference action anchor。动作片段只承担两项训练职责：
 
-采用 RGMT 的命令定义：
+1. 提供不同进度的 reset 初始状态；
+2. 训练冻结 SMP，使在线状态短窗得到动作分布奖励。
 
-```text
-command(t) = concat(
-  reference_body_linear_velocity[3],
-  reference_body_angular_velocity[3],
-  reference_projected_gravity[3],
-  reference_joint_position[29]
-)
+reference、fallen、stand 三类环境使用完全相同的 Actor 输入和默认关节目标锚点。
+这保证部署策略不需要知道当前状态来自哪个数据板块。
 
-command_dimension = 3 + 3 + 3 + 29 = 38
-```
-
-### 5.2 21 步上下文
-
-当前参考时刻为 t，使用前后各 10 步：
-
-```text
-command_window(t)
-  = [command(t-10), ..., command(t), ..., command(t+10)]
-
-window_shape = 21 × 38
-```
-
-每个 token 有一个有效标志：
-
-```text
-valid_mask(j) = 1  → token 在当前 clip 内
-valid_mask(j) = 0  → token 越过 clip 边界，只是 padding
-```
-
-Attention 和 tracking reward 都忽略无效 token。
-
-### 5.3 Partial 尾端平滑退场
-
-`end_time` 是片段最后有效时间，退场时间 `blend_time = 0.4 秒`：
-
-```text
-remaining_ratio(t)
-  = clip((end_time - current_time) / blend_time, 0, 1)
-
-reference_blend(t)
-  = smoothstep(remaining_ratio(t))
-
-reference_confidence(t)
-  = indicator(mode == reference) × reference_blend(t)
-
-joint_anchor(t)
-  = reference_blend(t) × q_ref(t)
-    + (1 - reference_blend(t)) × q0
-```
-
-该插值只用于控制目标连续化，不写入动作数据，也不进入 SMP 正样本。
-
-fallen 和 stand mode 始终使用：
-
-```text
-reference_confidence = 0
-joint_anchor = q0
-```
-
-## 6. RGMT Transformer Actor
+## 6. Causal Transformer Conditional Flow Actor
 
 ### 6.1 93 维本体观测
 
@@ -392,8 +338,7 @@ history(t)
 history_shape = 10 × 93
 ```
 
-不足 10 步时复制 reset 后首帧，并用 history mask 标记，避免把全零解释成真实
-运动。
+不足 10 步时复制 reset 后首帧，不向策略暴露 reset mask。
 
 ### 6.3 Causal history encoder
 
@@ -422,101 +367,47 @@ H_normalized
   = layer_norm(H2)
 ```
 
-Causal mask 保证第 i 个时间 token 只能读取第 0 到 i 个 token。按 RGMT 对时间
-维做逐通道最大池化：
+Causal mask 保证第 i 个时间 token 只能读取第 0 到 i 个 token。Actor 使用最后
+一个 token 作为包含完整历史的条件向量：
 
 ```text
-dynamics_embedding(d)
-  = max over time [H_normalized(time, d)]
+history_context
+  = H_normalized(last_time)
 
 dynamics_embedding_dimension = 128
 ```
 
-### 6.4 Dynamics-conditioned cross-attention
+### 6.4 Conditional flow 动作生成
 
-动力学 query：
-
-```text
-Q = MLP_dynamics(dynamics_embedding)
-Q_shape = 1 × 128
-```
-
-参考命令 token：
+同一个向量场维护完整条件分布，不存在专家编号或离散行为标签：
 
 ```text
-Z
-  = MLP_command(command_window)
-    + command_positional_encoding
+noise z ~ Normal(0, 0.25² I)
+x(0) = z
 
-Z_shape = 21 × 128
+dx/dτ
+  = velocity_field(history_context, x(τ), time_embedding(τ))
+
+bounded_velocity = 1.5 × tanh(velocity_field / 1.5)
+latent_action = x(1)
+environment_action = tanh(latent_action)
 ```
 
-每个 attention head 对第 j 个命令 token 计算：
+向量场 MLP 为 `[512, 256, 128]`，ELU 激活，输出 29 维速度。当前使用 32 个固定
+midpoint Euler 积分步；所有环境在每个积分步做一次批量前向，因此不改变并行
+rollout 结构。训练 rollout 从基础分布随机采样，以保留多峰探索；验证、导出和
+真机部署默认使用 `z = 0` 的 zero-sampling，使同一状态下的控制输出可复现，仍由
+观测历史决定采用哪条恢复路径。需要检查同一状态的其他可行模式时，可以显式
+重复随机采样。连续 `tanh` 动作映射替代硬截断，避免长期更新后大量动作黏在
+`±1` 且截断外没有梯度。较小的初始噪声避免未训练策略以全幅随机关节目标破坏
+reference 和 stand reset；1.5 的向量场上限防止单位流时间内把 latent action
+推入 `tanh` 深饱和区。本体
+输入在每个时间步使用 LayerNorm，不更新跨 rollout 的运行统计量。
 
-```text
-raw_score(j)
-  = dot(Q, key(j)) / √head_dimension
-
-masked_score(j)
-  = raw_score(j)       当 valid_mask(j) = 1
-  = negative_infinity 当 valid_mask(j) = 0
-
-attention_weight
-  = softmax(masked_score)
-
-attention_output
-  = Σ [attention_weight(j) × value(j)]
-```
-
-命令序列后增加一个始终有效的 null token，防止全部参考 token 无效时出现 NaN：
-
-```text
-null_command = concat(
-  zero_linear_velocity[3],
-  zero_angular_velocity[3],
-  upright_projected_gravity = (0, 0, -1),
-  default_joint_position = q0
-)
-```
-
-Cross-attention block：
-
-```text
-cross_1
-  = Q
-    + masked_multihead_attention(layer_norm(Q), Z)
-
-cross_2
-  = cross_1
-    + feedforward_MLP(layer_norm(cross_1))
-
-command_embedding
-  = layer_norm(cross_2)
-```
-
-### 6.5 Actor 输出
-
-```text
-actor_input = concat(
-  current_observation,
-  dynamics_embedding,
-  command_embedding,
-  reference_confidence,
-  episode_mode_one_hot
-)
-```
-
-Actor MLP 使用 `[512, 256, 128]`，ELU 激活，输出 29 维 Gaussian mean。
-
-```text
-sampled_action
-  ~ Normal(actor_mean, actor_standard_deviation)
-
-action
-  = clip(sampled_action, -1, 1)
-```
-
-部署时使用 `actor_mean`。
+FPO 的 CFM target 和 old/new loss 始终使用未压缩的 `latent_action`；只有送入
+环境的动作经过 `tanh`。这样 rollout 的 ODE 终点、CFM 监督目标和 likelihood
+ratio 位于同一个空间，避免把压缩后的环境动作错误地当作流终点而产生系统性
+训练漂移。
 
 ### 6.6 关节目标和 PD
 
@@ -524,7 +415,7 @@ action
 
 ```text
 joint_target(t)
-  = joint_anchor(t)
+  = q0
     + action_scale × action(t)
 
 requested_torque(t)
@@ -537,16 +428,15 @@ applied torque。
 
 ### 6.7 Asymmetric Critic
 
-Critic 输入包括：
+Critic 可以保留标准 velocity 配置中能够由机载估计器或接触传感器提供的状态，
+但明确删除：
 
 ```text
-无噪声 93D 本体观测
-参考命令和 valid mask
-pelvis 和各 link 的位置、旋转、速度
-接触力和接触对象
-requested/applied torque
-episode mode
-reference height
+reset mode
+辅助力大小
+课程等级
+零速度 command
+reference frame / confidence
 ```
 
 ```text
@@ -559,28 +449,29 @@ Critic MLP 建议 `[1024, 512, 256]`。特权信息不进入 Actor 和导出模�
 
 ### 7.1 三类 reset 概率
 
-训练进度：
+当前实现不按 iteration 推进，而使用显式成功率课程。初期四级全部来自
+reference 后半段，并把最小进度从 0.70 依次扩展到 0.55、0.40 和 0.25；只有
+已激活的非 stand 恢复 episode 总成功率达到 90%，才开放下一级：
 
-```text
-progress(iteration)
-  = clip(iteration / curriculum_iterations, 0, 1)
-```
+| posture level | reference / fallen / stand | reference progress 下界 |
+|---:|---:|---:|
+| 0 | 1.00 / 0.00 / 0.00 | 0.70 |
+| 1 | 1.00 / 0.00 / 0.00 | 0.55 |
+| 2 | 1.00 / 0.00 / 0.00 | 0.40 |
+| 3 | 1.00 / 0.00 / 0.00 | 0.35 |
+| 4 | 1.00 / 0.00 / 0.00 | 0.30 |
+| 5 | 1.00 / 0.00 / 0.00 | 0.25 |
+| 6 | 1.00 / 0.00 / 0.00 | 0.20 |
+| 7 | 1.00 / 0.00 / 0.00 | 0.15 |
+| 8 | 1.00 / 0.00 / 0.00 | 0.10 |
+| 9 | 0.85 / 0.15 / 0.00 | 0.10 |
+| 10 | 0.70 / 0.30 / 0.00 | 0.10 |
+| 11 | 0.60 / 0.35 / 0.05 | 0.10 |
+| 12 | 0.45 / 0.45 / 0.10 | 0.10 |
 
-概率从早期值平滑变化到后期值：
-
-| 模式 | 早期概率 | 后期概率 |
-|---|---:|---:|
-| reference | 0.80 | 0.30 |
-| fallen | 0.10 | 0.60 |
-| stand | 0.10 | 0.10 |
-
-```text
-probability(mode, iteration)
-  = (1 - progress) × early_probability(mode)
-    + progress × late_probability(mode)
-```
-
-课程还必须满足固定评测集成功率阈值，不能只按 iteration 推进。
+stand 仅用于稳定站立覆盖，不计入课程成功率分母，避免其天然高成功率虚增进阶
+指标。reference 模式只从当前进度带载入初始状态，随后由策略自主恢复；不提供
+逐帧 reference command、tracking reward 或 reference action anchor。
 
 ### 7.2 Reference State Initialization
 
@@ -637,18 +528,23 @@ action scale 的 20%–40%。
 
 ### 7.5 退火向上辅助力
 
-```text
-assist_decay(iteration)
-  = max(1 - iteration / assist_iterations, 0)
+课程拆成严格串行的两阶段。姿态课程期间固定采样 `160–200 N`，逐级扩大
+reference 进度范围并开放 fallen/stand；姿态课程满级后，保持最终姿态分布，
+再启动辅助力课程：
 
-assist_force_z
-  = Bernoulli(assist_probability)
-    × Uniform(0, max_assist_force)
-    × assist_decay
+```text
+assist_force_z ~ Uniform(force_min(assist_level), force_max(assist_level))
+
+160–200 → 120–160 → 90–120 → 65–90 → 45–65
+→ 25–45 → 10–25 → 0–10 → 0 N
 ```
 
-`max_assist_force = 200 N` 作为 RGMT 起始量级，但必须按 G1 质量和最大允许加速度
-限幅。最终训练和全部评测中辅助力为 0。
+辅助力对 reference 和 fallen 回合从开始到终止始终施加本回合采样的完整值，
+不再根据 `height × uprightness` 在回合内释放；stand 不施加辅助力。成功允许在
+当前课程辅助力下达成，随后由 90% 成功率推动下一级减力，最终等级才要求全程
+0 N。姿态课程窗口为 `500、750、1000、1250、1500、1750、2000、2500、
+3000、3500、4000、5000`，辅助力课程窗口继续增长为 `6000、7000、8000、
+9000、10000、12000、14000、16000`。
 
 ### 7.6 终止条件
 
@@ -660,7 +556,11 @@ Recovery episode 中低高度、手膝接地和大倾角不是早停条件。仅
 - 超过安全碰撞冲量；
 - root 离开训练区域。
 
-## 8. Reference tracking reward
+## 8. Reference tracking reward（当前自主起身配置禁用）
+
+以下 tracking 结构保留为后续 RGMT 消融设计，不进入当前
+`Mjlab-Velocity-Flat-Unitree-G1-Recovery`。当前参考数据只用于 reset 初始化和
+离线 SMP 训练，防止 reference 子任务占据 rollout 样本却不给 fallen 起身提供奖励。
 
 ### 8.1 Keypoint 位置
 
@@ -778,36 +678,48 @@ feet_reward(t)
     × exp(-foot_slip_gain × foot_slip_speed²)
 ```
 
-### 9.2 站立势函数
+### 9.2 当前站立势函数与奖励交接
 
 ```text
-standing_potential(t)
-  = 0.25 × upright_reward(t)
-    + 0.25 × height_reward(t)
-    + 0.15 × default_pose_reward(t)
-    + 0.15 × still_reward(t)
-    + 0.20 × feet_reward(t)
+progress(t) = normalized_height(t) × uprightness(t)
+
+stand_gate(t) = smoothstep(progress(t), 0.55, 0.85)
+
+recovery_potential(t)
+  = (1 - stand_gate(t))
+    × normalized_height(t)
+    × (0.2 + 0.8 × uprightness(t))
 ```
 
-权重首版和为 1，随后通过消融调整。
+`uprightness` 的 0.2 下限保证机器人侧躺时抬高身体仍能获得梯度。恢复期间
+pose、action-rate、body angular velocity 和 angular momentum 分别保留
+10%、30%、20% 和 20%，随后由 `stand_gate` 平滑恢复到完整权重。
 
 ### 9.3 净进展奖励
 
 ```text
-raw_progress(t)
-  = γ × standing_potential(t+1)
-    - standing_potential(t)
+recovery_progress_potential(t)
+  = 0.6 × normalized_height(t) + 0.4 × uprightness(t)
+
+raw_progress_rate(t)
+  = (recovery_progress_potential(t)
+     - recovery_progress_potential(t-1)) / control_dt
 
 progress_reward(t)
-  = clip(raw_progress(t), -progress_clip, progress_clip)
+  = clip(raw_progress_rate(t), -5, 5)
 ```
 
-该项奖励向站立吸引域的净进展，并惩罚重新跌落。
+除以 `control_dt` 用来抵消 RewardManager 的 dt 缩放，使完整 `0→1` 进展不会
+再次缩小 50 倍。成功奖励和超时失败惩罚同样先除以 dt，实际一次性权重分别为
+`+10` 和 `-1`。课程与成功判定仍使用 `height × uprightness ≥ 0.85`，只有密集
+进展奖励拆开高度和直立度，避免侧躺时乘积接近零而没有可用学习信号。
 
 ### 9.4 成功保持和低位抬升
 
 ```text
-hold_reward(t) = is_standing(t)
+hold_reward(t)
+  = smoothstep(height × uprightness, 0.65, 0.85)
+    × indicator(assistant_force = 0)
 ```
 
 低位阶段增加短期抬升引导：
@@ -815,19 +727,24 @@ hold_reward(t) = is_standing(t)
 ```text
 lift_reward(t)
   = indicator(pelvis_height(t) < 0.70 × h0)
-    × clip(vertical_base_velocity / target_lift_velocity, -1, 1)
+    × clip(vertical_base_velocity / target_lift_velocity, 0, 1)
 ```
 
-`lift_reward` 权重随课程衰减，防止策略反复上下运动刷奖励。
+`lift_reward` 只在非 stand 且高度低于阈值时工作，权重为 0.5；`hold_reward`
+权重为 2.0，并明确要求辅助力已经归零。向下速度不再通过 lift 项重复惩罚，状态
+回退已经由 `progress_reward` 表达。
 
 任务奖励：
 
 ```text
 task_reward(t)
-  = potential_weight × standing_potential(t)
-    + progress_weight × progress_reward(t)
-    + hold_weight × hold_reward(t)
-    + lift_weight(iteration) × lift_reward(t)
+  = 1.0 × recovery_potential(t)
+    + 2.0 × progress_reward(t)
+    + 0.5 × lift_reward(t)
+    + 2.0 × hold_reward(t)
+    + 10.0 × success_event(t)
+    - 1.0 × timeout_failure_event(t)
+    - 0.02 × fallen_duration_cost(t)
 ```
 
 ## 10. SMP Diffusion motion prior
@@ -921,7 +838,7 @@ ema_parameter
     + 0.001 × current_train_parameter
 ```
 
-PPO 只读取 EMA denoiser，并始终冻结。
+FPO 只读取 EMA denoiser，并始终冻结。
 
 ### 10.4 小数据增强
 
@@ -960,7 +877,7 @@ sds_error_i
 
 ### 10.6 不同 timestep 的尺度校准
 
-先用冻结基础 PPO 策略收集校准 rollout：
+先用冻结基础策略收集校准 rollout：
 
 ```text
 running_mean_error_i
@@ -1074,8 +991,7 @@ unsafe_contact_cost(t)
 ```text
 total_reward(t)
   = task_weight × task_reward(t)
-    + tracking_weight × tracking_reward(t)
-    + smp_weight(iteration) × clipped_smp_reward(t)
+    + smp_weight(progress) × clipped_smp_reward(t)
     - action_rate_weight × action_rate_cost(t)
     - torque_weight × torque_cost(t)
     - joint_limit_weight × joint_limit_cost(t)
@@ -1083,29 +999,28 @@ total_reward(t)
     - unsafe_contact_weight × unsafe_contact_cost(t)
 ```
 
-SMP 权重平滑接入：
+SMP 与辅助力课程解耦，从 FPO 第一步就工作；其权重只按机器人当前恢复进度
+与末段 pose 奖励平滑交接：
 
 ```text
-smp_ramp_ratio
-  = clip(
-      (iteration - smp_start_iteration) / smp_ramp_iterations,
-      0,
-      1
-    )
-
-smp_weight(iteration)
-  = maximum_smp_weight × smoothstep(smp_ramp_ratio)
+smp_weight = 10.0,                         progress <= 0.65
+smp_weight = smoothstep(10.0 -> 2.5),      0.65 < progress < 0.85
+smp_weight = 2.5,                          progress >= 0.85
 ```
 
-第一轮按 episode 回报贡献校准，使 task、tracking、SMP、cost 的绝对贡献大约为：
+held-out 专家窗口的 SMP 中位分数约为 0.76，当前失败在线轨迹约为 0.006；固定
+恢复权重修正首轮在线训练中 SMP 平均贡献只有约0.02、而自碰撞成本达到约2.22
+的失衡。接近站立后降到2.5，避免以support为主的数据分布压制默认站姿。
+自碰撞基础权重同步降为 `-0.2`，低位阶段只启用10%，接近站立后恢复。
+目标仍是使 task、SMP、cost 的绝对贡献大约为：
 
 ```text
-50% : 20% : 20% : 10%
+60% : 25% : 15%
 ```
 
 所有原始奖励项和加权结果分别记录。
 
-## 13. PPO 更新
+## 13. Flow Policy Optimization 更新
 
 ### 13.1 GAE advantage
 
@@ -1131,25 +1046,63 @@ advantage(t)
 λ = 0.95
 ```
 
-### 13.2 PPO clipped policy loss
+### 13.2 FPO conditional flow matching ratio
 
 ```text
-probability_ratio(t)
-  = new_policy_probability(action(t) | actor_input(t))
-    / old_policy_probability(action(t) | actor_input(t))
+对每个 rollout action 固定采样 Nmc 组：
 
-clipped_ratio(t)
-  = clip(probability_ratio(t), 1 - 0.2, 1 + 0.2)
+tau(i)   ~ Uniform(0, 1)
+noise(i) ~ Normal(0, 0.25² I)
 
-policy_objective(t)
-  = min(
-      probability_ratio(t) × advantage(t),
-      clipped_ratio(t) × advantage(t)
+noisy_action(i)
+  = tau(i) × latent_action + (1 - tau(i)) × noise(i)
+
+target_velocity(i)
+  = latent_action - noise(i)
+
+cfm_loss(theta, i)
+  = mean_square(
+      velocity_field_theta(noisy_action(i), tau(i), history_context)
+      - target_velocity(i)
     )
 
+raw_log_ratio(t, i)
+  = clamp(cfm_loss(old_theta, t, i), max=3)
+    - clamp(cfm_loss(theta, t, i), max=3)
+
+bounded_log_ratio(t, i)
+  = straight_through_clip(raw_log_ratio(t, i), -3, 3)
+
+fpo_ratio(t, i) = exp(bounded_log_ratio(t, i))
+
+ppo_positive(t, i)
+  = min(
+      fpo_ratio(t, i) × advantage(t),
+      clip(fpo_ratio(t, i), 0.95, 1.05) × advantage(t)
+    )
+
+spo_negative(t, i)
+  = fpo_ratio(t, i) × advantage(t)
+    - abs(advantage(t)) / (2 × 0.05)
+      × (fpo_ratio(t, i) - 1)²
+
+aspo_objective(t, i)
+  = ppo_positive(t, i), if advantage(t) >= 0
+  = spo_negative(t, i), otherwise
+
 policy_loss
-  = -mean(policy_objective)
+  = -mean_t,i(aspo_objective)
 ```
+
+旧 loss、tau 和 noise 在 rollout 时存储，所有 PPO epoch 复用同一组 Monte Carlo
+样本。这样当前参数在首次更新前严格得到 `fpo_ratio = 1`，避免额外估计噪声。
+`Nmc = 16`。FPO++ 不先平均 MC loss，而是让每个固定样本维护独立 ratio。正优势
+采用 PPO clipping；负优势采用带二次恢复项的 ASPO/SPO，策略偏离旧动作时始终
+存在拉回梯度。数值边界使用直通梯度 clip，避免 `exp` 溢出但不在边界外切断
+梯度；新旧 CFM loss 在作差前各自截断到 3，优势截断到 `[-5, 5]`。原来的整批
+skip 和 smooth-L1 CFM guard 已移除：它们只能阻止单次大更新，无法阻止多轮小
+更新造成的累计漂移，也是 500 轮实验中 flow loss 和动作饱和持续上升的主要
+算法缺口。
 
 ### 13.3 Value 和总损失
 
@@ -1157,20 +1110,32 @@ policy_loss
 value_loss
   = mean_square(predicted_value - return_target)
 
-total_ppo_loss
+total_fpo_loss
   = policy_loss
     + value_loss_weight × value_loss
-    - entropy_weight × policy_entropy
+    + 0.01 × flow_diversity_loss
 ```
+
+FPO 不使用 Gaussian entropy；探索来自 flow 的基础噪声。Actor 的观测 normalizer
+固定关闭，避免 rollout 内更新统计量导致 old/new CFM loss 不再处于同一条件。
+`flow_diversity_loss` 对同一条本体观测分别采样两组基础噪声，以两条 endpoint
+动作差估计条件标准差，并只惩罚其低于 0.12 的部分。每个 minibatch 最多使用
+64 条观测，因此不向 Actor 添加任何输入，也不暴露辅助力、reset mode、课程或
+reference 信息。训练同步记录 `flow_pair_std` 和动作饱和比例。
 
 初始设置：
 
 ```text
 rollout_horizon = 24
-ppo_epochs = 5
-minibatches = 4
-target_KL = 0.01
-clip_ratio = 0.20
+ppo_epochs = 3
+minibatches = 8
+CFM Monte Carlo samples = 16
+flow integration steps = 32
+clip_ratio = 0.05
+learning_rate = 5e-5
+optimizer = AdamW(weight_decay=5e-4)
+flow diversity target std = 0.12
+flow diversity coefficient = 0.01
 ```
 
 ## 14. 困难时间窗自适应采样
@@ -1269,8 +1234,9 @@ executed_velocity_command(t)
 1. 确认 source fps、quaternion 顺序和 29 关节顺序；
 2. 编译 50 Hz 数据与 source-group split；
 3. 验证离线 FK 和 MuJoCo link pose；
-4. 检查手、前臂、膝、小腿碰撞几何和切向摩擦；
-5. 建立固定 reference reset bank 和 fallen reset bank。
+4. 使用与 G1 velocity 任务相同的全身切向摩擦检查手、前臂、膝、小腿碰撞；
+5. 保留原始动作供 SMP 使用，另行建立经过接触投影和短时物理静置验证的
+   reference/fallen reset bank。
 
 进入下一阶段的条件：参考状态载入 MuJoCo 后没有深穿透、NaN 和速度爆炸；
 离线/在线 51D SMP feature 在同一状态上数值一致。
@@ -1288,28 +1254,46 @@ executed_velocity_command(t)
 进入下一阶段的条件：validation 真实窗口的 SMP reward 中位数明显高于破坏
 窗口，训练/验证 loss 没有持续分离。
 
-### S2：Task + tracking PPO
+### S2/S3：Task + autonomous reset + frozen SMP 联合 FPO
 
-使用最终 Transformer Actor，暂令 `smp_weight = 0`。混合 reference、fallen、
-stand reset，并逐步退火辅助力。
+当前可训练配置使用 causal Transformer conditional flow Actor，从 FPO 训练开始
+即启用已冻结 SMP。混合
+reference-initialization、fallen、stand reset；辅助力和 reset 难度由成功率
+推进，SMP 权重与它们解耦；单回合内仅按当前progress与pose平滑交接。
 
-进入下一阶段的条件：
+```text
+smp_weight(progress <= 0.65) = 10.0
+smp_weight(progress >= 0.85) = 2.5
+```
 
-- reference reset 能保持局部物理跟踪；
+每级只在当前非 stand 恢复总成功率达到 90% 后进阶。第一阶段在固定
+`160–200 N` 完整辅助力下逐步增加姿态难度；姿态课程满级后，第二阶段固定
+最终 reset 分布，并按 `160–200 → 120–160 → 90–120 → 65–90 → 45–65 →
+25–45 → 10–25 → 0–10 → 0 N` 退火辅助力。两阶段证据窗口全局严格增长。
+SMP 任务优先上限使用：
+
+```text
+smp_cap = 0.3 + 0.7 × height × uprightness
+clipped_smp_reward = min(normalized_smp_reward, smp_cap)
+```
+
+reference reset 从进度 `[0.70, 0.85)` 开始，后期把下界扩展到 0.10；其后
+完全自主执行，不推进 reference target。三类 reset 从 `100/0/0` 分级迁移到
+`45/45/10`，避免训练最初就让尚不可解的 fallen 样本淹没正反馈。进入下一
+阶段的条件：
+
+- reference initialization 能自主完成剩余恢复；
 - fallen bank 出现稳定、无辅助起身；
 - stand-noise bank 能保持默认姿态至少 0.5 秒；
 - 结果优于零动作和固定 q0 PD；
-- 同时记录 MLP PPO 作为结构消融。
+- 同时记录原 Gaussian MLP PPO 作为结构消融。
 
-### S3：冻结 SMP 接入 PPO
+### S3：联合阶段内的 SMP 校准与验收
 
-1. 加载并冻结 S1 EMA denoiser；
-2. 用冻结 S2 policy rollout 校准三个 timestep 的 mean SDS error；
-3. 从 S2 checkpoint 恢复；
-4. 把 SMP 权重从 0 平滑增加到目标值。
-
-进入下一阶段的条件：固定 fallen bank 成功率不能显著下降，并且非足部承重、
-滑移、动作变化、力矩或起身时间至少有一项改善。
+S3 不再单独重启 FPO。训练前用 held-out reference window 固定校准
+ESM `[22, 15, 8]` 的 mean SDS error，之后 denoiser 和校准均保持冻结。
+固定 fallen bank 成功率不能显著下降，并且非足部承重、滑移、
+动作变化、力矩或起身时间至少有一项改善。
 
 ### S4：困难 bin 自适应采样
 
@@ -1338,11 +1322,20 @@ stand reset，并逐步退火辅助力。
 | 参数 | 初始值 |
 |---|---:|
 | 控制频率 | 50 Hz |
+| 并行环境（8 GiB GPU 默认） | 1024 |
 | 本体历史 | 10 步 |
-| 参考命令窗口 | 21 步 |
-| RGMT embedding | 128 |
+| 参考命令窗口 | 禁用 |
+| Flow history embedding | 128 |
 | history Transformer | 1 block |
-| cross-attention | 1 block |
+| Flow vector field MLP | 512、256、128 |
+| Flow integration steps | 32 |
+| Flow base noise std | 0.25 |
+| Flow velocity bound | 1.5 |
+| FPO MC samples | 16 |
+| FPO CFM loss clamp | 3.0 |
+| FPO per-sample log-ratio numerical bound | 3.0 |
+| FPO advantage clamp | -5.0、5.0 |
+| FPO negative-advantage objective | ASPO/SPO |
 | SMP 窗口 | 10 步 |
 | diffusion timestep 数 | 50 |
 | ESM timestep | 22、15、8 |
@@ -1351,9 +1344,13 @@ stand reset，并逐步退火辅助力。
 | 成功保持 | 0.5 秒 |
 | PPO γ | 0.99 |
 | GAE λ | 0.95 |
-| PPO clip | 0.20 |
+| FPO clip | 0.05 |
+| optimizer | AdamW，weight decay 5e-4 |
+| learning epochs / minibatches | 3 / 8 |
+| learning rate | 5e-5 |
+| 同状态 Flow diversity target / coefficient | 0.12 / 0.01 |
 | rollout horizon | 24 起步 |
-| early assist force | 0–200 N，最终为 0 |
+| early assist force | 160–200 N，最终为 0 |
 | difficulty EMA rate | 0.01 |
 | uniform sampling mass | 至少 0.20 |
 
@@ -1375,6 +1372,7 @@ stand reset，并逐步退火辅助力。
 每类报告：
 
 - success rate；
+- reset mode 占比和各 mode 独立 success numerator/rate；
 - time-to-stand；
 - 0.5 秒 hold success；
 - 峰值和累计 requested/applied torque；
@@ -1406,12 +1404,13 @@ src/mjlab/tasks/velocity/recovery_data/
 src/mjlab/tasks/velocity/config/g1/
   recovery_env_cfg.py
   recovery_events.py
-  recovery_commands.py
-  recovery_observations.py
   recovery_rewards.py
 
+src/mjlab/rl/
+  flow_policy.py
+  fpo.py
+
 src/mjlab/tasks/velocity/recovery_prior/
-  rgmt_actor_critic.py
   smp_model.py
   smp_reward.py
   adaptive_sampler.py
@@ -1422,27 +1421,220 @@ src/mjlab/scripts/
   audit_g1_recovery.py
 ```
 
-RSL-RL integration 需要支持自定义 Actor–Critic、history/command mask、checkpoint
-feature schema 校验和 Actor-only 导出。SMP checkpoint 单独版本化，不进入部署
-模型。
+RSL-RL integration 通过完整模块路径加载自定义 Flow Actor 和 FPO；rollout storage
+的 distribution parameters 保存 old CFM loss、tau 和 noise。SMP checkpoint 单独
+版本化，不进入部署模型。
 
 ## 20. 实现增量
 
 1. I0：数据 schema、编译、重采样、source split 和窗口 mask；
 2. I1：三类 reset、终止、成功集合、碰撞/摩擦和辅助力；
-3. I2：RGMT history encoder、cross-attention、residual action 和 critic；
+3. I2：causal history encoder、conditional flow Actor、FPO ratio 和 critic；
 4. I3：tracking、standing potential、progress、hold 和安全 cost；
 5. I4：SMP denoiser、EMA、ESM reward、校准和 clipping；
-6. I5：reset 概率课程和困难 bin sampler；
+6. I5：固定 reset 分层比例、姿态难度课程和困难 bin sampler；
 7. I6：velocity handoff、随机化、导出和固定评测。
 
 每个增量先通过 CPU 单元测试和小规模仿真 smoke test，再进入 GPU 大规模训练。
 
-## 21. 参考来源
+## 21. 2026-08-30 算法超参数 500 轮验证
+
+运行目录：`2026-08-30_13-30-24_flow_diversity_hparam_fresh_500`。该实验从零
+训练 500 轮，使用 `max_flow_velocity=1.5`、学习率 `5e-5`、3 个 learning
+epochs，以及 target std 0.12、权重 0.01 的同状态双噪声 diversity loss。
+
+| 100 轮窗口 | mean reward | flow loss | pair std | saturation | reference success | fallen success | stand success |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 0–99 | 5.21 | 0.131 | 0.127 | 0 | 39.0% | 0.57% | 94.3% |
+| 400–499 | 0.79 | 0.304 | 0.072 | 0 | 5.75% | 0.24% | 51.6% |
+
+结论：降低向量场上限彻底阻止了 `tanh` 饱和，但 0.01 的 diversity 权重不足以
+保持基础噪声影响；策略转而坍缩为低方差、非饱和但无效的动作。末段 recovery
+progress reward 为 -0.189，课程始终停留在 level 0。该候选配置未通过任务验收，
+不得从 `model_499.pt` 继续长训。结果表明只调整 Flow/PPO 超参数不能解决当前
+奖励和自采样 CFM 共同造成的行为坍缩。
+
+## 22. 2026-08-30 FPO++ 对齐补丁
+
+500 轮失败实验显示策略的平均 `|log ratio|` 仅约 0.0021，同状态
+pair std 从 0.127 降到 0.072，而末段 SMP raw score 仅为 0.033。
+在线 SMP 公式重测得到参考窗口 0.422、时间打乱 0.181、关节打乱
+0.106 和随机特征约 `9e-6`，证明主要问题是 FPO 未将有效 SMP 信号
+转化为行为，而非 SMP 缺乏区分力。
+
+已实施的最小对齐补丁：
+
+- CFM 动作维度 reduction 从 `mean` 改为方差保持的 `sqrt`；
+- Flow 积分步数从 32 增加到 64，base noise 从 0.25 增加到 0.5；
+- 使用 0.02 的训练期 latent action perturbation 替代无效的 pair-std 目标损失；
+- MC samples 从 16 增加到 32，learning epochs 从 3 增加到 8，
+  学习率从 `5e-5` 恢复到 `1e-4`；
+- 关闭 clipped value loss，AdamW weight decay 恢复到 `1e-4`；
+- SMP 固定权重从 5 增加到 10，恢复早期 pose gate minimum 从 0.1 降为 0；
+- Actor 观测、torso 辅助力、三类 reset 和成功率课程保持不变。
+
+1024 环境、RTX 4060 Ti 8 GiB 的 5 轮 smoke 验证通过：无 OOM、NaN
+或动作饱和，第 4 轮 `|log ratio|=0.0074`，相比失败配置的末段
+更新强度提高约 3.5 倍。该 smoke 只验收显存与数值链路，不代表长期
+起身成功率验收。
+
+## 23. 2026-08-30 连续初始姿态课程修正
+
+FPO++ 对齐后的 500 轮实验中，mean reward 从 4.07 升至 14.46，SMP raw score
+从 0.044 升至 0.222，reference 成功率达到约 47%，但 fallen 成功率末段仍只有
+约 0.5%。Flow pair std 保持在 0.227，说明算法更新和多峰性已经稳定，瓶颈转为
+reset 课程：旧 level 0 同时采样 `[0.70,0.85)` reference 和 `[0,0.25)` fallen，
+中间存在难度断层，且进阶只统计 fallen 成功率。
+
+修正后第一阶段在固定完整辅助力下由 pure-reference 后段逐步开放更早姿态和
+fallen；姿态满级后第二阶段才逐级降低辅助力。进阶统计覆盖 reference 与 fallen
+的全部恢复 episode，排除 stand，阈值固定为 90%，证据窗口跨两个阶段持续增长。
+辅助力不再在单回合内按进度释放，成功判定也不要求当前辅助力为零；最终课程
+等级仍为全程 0 N。该课程只改变环境 reset 和训练统计，不向 Actor 或 Critic
+增加 reset mode、辅助力或课程等级观测。
+
+后续 500 轮验证在旧 posture level 3（直接从 progress 0.40 下探到 0.25）停留：
+末段成功率约 76%，而 `[0.25,0.40)` 一次新增 701 个帧，占新采样池约 49%。
+因此把 reference 下探细化为 `0.40→0.35→0.30→0.25→0.20→0.15→0.10`，
+再按 `100/0/0→85/15/0→70/30/0→60/35/5→45/45/10` 开放其他模式。
+新增十组互斥 initial-progress bin denominator/success 指标，使每个区间的条件
+成功率可以由 `recovery_success_bin_x / recovery_bin_x` 直接计算。
+
+细化后的 500 轮验证在 progress `0.30–0.35` 的课程前沿停滞：该区间末段
+成功率约 60%，但容易历史区间稀释了训练信号。因此当一级新开放更低的
+reference progress 时，采用 50% 当前新开放区间和 50% 已学历史区间的
+前沿平衡采样。例如当前 level 为 `0.30` 时，分别采样 `[0.30,0.35)` 和
+`[0.35,0.85)`。该补丁不改变总体 90% 进阶条件：新区间 85% 且已学区间
+95% 时，平衡后总成功率正好为 90%。当 progress 下界不再降低、课程开始加入
+fallen/stand 后，reference 恢复对整个 `[0.10,0.85)` 区间均匀采样。
+
+前沿平衡实验进一步显示 posture level 3 的 `[0.35,0.40)` 成功率从约 72%
+提升到 80%，但末段总成功率稳定在 86% 而无法达到 90%。为避免继续对整个
+progress 区间盲目加权，当前实现把 42 个训练 clip 按 0.2 秒分成 315 个
+temporal bins，在不改变“前沿/已学 50:50”配额的前提下，对每个配额内的
+bin 使用失败 EMA 自适应采样：
+
+```text
+failure(bin) = 1 - episode_success
+
+failure_ema(bin)
+  = (1 - 0.01) × previous_failure_ema
+    + 0.01 × failure
+
+sampling_probability
+  = 0.5 × normalized_failure_ema
+    + 0.5 × uniform_probability
+
+sampling_probability(bin)
+  <= 3 × uniform_probability(bin)
+```
+
+所有 bin 的初始 difficulty 相同，因此新课程刚开始时仍为均匀采样；随着成功
+样本使对应 failure EMA 下降，采样自动集中到持续失败片段。50% 均匀基线
+保证已学 bin 不会被完全遗忘。每累计 10000 个恢复回合固定一次 top-5
+困难 bin 报告，TensorBoard 记录 clip index、temporal-bin index、原始 CSV 帧范围、
+尝试数、成功率和 failure EMA。训练后可使用：
+
+```bash
+uv run python -m mjlab.tasks.velocity.scripts.report_g1_recovery_hard_bins \
+  --run-dir logs/rsl_rl/g1_recovery_s2/<run>
+```
+
+该自适应状态只存在环境 reset/curriculum 内，不向 Actor 或 Critic 添加 clip、
+bin、reset mode 或辅助力观测。
+
+首次 500 轮自适应实验发现，原 80% 自适应权重使一个成功率仅 0.8% 的
+bin 占据前沿约 15% 采样，累计 8436 次尝试仍无明显改善，课程因此比
+均衡采样版本更早停在 posture level 2。上述 50% 均匀基线和单 bin 3 倍
+概率上限用于防止近乎不可解的片段劫持 rollout。
+
+训练 reset 中另有 25% 非 stand 回合使用固定 probe 分布：仍保持前沿/已学
+50:50，但区间内不应用失败 EMA。90% 课程进阶只使用这些 probe 的全部
+reference + fallen 成功率；其余 75% 回合使用有上限的自适应采样训练。
+这使训练器可以持续查找难点，而课程成功率仍对应固定、可跨时间比较的
+reset 分布。probe 标志只用于环境统计，不进入策略观测。
+
+带上限自适应采样的 500 轮实验最终到达 posture level 3，但固定 probe 的
+完整窗口成功率长期停在约 84%--86%，而自适应训练分布成功率约 74%。为验证
+前沿平衡策略是否只需要更长的收敛时间，下一次长训练恢复到自适应采样之前的
+固定分布：每一级仍按 50% 新开放 frontier 和 50% 已学区间分组，各组内部按
+符合 progress 条件的帧均匀采样。所有非 stand 恢复回合都进入 90% 课程窗口；
+failure EMA、0.2 秒 temporal bin 和 top-5 报告继续记录，但不再影响 reset
+概率。对应配置为 `curriculum_probe_probability=1.0`、
+`adaptive_uniform_probability=1.0` 和 `adaptive_max_probability_ratio=1.0`。
+Actor/Critic 观测、SMP、Flow/FPO、辅助力和两阶段课程均保持不变。
+
+固定 50:50 分组的 3000 轮实验在第 575 轮以 1262 个完整窗口样本、90.02%
+成功率从 posture level 3 进入 level 4，证明前一实验偶尔达到 90% 并非完全
+无效信号。但 level 4 此后约 2400 轮停在 73%--76%，其中新开放的
+`[0.30,0.35)` 区间约 63%。原 `recovery_lift` 直接奖励 0.7 名义高度以下的
+正向 root z 速度，既可被上下振荡重复获得，也会把 reference reset 继承的初始
+速度和 torso 辅助力误归因为策略抬升。现改为 episode 内不可重复的恢复里程碑：
+
+```text
+progress(t) = height(t) × uprightness(t)
+best(t) = max(best(t-1), progress(t))
+milestone_lift(t) = max(best(t) - best(t-1), 0) / dt
+```
+
+`best` 在 reset 后由首个状态初始化，因此初始 reference 速度不产生奖励；回落后
+重新达到旧高度也不重复计奖。该项权重由 0.5 调到 1.0，单步 rate 上限为 5.0。
+
+恢复任务也已采用进度滑动权重：pose 在低 progress 时关闭，接近站立时平滑
+增强。由于 get-up 数据包含大量 support 阶段且整体 root 高度偏低，pose 现在从
+progress 0.65 开始平滑开启，到 0.85 达到满权重；满权重由 1.0 提高到 2.0。
+这样早期翻身、撑地和跪起仍由 SMP 与恢复进展主导，而成功保持的最后 0.5 秒会
+更强地把 29 个关节拉向 velocity 任务默认站姿。
+
+里程碑lift与末段pose的800轮消融仍停在posture level 3：末段完整窗口约
+87%--88%，`[0.35,0.40)` frontier约82.5%，与旧版本突破前基本相同。日志同时
+显示SMP raw约0.18，远低于随progress上升到约0.87的task cap，因此原cap实际
+没有承担末段交接。当前补丁保留progress 0.65前的SMP权重10，并在
+`[0.65,0.85]`用与pose相同的smoothstep降到2.5；pose同期从0升到2。权重交接
+不依赖reset mode、辅助力或课程等级，也不新增策略观测或验收指标。
+
+## 24. 物理初始化库修正
+
+3000 轮训练中的四个长期零成功 temporal bin 经可视化确认存在跪姿手掌悬空，
+且原 audit 只对无地面的 G1 XML 执行 `mj_forward`，不能验证地面支撑或重力下
+稳定性。两个相关 clip 还分别存在 2.86 cm 和 8.44 cm 自穿透，但旧配置没有把
+深穿透作为硬失败。
+
+现保留 `clips/*.npz` 原始轨迹供 SMP 使用，新增独立
+`physical_init.npz` reset bank。构建器对训练 split 的每个候选帧执行：
+
+1. 使用 G1 velocity 全身 `condim=3`、摩擦系数 0.6 的碰撞模型和真实地面；
+2. 拒绝超过 1 cm 的初始自穿透；
+3. 对距地面 5 cm 内的脚、胫、手、腕和肘支撑点做有界 root/关节接触投影；
+4. 用真实 PD 执行器在重力下保持姿态并运行 0.4 秒；
+5. 检查接触持续率、接触力、地面/自穿透以及 root 沉降位移和旋转；
+6. 保存仿真沉降后的 qpos 和零速度，reset 只从通过状态采样。
+
+默认标准从 2949 个 train 帧中保留 910 个（30.9%）。修正后各 progress 区间
+均有候选：`[0.30,0.35)` 33 帧、`[0.35,0.40)` 29 帧、`[0.40,0.55)`
+28 帧、`[0.55,0.70)` 59 帧和 `[0.70,0.85)` 70 帧。原始SMP动作、Actor/Critic
+观测、课程成功率和辅助力均不改变。生成命令：
+
+```bash
+uv run --python .venv/bin/python --no-sync python -m \
+  mjlab.tasks.velocity.scripts.build_g1_physical_init
+```
+
+训练模式要求该文件存在，防止无意间退回未经物理验证的原始reset；play模式在
+文件存在时同样使用它。
+
+## 25. 参考来源
 
 - [SMP: Reusable Score-Matching Motion Priors for Physics-Based Character
   Control](https://arxiv.org/html/2512.03028v3)：Diffusion 噪声预测、SMP
   reward、ESM `[22,15,8]`、adaptive normalization、10 步动作窗和 Getup task。
+- [Flow Matching Policy Gradients](https://arxiv.org/html/2507.21053)：以固定
+  timestep/noise 对估计 CFM loss ratio，在保留 GAE、Critic 和 PPO clipping 的
+  同时训练统一多峰 flow policy。
+- [FPO++: Flow Policy Optimization for Scalable Robot
+  Learning](https://arxiv.org/abs/2602.02481)：每个 Monte Carlo 样本独立计算
+  ratio、正优势使用 PPO、负优势使用 ASPO/SPO，并在评测和部署使用
+  zero-sampling，修正 vanilla FPO 在机器人控制中的训练不稳定。
 - [Robust and Generalized Humanoid Motion Tracking
   (RGMT)](https://arxiv.org/html/2601.23080v1)：G1 93D observation、38D
   command、10 步 causal history、21 步 cross-attention、residual PD target、
@@ -1450,5 +1642,7 @@ feature schema 校验和 Actor-only 导出。SMP checkpoint 单独版本化，�
 - [Extreme-RGMT](https://arxiv.org/html/2607.20110v1)：temporal-bin failure
   EMA、uniform-baseline adaptive sampling，以及 G1 PPO 和随机化量级。
 
-整个系统中，参考窗口提供局部动作指引，SMP 评价策略生成的短时动作分布，
-站立势函数规定全局恢复目标，PPO 和 MuJoCo 接触动力学负责产生完整可执行起身。
+当前系统中，参考数据提供由易到难的初始状态并训练 SMP；冻结 SMP 从训练初期
+评价策略生成的短时状态运动分布，站立势函数和净进展规定全局恢复方向，FPO 和
+MuJoCo 接触动力学负责产生完整可执行起身。逐帧 reference tracking 仅作为后续
+消融，不进入当前自主起身任务。

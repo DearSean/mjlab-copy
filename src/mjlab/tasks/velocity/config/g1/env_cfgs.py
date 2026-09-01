@@ -2,6 +2,7 @@
 
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
+  G1_VELOCITY_COLLISION,
   get_g1_robot_cfg,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -30,7 +31,9 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.contact_sensor_maxmatch = 500
   cfg.sim.nconmax = 70
 
-  cfg.scene.entities = {"robot": get_g1_robot_cfg()}
+  robot_cfg = get_g1_robot_cfg()
+  robot_cfg.collisions = (G1_VELOCITY_COLLISION,)
+  cfg.scene.entities = {"robot": robot_cfg}
 
   # Set raycast sensor frame to G1 pelvis.
   for sensor in cfg.scene.sensors or ():

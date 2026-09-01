@@ -50,6 +50,7 @@ def test_velocity_task_set_is_supported(velocity_task_ids: list[str]) -> None:
     "Mjlab-Velocity-Flat-Recovery",
     "Mjlab-Velocity-Rough-Recovery",
     "Mjlab-Velocity-Flat-Unitree-G1",
+    "Mjlab-Velocity-Flat-Unitree-G1-Recovery",
     "Mjlab-Velocity-Rough-Unitree-G1",
     "Mjlab-Velocity-Flat-qlmini2",
   }
@@ -162,7 +163,7 @@ def test_velocity_tasks_have_correct_action_scale(
       f"Task {task_id} joint_pos action is not JointPositionActionCfg"
     )
 
-    if task_id.endswith("-Unitree-G1"):
+    if "-Unitree-G1" in task_id:
       expected_scale = G1_ACTION_SCALE
     elif task_id.endswith("-qlmini2"):
       expected_scale = QLMINI2_ACTION_SCALE
@@ -176,7 +177,11 @@ def test_velocity_tasks_have_correct_action_scale(
 def test_only_recovery_tasks_enable_recovery(velocity_task_ids: list[str]) -> None:
   for task_id in velocity_task_ids:
     cfg = load_env_cfg(task_id)
-    if task_id.endswith("-Recovery"):
+    if task_id == "Mjlab-Velocity-Flat-Unitree-G1-Recovery":
+      assert "g1_recovery_reset" in cfg.events
+      assert "g1_recovery_step" in cfg.events
+      assert "fell_over" not in cfg.terminations
+    elif task_id.endswith("-Recovery"):
       assert "recovery_assist" in cfg.events
       assert "fell_over" not in cfg.terminations
     else:

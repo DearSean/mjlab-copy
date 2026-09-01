@@ -23,6 +23,8 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     # Strip None-valued optional configs so MLPModel doesn't receive them.
     for key in ("actor", "critic"):
       if key in train_cfg:
+        model_kwargs = train_cfg[key].pop("model_kwargs", {})
+        train_cfg[key].update(model_kwargs)
         for opt in ("cnn_cfg", "distribution_cfg"):
           if train_cfg[key].get(opt) is None:
             train_cfg[key].pop(opt, None)

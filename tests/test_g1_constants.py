@@ -102,6 +102,21 @@ def test_non_foot_collision_geoms(g1_model) -> None:
       assert geom.condim == 1
 
 
+def test_velocity_collision_geoms_have_whole_body_friction() -> None:
+  robot_cfg = g1_constants.get_g1_robot_cfg()
+  robot_cfg.collisions = (g1_constants.G1_VELOCITY_COLLISION,)
+  model = Entity(robot_cfg).spec.compile()
+  collision_geoms = [
+    model.geom(index)
+    for index in range(model.ngeom)
+    if model.geom(index).name.endswith("_collision")
+  ]
+  assert collision_geoms
+  assert all(geom.condim == 3 for geom in collision_geoms)
+  assert all(geom.priority == 1 for geom in collision_geoms)
+  assert all(geom.friction[0] == pytest.approx(0.6) for geom in collision_geoms)
+
+
 def test_collision_geom_count(g1_model) -> None:
   # There should be 7 geoms (capsules) per foot.
   collision_geoms = [
