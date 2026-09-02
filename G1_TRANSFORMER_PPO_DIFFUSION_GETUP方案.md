@@ -862,7 +862,7 @@ esm_timesteps = [22, 15, 8]
 对策略产生的最近 10 步窗口，在每个 timestep i 上计算：
 
 ```text
-noise_i ~ Normal(0, identity)
+noise_i ~ Normal(0, identity), 每个 episode 固定
 
 policy_noised_window_i
   = √alpha_bar(i) × policy_window
@@ -919,7 +919,55 @@ clipped_smp_reward(t)
 任务进展较差时，SMP 奖励上限较低；任务已经向站立推进时，SMP 可以更充分
 地区分动作质量。
 
-### 10.8 GPU 批量计算
+### 10.8 分布外返回引导
+
+绝对 SMP 分数只衡量当前窗口是否位于动作分布内。为了让分布外姿态也获得明确
+的运动趋势，在线奖励同时保留归一化能量：
+
+```text
+smp_energy(t) = smp_scale × average_normalized_sds_error(t)
+
+energy_descent(t)
+  = clip(
+      (smp_energy(t-1) - smp_energy(t)) / dt / max_energy_rate,
+      -1,
+      1
+    )
+```
+
+同一环境在一个 episode 内复用固定的三个噪声张量，因此相邻能量可以直接
+比较；reset 时才重新采样。能量下降获得正奖励，远离分布得到对称负奖励。
+
+每个 timestep 的去噪结果为：
+
+```text
+estimated_clean_window_i
+  = (policy_noised_window_i
+     - sqrt(1 - alpha_bar(i)) × predicted_noise_i)
+    / sqrt(alpha_bar(i))
+
+denoising_direction(t)
+  = mean_i(estimated_clean_window_i[-1]) - policy_window[-1]
+```
+
+实际特征变化与上一时刻去噪方向的余弦一致性构成
+`direction_alignment`，并按实际运动 RMS 抑制接近静止时的虚假方向奖励。
+两个返回引导只在 SMP 分数低于 `0.60` 时启用，在 `0.25` 以下达到完整强度；
+同时随恢复进度在 `0.65--0.85` 平滑退为零，避免 support 较多的数据把已经接近
+站立的机器人重新拉回低位。首个 reset 帧使用环形缓冲区回填，立即提供绝对 SMP
+分数，但能量下降和方向奖励要等到下一步才启用，防止 reset 奖励尖峰。
+
+```text
+smp_total(t)
+  = smp_weight(progress) × clipped_smp_reward(t)
+    + 2.0 × guidance_gate(t) × energy_descent(t)
+    + 1.0 × guidance_gate(t) × direction_alignment(t)
+```
+
+这些量只属于训练奖励，不加入 Actor 或 Critic 观测，也不成为 reference
+tracking command。
+
+### 10.9 GPU 批量计算
 
 每个环境维护 `[10, 51]` 环形动作缓冲区。一次奖励计算把所有环境和三个
 timestep 合并成：
@@ -991,7 +1039,7 @@ unsafe_contact_cost(t)
 ```text
 total_reward(t)
   = task_weight × task_reward(t)
-    + smp_weight(progress) × clipped_smp_reward(t)
+    + smp_total(t)
     - action_rate_weight × action_rate_cost(t)
     - torque_weight × torque_cost(t)
     - joint_limit_weight × joint_limit_cost(t)
@@ -1622,6 +1670,15 @@ uv run --python .venv/bin/python --no-sync python -m \
 
 训练模式要求该文件存在，防止无意间退回未经物理验证的原始reset；play模式在
 文件存在时同样使用它。
+
+物理初始化查看器支持三种来源：`motion` 播放 SMP 使用的原始轨迹，`physical`
+只播放 `physical_init.npz` 中训练 reset 实际加载的沉降姿态，`compare` 将两者
+按相同 target frame 在 Y 方向并排显示。修正模式会列出区间内真正通过审核的帧、
+投影/沉降/穿透审计范围，以及每帧与地面接触的具体碰撞几何；MuJoCo 窗口同时
+开启 contact point 和 contact force。由此可区分“原动作视觉上像手撑地”和“训练
+状态中手掌碰撞体确实接触地面”。当前物理审核的 `support_fraction` 只证明至少
+一个机器人碰撞体持续接触地面，尚不表达动作阶段所期望的手、膝或脚接触语义；
+该差异必须在后续重编 reset bank 前单独处理，不能用任意支撑接触替代。
 
 ## 25. 大并行课程窗口与 Fallen 分段开放
 

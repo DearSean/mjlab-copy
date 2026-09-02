@@ -44,6 +44,12 @@ class FrozenG1SmpPriorCfg:
   terminal_reward_weight: float = 2.5
   handoff_progress: tuple[float, float] = (0.65, 0.85)
   """Progress handoff from the full motion prior to the standing objective."""
+  energy_descent_weight: float = 2.0
+  energy_descent_max_rate: float = 2.0
+  direction_weight: float = 1.0
+  direction_minimum_motion_rms: float = 0.02
+  ood_score_range: tuple[float, float] = (0.25, 0.60)
+  """Reward-only guidance toward the SMP manifold, strongest below score 0.25."""
 
 
 class SmpDenoiser(nn.Module):

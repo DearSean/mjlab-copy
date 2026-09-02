@@ -328,6 +328,11 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
         "terminal_reward_weight": smp.terminal_reward_weight,
         "handoff_progress": smp.handoff_progress,
         "nominal_height_m": 0.76,
+        "energy_descent_weight": smp.energy_descent_weight,
+        "energy_descent_max_rate": smp.energy_descent_max_rate,
+        "direction_weight": smp.direction_weight,
+        "direction_minimum_motion_rms": smp.direction_minimum_motion_rms,
+        "ood_score_range": smp.ood_score_range,
       },
     )
   cfg.terminations["recovery_success"] = TerminationTermCfg(
@@ -382,6 +387,14 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
     for field in (
       "raw_reward",
       "capped_reward",
+      "absolute_reward",
+      "energy",
+      "energy_descent",
+      "direction_alignment",
+      "ood_gate",
+      "guidance_gate",
+      "energy_descent_reward",
+      "direction_reward",
       "weighted_reward",
       "task_cap",
       "prior_weight",

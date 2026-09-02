@@ -67,9 +67,17 @@ Added
   standing-pose weight rises from zero to two, preventing support-heavy motion
   data from opposing the terminal standing target. Held-out ESM calibration and
   task-progress clipping continue to bound the prior score.
+  The online SMP term now reuses fixed per-episode diffusion noise and combines
+  its absolute score with signed energy-descent and denoising-direction rewards.
+  This supplies a return-to-manifold signal for out-of-distribution recovery
+  motion without adding training-only context to actor or critic observations;
+  the guidance fades out across the terminal standing handoff.
 - Added a native MuJoCo viewer for compiled G1 recovery NPZ clips, including
   half-open target-frame selection, looping, and slow-motion playback for
-  inspecting persistent curriculum failures.
+  inspecting persistent curriculum failures. It can now play only the
+  simulator-settled poses actually accepted into ``physical_init.npz`` or show
+  raw and settled poses side by side, with audit ranges, named ground-contact
+  geometries, contact points, and contact forces.
 - Added a separate simulator-validated G1 recovery reset-state bank. Its builder
   performs bounded support-contact projection and a gravity/PD settling rollout,
   rejects deep penetration and unstable states, and leaves the original SMP

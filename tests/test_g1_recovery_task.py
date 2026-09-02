@@ -49,8 +49,12 @@ from mjlab.tasks.velocity.recovery_data.g1_schema import (
 )
 from mjlab.tasks.velocity.recovery_prior.smp_reward import (
   G1SmpReward,
+  directional_progress_signal,
+  energy_descent_signal,
   normalized_esm_reward,
+  ood_score_gate,
   progress_handoff_weight,
+  recovery_guidance_gate,
 )
 
 
@@ -310,6 +314,11 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
   assert smp.params["reward_weight"] == 10.0
   assert smp.params["terminal_reward_weight"] == 2.5
   assert smp.params["handoff_progress"] == (0.65, 0.85)
+  assert smp.params["energy_descent_weight"] == 2.0
+  assert smp.params["energy_descent_max_rate"] == 2.0
+  assert smp.params["direction_weight"] == 1.0
+  assert smp.params["direction_minimum_motion_rms"] == 0.02
+  assert smp.params["ood_score_range"] == (0.25, 0.60)
   assert cfg.rewards["pose"].weight == 2.0
   assert cfg.rewards["pose"].params["gate_minimum"] == 0.0
   assert cfg.rewards["pose"].params["gate_low"] == 0.65
@@ -488,6 +497,29 @@ def test_smp_reward_is_calibrated_without_assistance_level_scaling():
   calibration = torch.tensor((2.0, 3.0, 4.0))
   reward = normalized_esm_reward(errors, calibration, scale=1.0)
   torch.testing.assert_close(reward, torch.exp(torch.tensor((-1.0, -2.0))))
+
+
+def test_smp_energy_descent_is_signed_dt_invariant_and_bounded():
+  previous = torch.tensor((1.0, 1.0, 1.0))
+  current = torch.tensor((0.98, 1.01, 0.90))
+  signal = energy_descent_signal(previous, current, step_dt=0.02, max_rate=2.0)
+  torch.testing.assert_close(signal, torch.tensor((0.5, -0.25, 1.0)))
+
+
+def test_smp_direction_rewards_motion_toward_previous_denoising_target():
+  delta = torch.tensor(((0.02, 0.0), (-0.02, 0.0), (0.001, 0.0)))
+  direction = torch.tensor(((1.0, 0.0), (1.0, 0.0), (1.0, 0.0)))
+  signal = directional_progress_signal(delta, direction, minimum_motion_rms=0.01)
+  torch.testing.assert_close(signal, torch.tensor((1.0, -1.0, 0.07071068)))
+
+
+def test_smp_guidance_is_ood_only_and_fades_before_standing():
+  distribution = ood_score_gate(torch.tensor((0.20, 0.425, 0.70)), 0.25, 0.60)
+  torch.testing.assert_close(distribution, torch.tensor((1.0, 0.5, 0.0)))
+  recovery = recovery_guidance_gate(
+    torch.tensor((0.50, 0.75, 0.90)), low=0.65, high=0.85
+  )
+  torch.testing.assert_close(recovery, torch.tensor((1.0, 0.5, 0.0)))
 
 
 def test_smp_weight_hands_off_smoothly_to_terminal_pose():

@@ -32,8 +32,70 @@ def normalized_esm_reward(
   errors: torch.Tensor, calibration_means: torch.Tensor, scale: float
 ) -> torch.Tensor:
   """Convert per-timestep ESM errors into a fixed-scale reward."""
+  return torch.exp(-normalized_esm_energy(errors, calibration_means, scale))
+
+
+def normalized_esm_energy(
+  errors: torch.Tensor, calibration_means: torch.Tensor, scale: float
+) -> torch.Tensor:
+  """Convert per-timestep ESM errors into calibrated diffusion energy."""
   normalized = errors / calibration_means[:, None].clamp_min(1e-6)
-  return torch.exp(-scale * normalized.mean(dim=0))
+  return scale * normalized.mean(dim=0)
+
+
+def ood_score_gate(
+  score: torch.Tensor, full_below: float, zero_above: float
+) -> torch.Tensor:
+  """Gate return guidance on out-of-distribution SMP scores."""
+  if not 0.0 <= full_below < zero_above <= 1.0:
+    raise ValueError("OOD score bounds must satisfy 0 <= full < zero <= 1.")
+  ratio = ((zero_above - score) / (zero_above - full_below)).clamp(0.0, 1.0)
+  return ratio.square() * (3.0 - 2.0 * ratio)
+
+
+def energy_descent_signal(
+  previous: torch.Tensor,
+  current: torch.Tensor,
+  step_dt: float,
+  max_rate: float,
+) -> torch.Tensor:
+  """Return a bounded signed signal for motion toward lower SMP energy."""
+  if step_dt <= 0.0:
+    raise ValueError("step_dt must be positive.")
+  if max_rate <= 0.0:
+    raise ValueError("max_rate must be positive.")
+  rate = (previous - current) / step_dt
+  return (rate / max_rate).clamp(-1.0, 1.0)
+
+
+def directional_progress_signal(
+  feature_delta: torch.Tensor,
+  previous_direction: torch.Tensor,
+  minimum_motion_rms: float,
+) -> torch.Tensor:
+  """Measure motion alignment with the previous denoising direction."""
+  if minimum_motion_rms <= 0.0:
+    raise ValueError("minimum_motion_rms must be positive.")
+  delta_norm = torch.linalg.vector_norm(feature_delta, dim=-1)
+  direction_norm = torch.linalg.vector_norm(previous_direction, dim=-1)
+  cosine = torch.sum(feature_delta * previous_direction, dim=-1) / (
+    delta_norm * direction_norm
+  ).clamp_min(1e-6)
+  motion_rms = torch.mean(feature_delta.square(), dim=-1).sqrt()
+  motion_gate = (motion_rms / minimum_motion_rms).clamp(0.0, 1.0)
+  valid_direction = direction_norm > 1e-6
+  return torch.where(valid_direction, cosine.clamp(-1.0, 1.0), 0.0) * motion_gate
+
+
+def recovery_guidance_gate(
+  progress: torch.Tensor, low: float, high: float
+) -> torch.Tensor:
+  """Fade directional SMP guidance before terminal standing posture."""
+  if not 0.0 <= low < high <= 1.0:
+    raise ValueError("SMP handoff bounds must satisfy 0 <= low < high <= 1.")
+  ratio = ((progress - low) / (high - low)).clamp(0.0, 1.0)
+  smooth = ratio.square() * (3.0 - 2.0 * ratio)
+  return 1.0 - smooth
 
 
 def progress_handoff_weight(
@@ -120,6 +182,31 @@ class G1SmpReward:
       self._handoff_high,
     )
     self._nominal_height = float(params["nominal_height_m"])
+    self._energy_descent_weight = float(params["energy_descent_weight"])
+    self._energy_descent_max_rate = float(params["energy_descent_max_rate"])
+    self._direction_weight = float(params["direction_weight"])
+    self._direction_minimum_motion_rms = float(params["direction_minimum_motion_rms"])
+    self._ood_score_full_below, self._ood_score_zero_above = (
+      float(value) for value in params["ood_score_range"]
+    )
+    if self._energy_descent_weight < 0.0 or self._direction_weight < 0.0:
+      raise ValueError("SMP guidance weights must be non-negative.")
+    energy_descent_signal(
+      torch.zeros(1, device=env.device),
+      torch.zeros(1, device=env.device),
+      env.step_dt,
+      self._energy_descent_max_rate,
+    )
+    directional_progress_signal(
+      torch.zeros(1, G1_SMP_FEATURE_DIM, device=env.device),
+      torch.zeros(1, G1_SMP_FEATURE_DIM, device=env.device),
+      self._direction_minimum_motion_rms,
+    )
+    ood_score_gate(
+      torch.zeros(1, device=env.device),
+      self._ood_score_full_below,
+      self._ood_score_zero_above,
+    )
 
     body_ids, body_names = self._asset.find_bodies(
       ("left_wrist_yaw_link", "right_wrist_yaw_link"), preserve_order=True
@@ -138,20 +225,65 @@ class G1SmpReward:
     self._pose_scale = (0.5 * (limits[:, 1] - limits[:, 0])).clamp_min(0.1)
     self._q0 = self._asset.data.default_joint_pos[0].clone()
     self._history = CircularBuffer(10, env.num_envs, env.device)
+    self._fixed_noise = torch.randn(
+      len(self._timesteps),
+      env.num_envs,
+      model_cfg.window_size,
+      model_cfg.feature_dim,
+      device=env.device,
+    )
+    self._previous_energy = torch.zeros(env.num_envs, device=env.device)
+    self._previous_feature = torch.zeros(
+      env.num_envs, model_cfg.feature_dim, device=env.device
+    )
+    self._previous_direction = torch.zeros_like(self._previous_feature)
+    self._guidance_ready = torch.zeros(
+      env.num_envs, dtype=torch.bool, device=env.device
+    )
     self.raw_reward = torch.zeros(env.num_envs, device=env.device)
     self.capped_reward = torch.zeros_like(self.raw_reward)
+    self.absolute_reward = torch.zeros_like(self.raw_reward)
+    self.energy = torch.zeros_like(self.raw_reward)
+    self.energy_descent = torch.zeros_like(self.raw_reward)
+    self.direction_alignment = torch.zeros_like(self.raw_reward)
+    self.ood_gate = torch.zeros_like(self.raw_reward)
+    self.guidance_gate = torch.zeros_like(self.raw_reward)
+    self.energy_descent_reward = torch.zeros_like(self.raw_reward)
+    self.direction_reward = torch.zeros_like(self.raw_reward)
     self.weighted_reward = torch.zeros_like(self.raw_reward)
     self.task_cap = torch.zeros_like(self.raw_reward)
     self.prior_weight = torch.zeros_like(self.raw_reward)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
-    tensor_ids: torch.Tensor | slice = slice(None) if env_ids is None else env_ids
-    if env_ids is None or isinstance(env_ids, slice):
-      self._history.reset(None if env_ids is None else _slice_ids(self._env, env_ids))
-    else:
-      self._history.reset(env_ids)
+    tensor_ids = (
+      torch.arange(self._env.num_envs, device=self._env.device, dtype=torch.long)
+      if env_ids is None
+      else _slice_ids(self._env, env_ids)
+      if isinstance(env_ids, slice)
+      else env_ids
+    )
+    self._history.reset(tensor_ids)
+    self._fixed_noise[:, tensor_ids] = torch.randn(
+      len(self._timesteps),
+      len(tensor_ids),
+      10,
+      G1_SMP_FEATURE_DIM,
+      device=self._env.device,
+    )
+    self._guidance_ready[tensor_ids] = False
+    self._previous_energy[tensor_ids] = 0.0
+    self._previous_feature[tensor_ids] = 0.0
+    self._previous_direction[tensor_ids] = 0.0
     self.raw_reward[tensor_ids] = 0.0
     self.capped_reward[tensor_ids] = 0.0
+    self.absolute_reward[tensor_ids] = 0.0
+    self.energy[tensor_ids] = 0.0
+    self.energy_descent[tensor_ids] = 0.0
+    self.direction_alignment[tensor_ids] = 0.0
+    self.ood_gate[tensor_ids] = 0.0
+    self.guidance_gate[tensor_ids] = 0.0
+    self.energy_descent_reward[tensor_ids] = 0.0
+    self.direction_reward[tensor_ids] = 0.0
     self.weighted_reward[tensor_ids] = 0.0
     self.task_cap[tensor_ids] = 0.0
     self.prior_weight[tensor_ids] = 0.0
@@ -172,6 +304,11 @@ class G1SmpReward:
     terminal_reward_weight: float,
     handoff_progress: tuple[float, float],
     nominal_height_m: float,
+    energy_descent_weight: float,
+    energy_descent_max_rate: float,
+    direction_weight: float,
+    direction_minimum_motion_rms: float,
+    ood_score_range: tuple[float, float],
   ) -> torch.Tensor:
     del (
       env,
@@ -187,11 +324,24 @@ class G1SmpReward:
       terminal_reward_weight,
       handoff_progress,
       nominal_height_m,
+      energy_descent_weight,
+      energy_descent_max_rate,
+      direction_weight,
+      direction_minimum_motion_rms,
+      ood_score_range,
     )
     feature = (self._encode_feature() - self._mean) / self._std
     self._history.append(feature)
     self.raw_reward.zero_()
     self.capped_reward.zero_()
+    self.absolute_reward.zero_()
+    self.energy.zero_()
+    self.energy_descent.zero_()
+    self.direction_alignment.zero_()
+    self.ood_gate.zero_()
+    self.guidance_gate.zero_()
+    self.energy_descent_reward.zero_()
+    self.direction_reward.zero_()
     self.weighted_reward.zero_()
     state = _get_recovery_state(self._env, self._event_name)
     self.prior_weight.copy_(
@@ -205,7 +355,10 @@ class G1SmpReward:
     )
     self.task_cap.copy_(0.3 + 0.7 * state.current_progress.clamp(0.0, 1.0))
     mode_gate = (state.mode == REFERENCE_MODE) | (state.mode == FALLEN_MODE)
-    valid = (self._history.current_length >= 10) & mode_gate
+    # CircularBuffer backfills the first feature across the full window. The
+    # absolute SMP score is therefore available immediately after reset; only
+    # temporal guidance waits for a previous score and direction.
+    valid = (self._history.current_length >= 1) & mode_gate
     if not bool(valid.any()):
       return self.weighted_reward
 
@@ -214,18 +367,65 @@ class G1SmpReward:
     ensemble_size = len(self._timesteps)
     expanded = windows.repeat(ensemble_size, 1, 1)
     timesteps = self._timesteps.repeat_interleave(batch_size)
-    noise = torch.randn_like(expanded)
+    noise = self._fixed_noise[:, valid].reshape_as(expanded)
     alpha_bar = self._alpha_bar[timesteps, None, None]
     noised = alpha_bar.sqrt() * expanded + (1.0 - alpha_bar).sqrt() * noise
     predicted = self._model(noised, timesteps)
     errors = torch.mean(torch.square(predicted - noise), dim=(1, 2)).reshape(
       ensemble_size, batch_size
     )
-    score = normalized_esm_reward(errors, self._calibration_means, self._scale)
+    energy = normalized_esm_energy(errors, self._calibration_means, self._scale)
+    score = torch.exp(-energy)
+    denoised = (
+      noised - (1.0 - alpha_bar).sqrt() * predicted
+    ) / alpha_bar.sqrt().clamp_min(1e-6)
+    direction = (
+      denoised.reshape(ensemble_size, batch_size, 10, G1_SMP_FEATURE_DIM).mean(dim=0)[
+        :, -1
+      ]
+      - windows[:, -1]
+    )
+    ready = self._guidance_ready[valid]
+    descent = torch.zeros_like(energy)
+    alignment = torch.zeros_like(energy)
+    if bool(ready.any()):
+      descent[ready] = energy_descent_signal(
+        self._previous_energy[valid][ready],
+        energy[ready],
+        self._env.step_dt,
+        self._energy_descent_max_rate,
+      )
+      alignment[ready] = directional_progress_signal(
+        feature[valid][ready] - self._previous_feature[valid][ready],
+        self._previous_direction[valid][ready],
+        self._direction_minimum_motion_rms,
+      )
+    distribution_gate = ood_score_gate(
+      score, self._ood_score_full_below, self._ood_score_zero_above
+    )
+    motion_gate = recovery_guidance_gate(
+      state.current_progress[valid], self._handoff_low, self._handoff_high
+    )
+    guidance_gate = distribution_gate * motion_gate
     capped = torch.minimum(score, self.task_cap[valid])
+    absolute = self.prior_weight[valid] * capped
+    descent_reward = self._energy_descent_weight * guidance_gate * descent
+    direction_reward = self._direction_weight * guidance_gate * alignment
     self.raw_reward[valid] = score
     self.capped_reward[valid] = capped
-    self.weighted_reward[valid] = self.prior_weight[valid] * capped
+    self.absolute_reward[valid] = absolute
+    self.energy[valid] = energy
+    self.energy_descent[valid] = descent
+    self.direction_alignment[valid] = alignment
+    self.ood_gate[valid] = distribution_gate
+    self.guidance_gate[valid] = guidance_gate
+    self.energy_descent_reward[valid] = descent_reward
+    self.direction_reward[valid] = direction_reward
+    self.weighted_reward[valid] = absolute + descent_reward + direction_reward
+    self._previous_energy[valid] = energy
+    self._previous_feature[valid] = feature[valid]
+    self._previous_direction[valid] = direction
+    self._guidance_ready[valid] = True
     return self.weighted_reward
 
   def _encode_feature(self) -> torch.Tensor:
