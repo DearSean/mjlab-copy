@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from mjlab.tasks.velocity.recovery_data.g1_schema import (
+  G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION,
   G1_PHYSICAL_INIT_SCHEMA_VERSION,
 )
 
@@ -23,6 +24,8 @@ class G1ReferenceLibrary:
     temporal_bin_duration_s: float = 0.4,
     physical_init_file: Path | None = None,
     require_physical_init: bool = False,
+    noisy_physical_init_file: Path | None = None,
+    require_noisy_physical_init: bool = False,
   ) -> None:
     if temporal_bin_duration_s <= 0.0:
       raise ValueError("temporal_bin_duration_s must be positive.")
@@ -151,6 +154,24 @@ class G1ReferenceLibrary:
       source_start[self.bin_clip]
       + (self.bin_end_time_s * source_fps[self.bin_clip]).round().long()
     )
+    self.noisy_root_position = torch.empty((0, 3), device=device)
+    self.noisy_quaternion = torch.empty((0, 4), device=device)
+    self.noisy_linear_velocity = torch.empty((0, 3), device=device)
+    self.noisy_angular_velocity = torch.empty((0, 3), device=device)
+    self.noisy_joint_position = torch.empty((0, 29), device=device)
+    self.noisy_joint_velocity = torch.empty((0, 29), device=device)
+    self._noisy_clip = torch.empty(0, dtype=torch.long, device=device)
+    self._noisy_frame = torch.empty(0, dtype=torch.long, device=device)
+    self._noisy_progress = torch.empty(0, device=device)
+    self._noisy_bin = torch.empty(0, dtype=torch.long, device=device)
+    noisy_path = noisy_physical_init_file or dataset_dir / "noisy_physical_init.npz"
+    if noisy_path.is_file():
+      self._load_noisy_physical_init(noisy_path, device)
+    elif require_noisy_physical_init:
+      raise FileNotFoundError(
+        "The G1 recovery task requires collision-checked noisy reset states: "
+        f"{noisy_path}. Run build_g1_noisy_physical_init first."
+      )
 
   def _load_physical_init(
     self, physical_path: Path, device: torch.device | str
@@ -233,6 +254,103 @@ class G1ReferenceLibrary:
           np.asarray(states[name]), device=device, dtype=target.dtype
         )
 
+  def _load_noisy_physical_init(
+    self, noisy_path: Path, device: torch.device | str
+  ) -> None:
+    with np.load(noisy_path, allow_pickle=False) as states:
+      schema = str(np.asarray(states["schema_version"]).item())
+      if schema != G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION:
+        raise ValueError(
+          f"Unsupported G1 noisy initialization schema {schema!r}; "
+          f"expected {G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION!r}."
+        )
+      required = (
+        "clip_id",
+        "frame",
+        "variant",
+        "root_position",
+        "root_quaternion_xyzw",
+        "joint_position",
+        "root_linear_velocity",
+        "root_angular_velocity",
+        "joint_velocity",
+      )
+      missing = [name for name in required if name not in states]
+      if missing:
+        raise ValueError(
+          f"G1 noisy physical initialization bank is missing: {', '.join(missing)}"
+        )
+      clip_ids = np.asarray(states["clip_id"])
+      frames = np.asarray(states["frame"], dtype=np.int64)
+      variants = np.asarray(states["variant"], dtype=np.int64)
+      count = len(frames)
+      expected_shapes = {
+        "clip_id": (count,),
+        "variant": (count,),
+        "root_position": (count, 3),
+        "root_quaternion_xyzw": (count, 4),
+        "joint_position": (count, 29),
+        "root_linear_velocity": (count, 3),
+        "root_angular_velocity": (count, 3),
+        "joint_velocity": (count, 29),
+      }
+      for name, shape in expected_shapes.items():
+        if states[name].shape != shape:
+          raise ValueError(
+            f"Noisy physical initialization {name} must have shape {shape}, "
+            f"got {states[name].shape}."
+          )
+      numeric_names = tuple(name for name in required if name != "clip_id")
+      if any(not np.all(np.isfinite(states[name])) for name in numeric_names):
+        raise ValueError("Noisy physical initialization contains non-finite values.")
+      quaternion = np.asarray(states["root_quaternion_xyzw"])
+      if np.any(np.abs(np.linalg.norm(quaternion, axis=-1) - 1.0) > 1e-3):
+        raise ValueError("Noisy physical initialization contains invalid quaternions.")
+      clip_lookup = {clip_id: index for index, clip_id in enumerate(self.clip_ids)}
+      mapped_clip = np.asarray(
+        [clip_lookup.get(str(clip_id), -1) for clip_id in clip_ids], dtype=np.int64
+      )
+      if np.any(mapped_clip < 0):
+        raise ValueError("Noisy physical initialization contains unknown clips.")
+      lengths = self.lengths.detach().cpu().numpy()
+      if np.any(frames < 0) or np.any(frames >= lengths[mapped_clip]):
+        raise ValueError("Noisy physical initialization contains out-of-range frames.")
+      clean_valid = self.reset_valid.detach().cpu().numpy()
+      if not np.all(clean_valid[mapped_clip, frames]):
+        raise ValueError(
+          "Noisy initialization must descend from accepted clean frames."
+        )
+      triples = np.stack((mapped_clip, frames, variants), axis=-1)
+      if len(np.unique(triples, axis=0)) != count:
+        raise ValueError("Noisy initialization contains duplicate variants.")
+
+      self._noisy_clip = torch.as_tensor(mapped_clip, device=device)
+      self._noisy_frame = torch.as_tensor(frames, device=device)
+      mappings = (
+        ("noisy_root_position", "root_position"),
+        ("noisy_quaternion", "root_quaternion_xyzw"),
+        ("noisy_linear_velocity", "root_linear_velocity"),
+        ("noisy_angular_velocity", "root_angular_velocity"),
+        ("noisy_joint_position", "joint_position"),
+        ("noisy_joint_velocity", "joint_velocity"),
+      )
+      for target, name in mappings:
+        setattr(
+          self,
+          target,
+          torch.as_tensor(np.asarray(states[name]), device=device, dtype=torch.float32),
+        )
+      # The noisy bank may lift a state above the floor before free fall.
+      # Curriculum difficulty remains tied to its clean parent frame.
+      parent_root = self.reset_root_position[self._noisy_clip, self._noisy_frame]
+      parent_quaternion = self.reset_quaternion[self._noisy_clip, self._noisy_frame]
+      x, y = parent_quaternion[:, 0], parent_quaternion[:, 1]
+      uprightness = (1.0 - 2.0 * (x.square() + y.square())).clamp(0.0, 1.0)
+      self._noisy_progress = (parent_root[:, 2] / 0.76).clamp(0.0, 1.0) * uprightness
+      self._noisy_bin = self._temporal_bin_lookup[self._noisy_clip, self._noisy_frame]
+      if bool((self._noisy_bin < 0).any()):
+        raise ValueError("Noisy initialization maps to an invalid temporal bin.")
+
   def sample(self, count: int) -> tuple[torch.Tensor, torch.Tensor]:
     clip_id = torch.randint(len(self.lengths), (count,), device=self.lengths.device)
     frame = (
@@ -281,6 +399,25 @@ class G1ReferenceLibrary:
     maximum_probability_ratio: float | None,
   ) -> torch.Tensor:
     """Sample temporal bins by difficulty, then frames uniformly inside them."""
+    return self._sample_rows_by_bin(
+      eligible_rows,
+      count,
+      self._valid_bin,
+      bin_difficulty,
+      uniform_probability,
+      maximum_probability_ratio,
+    )
+
+  def _sample_rows_by_bin(
+    self,
+    eligible_rows: torch.Tensor,
+    count: int,
+    row_bins: torch.Tensor,
+    bin_difficulty: torch.Tensor,
+    uniform_probability: float,
+    maximum_probability_ratio: float | None,
+  ) -> torch.Tensor:
+    """Sample arbitrary reset rows through their temporal-bin identities."""
     if bin_difficulty.shape != (self.num_temporal_bins,):
       raise ValueError("bin_difficulty must contain one value for every temporal bin.")
     if not 0.0 <= uniform_probability <= 1.0:
@@ -288,7 +425,7 @@ class G1ReferenceLibrary:
     if maximum_probability_ratio is not None and maximum_probability_ratio < 1.0:
       raise ValueError("maximum_probability_ratio must be at least one.")
     eligible_bins, inverse = torch.unique(
-      self._valid_bin[eligible_rows], sorted=True, return_inverse=True
+      row_bins[eligible_rows], sorted=True, return_inverse=True
     )
     frames_per_bin = torch.bincount(inverse, minlength=len(eligible_bins)).float()
     difficulty = bin_difficulty[eligible_bins].float().clamp_min(0.0)
@@ -309,6 +446,90 @@ class G1ReferenceLibrary:
     frame_probability = bin_probability[inverse] / frames_per_bin[inverse]
     sampled = torch.multinomial(frame_probability, count, replacement=True)
     return eligible_rows[sampled]
+
+  def sample_noisy_progress(
+    self,
+    count: int,
+    minimum: float,
+    maximum: float,
+    bin_difficulty: torch.Tensor | None = None,
+    uniform_probability: float = 0.2,
+    maximum_probability_ratio: float | None = None,
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Sample collision-checked noisy variants in a progress band."""
+    if not 0.0 <= minimum < maximum <= 1.0:
+      raise ValueError("progress bounds must satisfy 0 <= minimum < maximum <= 1")
+    eligible_rows = (
+      ((self._noisy_progress >= minimum) & (self._noisy_progress < maximum))
+      .nonzero(as_tuple=False)
+      .squeeze(-1)
+    )
+    if len(eligible_rows) == 0:
+      raise ValueError(
+        f"The noisy G1 reset bank has no states in progress [{minimum}, {maximum})."
+      )
+    if bin_difficulty is None:
+      selected = eligible_rows[
+        torch.randint(len(eligible_rows), (count,), device=self.lengths.device)
+      ]
+    else:
+      selected = self._sample_rows_by_bin(
+        eligible_rows,
+        count,
+        self._noisy_bin,
+        bin_difficulty,
+        uniform_probability,
+        maximum_probability_ratio,
+      )
+    return self._noisy_clip[selected], self._noisy_frame[selected], selected
+
+  @property
+  def has_noisy_states(self) -> bool:
+    return len(self._noisy_progress) > 0
+
+  def sample_noisy_frontier_balanced(
+    self,
+    count: int,
+    minimum: float,
+    frontier_maximum: float,
+    maximum: float,
+    frontier_probability: float,
+    bin_difficulty: torch.Tensor | None = None,
+    uniform_probability: float = 0.2,
+    maximum_probability_ratio: float | None = None,
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Mix noisy current-frontier and noisy previously mastered states."""
+    if not minimum < frontier_maximum < maximum:
+      raise ValueError(
+        "frontier bounds must satisfy minimum < frontier_maximum < maximum"
+      )
+    frontier_rows = torch.rand(count, device=self.lengths.device) < frontier_probability
+    clip = torch.empty(count, dtype=torch.long, device=self.lengths.device)
+    frame = torch.empty_like(clip)
+    noisy_row = torch.empty_like(clip)
+    frontier_count = int(frontier_rows.sum().item())
+    if frontier_count > 0:
+      values = self.sample_noisy_progress(
+        frontier_count,
+        minimum,
+        frontier_maximum,
+        bin_difficulty,
+        uniform_probability,
+        maximum_probability_ratio,
+      )
+      clip[frontier_rows], frame[frontier_rows], noisy_row[frontier_rows] = values
+    mastered_count = count - frontier_count
+    if mastered_count > 0:
+      values = self.sample_noisy_progress(
+        mastered_count,
+        frontier_maximum,
+        maximum,
+        bin_difficulty,
+        uniform_probability,
+        maximum_probability_ratio,
+      )
+      clip[~frontier_rows], frame[~frontier_rows], noisy_row[~frontier_rows] = values
+    return clip, frame, noisy_row
 
   def temporal_bins_in_progress(self, minimum: float, maximum: float) -> torch.Tensor:
     """Return bins containing at least one frame in a progress interval."""

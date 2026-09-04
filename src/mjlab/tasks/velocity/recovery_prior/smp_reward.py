@@ -10,6 +10,7 @@ import torch
 
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.sensor import ContactSensor
 from mjlab.tasks.velocity.recovery_data.g1_schema import G1_JOINT_NAMES
 from mjlab.tasks.velocity.recovery_prior.g1_smp_data import (
   G1_SMP_FEATURE_DIM,
@@ -115,6 +116,24 @@ def progress_handoff_weight(
   return recovery_weight + (terminal_weight - recovery_weight) * gate
 
 
+def update_landing_contact_hold(
+  awaiting_landing: torch.Tensor,
+  contact_steps: torch.Tensor,
+  ground_contact: torch.Tensor,
+  required_steps: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+  """Debounce whole-body ground contact before starting an SMP history."""
+  if required_steps <= 0:
+    raise ValueError("required_steps must be positive.")
+  held = torch.where(
+    awaiting_landing & ground_contact,
+    contact_steps + 1,
+    torch.zeros_like(contact_steps),
+  )
+  landed = awaiting_landing & (held >= required_steps)
+  return held, landed
+
+
 class G1SmpReward:
   """Score simulated 10-step motion windows with a frozen EMA denoiser."""
 
@@ -134,6 +153,7 @@ class G1SmpReward:
     model_cfg = SmpDenoiserCfg(**checkpoint["model_cfg"])
     if model_cfg.feature_dim != G1_SMP_FEATURE_DIM or model_cfg.window_size != 10:
       raise ValueError("SMP checkpoint must use the G1 10x51 feature schema.")
+    self._window_size = model_cfg.window_size
     self._model = SmpDenoiser(model_cfg).to(env.device)
     self._model.load_state_dict(checkpoint["ema_state_dict"])
     self._model.eval()
@@ -152,6 +172,19 @@ class G1SmpReward:
       raise ValueError("SMP normalizer must contain 51-dimensional statistics.")
 
     self._event_name: str = params["event_name"]
+    landing_sensor = env.scene[params["landing_sensor_name"]]
+    if not isinstance(landing_sensor, ContactSensor):
+      raise TypeError("SMP landing_sensor_name must select a ContactSensor.")
+    if landing_sensor.data.found is None:
+      raise ValueError("SMP landing sensor must provide the 'found' field.")
+    self._landing_sensor = landing_sensor
+    self._landing_contact_hold_steps = int(params["landing_contact_hold_steps"])
+    update_landing_contact_hold(
+      torch.zeros(1, dtype=torch.bool, device=env.device),
+      torch.zeros(1, dtype=torch.long, device=env.device),
+      torch.zeros(1, dtype=torch.bool, device=env.device),
+      self._landing_contact_hold_steps,
+    )
     self._timesteps = torch.tensor(
       params["esm_timesteps"], device=env.device, dtype=torch.long
     )
@@ -224,7 +257,7 @@ class G1SmpReward:
     limits = self._asset.data.default_joint_pos_limits[0]
     self._pose_scale = (0.5 * (limits[:, 1] - limits[:, 0])).clamp_min(0.1)
     self._q0 = self._asset.data.default_joint_pos[0].clone()
-    self._history = CircularBuffer(10, env.num_envs, env.device)
+    self._history = CircularBuffer(self._window_size, env.num_envs, env.device)
     self._fixed_noise = torch.randn(
       len(self._timesteps),
       env.num_envs,
@@ -239,6 +272,13 @@ class G1SmpReward:
     self._previous_direction = torch.zeros_like(self._previous_feature)
     self._guidance_ready = torch.zeros(
       env.num_envs, dtype=torch.bool, device=env.device
+    )
+    self._awaiting_landing = torch.zeros(
+      env.num_envs, dtype=torch.bool, device=env.device
+    )
+    self._full_history_required = torch.zeros_like(self._awaiting_landing)
+    self._landing_contact_steps = torch.zeros(
+      env.num_envs, dtype=torch.long, device=env.device
     )
     self.raw_reward = torch.zeros(env.num_envs, device=env.device)
     self.capped_reward = torch.zeros_like(self.raw_reward)
@@ -263,10 +303,14 @@ class G1SmpReward:
       else env_ids
     )
     self._history.reset(tensor_ids)
+    state = _get_recovery_state(self._env, self._event_name)
+    self._awaiting_landing[tensor_ids] = state.reset_noisy[tensor_ids]
+    self._full_history_required[tensor_ids] = state.reset_noisy[tensor_ids]
+    self._landing_contact_steps[tensor_ids] = 0
     self._fixed_noise[:, tensor_ids] = torch.randn(
       len(self._timesteps),
       len(tensor_ids),
-      10,
+      self._window_size,
       G1_SMP_FEATURE_DIM,
       device=self._env.device,
     )
@@ -297,6 +341,8 @@ class G1SmpReward:
     checkpoint_schema_version: str,
     normalizer_file: str,
     event_name: str,
+    landing_sensor_name: str,
+    landing_contact_hold_steps: int,
     esm_timesteps: tuple[int, ...],
     esm_error_means: tuple[float, ...],
     smp_scale: float,
@@ -317,6 +363,8 @@ class G1SmpReward:
       checkpoint_schema_version,
       normalizer_file,
       event_name,
+      landing_sensor_name,
+      landing_contact_hold_steps,
       esm_timesteps,
       esm_error_means,
       smp_scale,
@@ -331,7 +379,25 @@ class G1SmpReward:
       ood_score_range,
     )
     feature = (self._encode_feature() - self._mean) / self._std
+    state = _get_recovery_state(self._env, self._event_name)
+    awaiting_before_update = self._awaiting_landing.clone()
+    assert self._landing_sensor.data.found is not None
+    ground_contact = torch.any(self._landing_sensor.data.found > 0, dim=-1)
+    contact_steps, landed = update_landing_contact_hold(
+      self._awaiting_landing,
+      self._landing_contact_steps,
+      ground_contact,
+      self._landing_contact_hold_steps,
+    )
+    self._landing_contact_steps.copy_(contact_steps)
+    self._awaiting_landing[landed] = False
+    self._landing_contact_steps[landed] = 0
     self._history.append(feature)
+    # The common circular buffer appends every environment at once. Clear rows
+    # which were still landing at the start of this control step, including the
+    # step that completed the contact debounce. Their first retained sample is
+    # therefore the next, fully post-landing state.
+    self._history.reset(awaiting_before_update)
     self.raw_reward.zero_()
     self.capped_reward.zero_()
     self.absolute_reward.zero_()
@@ -343,7 +409,6 @@ class G1SmpReward:
     self.energy_descent_reward.zero_()
     self.direction_reward.zero_()
     self.weighted_reward.zero_()
-    state = _get_recovery_state(self._env, self._event_name)
     self.prior_weight.copy_(
       progress_handoff_weight(
         state.current_progress,
@@ -355,10 +420,13 @@ class G1SmpReward:
     )
     self.task_cap.copy_(0.3 + 0.7 * state.current_progress.clamp(0.0, 1.0))
     mode_gate = (state.mode == REFERENCE_MODE) | (state.mode == FALLEN_MODE)
-    # CircularBuffer backfills the first feature across the full window. The
-    # absolute SMP score is therefore available immediately after reset; only
-    # temporal guidance waits for a previous score and direction.
-    valid = (self._history.current_length >= 1) & mode_gate
+    # Clean states preserve the original immediate score. Lifted noisy states
+    # must first land and then contribute ten genuine post-landing frames; the
+    # CircularBuffer's first-frame backfill must not be scored for those rows.
+    history_ready = (~self._full_history_required) | (
+      self._history.current_length >= self._window_size
+    )
+    valid = history_ready & ~self._awaiting_landing & mode_gate
     if not bool(valid.any()):
       return self.weighted_reward
 
@@ -380,9 +448,9 @@ class G1SmpReward:
       noised - (1.0 - alpha_bar).sqrt() * predicted
     ) / alpha_bar.sqrt().clamp_min(1e-6)
     direction = (
-      denoised.reshape(ensemble_size, batch_size, 10, G1_SMP_FEATURE_DIM).mean(dim=0)[
-        :, -1
-      ]
+      denoised.reshape(
+        ensemble_size, batch_size, self._window_size, G1_SMP_FEATURE_DIM
+      ).mean(dim=0)[:, -1]
       - windows[:, -1]
     )
     ready = self._guidance_ready[valid]
@@ -461,7 +529,7 @@ def _slice_ids(env: ManagerBasedRlEnv, env_ids: slice) -> torch.Tensor:
 
 def _get_recovery_state(env: ManagerBasedRlEnv, event_name: str) -> Any:
   state = env.event_manager.get_term_cfg(event_name).func
-  required = ("mode", "current_progress")
+  required = ("mode", "current_progress", "reset_noisy")
   if any(not hasattr(state, name) for name in required):
     raise TypeError(f"Event '{event_name}' is not a G1 recovery state.")
   return cast(Any, state)

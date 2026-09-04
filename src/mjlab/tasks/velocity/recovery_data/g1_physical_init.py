@@ -16,7 +16,11 @@ from numpy.typing import NDArray
 from mjlab.asset_zoo.robots import G1_VELOCITY_COLLISION, get_g1_robot_cfg
 from mjlab.entity import Entity
 
-from .g1_schema import G1_JOINT_NAMES, G1_PHYSICAL_INIT_SCHEMA_VERSION
+from .g1_schema import (
+  G1_JOINT_NAMES,
+  G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION,
+  G1_PHYSICAL_INIT_SCHEMA_VERSION,
+)
 
 _SUPPORT_PATTERN = re.compile(
   r"^(left|right)_(?:foot[1-7]|shin|hand|wrist|elbow_yaw)_collision$"
@@ -74,6 +78,65 @@ class G1PhysicalInitCfg:
       raise ValueError("projection_iterations must be positive.")
     if not 0.0 <= self.min_support_fraction <= 1.0:
       raise ValueError("min_support_fraction must be between zero and one.")
+
+
+@dataclass(frozen=True, kw_only=True)
+class G1NoisyPhysicalInitCfg:
+  """Build collision-checked local perturbations around the clean reset bank."""
+
+  clean_file: Path = Path("artifacts/g1_recovery/physical_init.npz")
+  output_file: Path = Path("artifacts/g1_recovery/noisy_physical_init.npz")
+  report_file: Path = Path("artifacts/g1_recovery/noisy_physical_init_report.json")
+  variants_per_frame: int = 4
+  max_attempts_per_frame: int = 64
+  joint_position_noise_rad: float = 0.1
+  joint_velocity_noise_rad_s: float = 0.1
+  root_clearance_m: float = 0.03
+  validation_scales: tuple[float, ...] = (0.0, 0.25, 0.5, 0.75, 1.0)
+  seed: int = 0
+  timestep_s: float = 0.005
+  validation_duration_s: float = 0.1
+  validate_drop_dynamics: bool = False
+  max_contact_gap_m: float = 0.05
+  max_self_penetration_m: float = 1e-4
+  max_ground_penetration_m: float = 0.004
+  max_validation_translation_m: float = 0.08
+  max_validation_rotation_rad: float = 0.35
+  max_contact_force_n: float = 5000.0
+
+  def __post_init__(self) -> None:
+    if self.variants_per_frame <= 0:
+      raise ValueError("variants_per_frame must be positive.")
+    if self.max_attempts_per_frame < self.variants_per_frame:
+      raise ValueError("max_attempts_per_frame must cover every requested variant.")
+    if not self.validation_scales or any(
+      not 0.0 <= value <= 1.0 for value in self.validation_scales
+    ):
+      raise ValueError("validation_scales must contain values in [0, 1].")
+    if self.validation_scales[0] != 0.0 or self.validation_scales[-1] != 1.0:
+      raise ValueError("validation_scales must include both zero and one endpoints.")
+    if any(
+      later <= earlier
+      for earlier, later in zip(
+        self.validation_scales, self.validation_scales[1:], strict=False
+      )
+    ):
+      raise ValueError("validation_scales must be strictly increasing.")
+    positive = {
+      "joint_position_noise_rad": self.joint_position_noise_rad,
+      "joint_velocity_noise_rad_s": self.joint_velocity_noise_rad_s,
+      "root_clearance_m": self.root_clearance_m,
+      "timestep_s": self.timestep_s,
+      "validation_duration_s": self.validation_duration_s,
+      "max_contact_gap_m": self.max_contact_gap_m,
+      "max_self_penetration_m": self.max_self_penetration_m,
+      "max_ground_penetration_m": self.max_ground_penetration_m,
+      "max_validation_translation_m": self.max_validation_translation_m,
+      "max_validation_rotation_rad": self.max_validation_rotation_rad,
+      "max_contact_force_n": self.max_contact_force_n,
+    }
+    if any(value <= 0.0 for value in positive.values()):
+      raise ValueError("Noisy initialization thresholds must be positive.")
 
 
 @dataclass(frozen=True)
@@ -244,7 +307,279 @@ def build_g1_physical_init(cfg: G1PhysicalInitCfg) -> dict[str, Any]:
   return report
 
 
-def _make_model(cfg: G1PhysicalInitCfg) -> tuple[mujoco.MjModel, int]:
+def build_g1_noisy_physical_init(cfg: G1NoisyPhysicalInitCfg) -> dict[str, Any]:
+  """Generate safe noisy variants around every accepted clean reset state."""
+  clean_file = cfg.clean_file.resolve()
+  if not clean_file.is_file():
+    raise FileNotFoundError(
+      f"Clean physical initialization bank is missing: {clean_file}"
+    )
+  with np.load(clean_file, allow_pickle=False) as clean:
+    schema = str(np.asarray(clean["schema_version"]).item())
+    if schema != G1_PHYSICAL_INIT_SCHEMA_VERSION:
+      raise ValueError(
+        f"Unsupported clean initialization schema {schema!r}; "
+        f"expected {G1_PHYSICAL_INIT_SCHEMA_VERSION!r}."
+      )
+    required = (
+      "clip_id",
+      "frame",
+      "root_position",
+      "root_quaternion_xyzw",
+      "joint_position",
+      "root_linear_velocity",
+      "root_angular_velocity",
+      "joint_velocity",
+    )
+    missing = [name for name in required if name not in clean]
+    if missing:
+      raise ValueError(f"Clean initialization bank is missing: {', '.join(missing)}")
+    clean_arrays = {name: np.asarray(clean[name]).copy() for name in required}
+
+  model, ground_id = _make_model(cfg)
+  data = mujoco.MjData(model)
+  joint_ids = _joint_ids(model)
+  joint_qpos = model.jnt_qposadr[joint_ids]
+  joint_dof = model.jnt_dofadr[joint_ids]
+  joint_range = model.jnt_range[joint_ids]
+  rng = np.random.default_rng(cfg.seed)
+  accepted: dict[str, list[Any]] = {
+    "clip_id": [],
+    "frame": [],
+    "variant": [],
+    "root_position": [],
+    "root_quaternion_xyzw": [],
+    "joint_position": [],
+    "root_linear_velocity": [],
+    "root_angular_velocity": [],
+    "joint_velocity": [],
+    "joint_position_noise": [],
+    "joint_velocity_noise": [],
+    "support_fraction": [],
+    "validation_translation_m": [],
+    "validation_rotation_rad": [],
+    "max_contact_force_n": [],
+    "max_self_penetration_m": [],
+    "max_ground_penetration_m": [],
+  }
+  reasons: Counter[str] = Counter()
+  missing_rows: list[dict[str, Any]] = []
+  count = len(clean_arrays["frame"])
+  for row in range(count):
+    accepted_for_frame = 0
+    attempts = 0
+    row_reasons: Counter[str] = Counter()
+    while (
+      accepted_for_frame < cfg.variants_per_frame
+      and attempts < cfg.max_attempts_per_frame
+    ):
+      attempts += 1
+      requested_position_noise = rng.uniform(
+        -cfg.joint_position_noise_rad,
+        cfg.joint_position_noise_rad,
+        len(G1_JOINT_NAMES),
+      )
+      velocity_noise = rng.uniform(
+        -cfg.joint_velocity_noise_rad_s,
+        cfg.joint_velocity_noise_rad_s,
+        len(G1_JOINT_NAMES),
+      )
+      qpos = model.qpos0.copy()
+      qpos[:3] = clean_arrays["root_position"][row]
+      qpos[2] += cfg.root_clearance_m
+      qpos[3:7] = clean_arrays["root_quaternion_xyzw"][row, (3, 0, 1, 2)]
+      clean_joint = clean_arrays["joint_position"][row]
+      noisy_joint = np.clip(
+        clean_joint + requested_position_noise,
+        joint_range[:, 0],
+        joint_range[:, 1],
+      )
+      qpos[joint_qpos] = noisy_joint
+      qvel = np.zeros(model.nv, dtype=np.float64)
+      qvel[:3] = clean_arrays["root_linear_velocity"][row]
+      qvel[3:6] = clean_arrays["root_angular_velocity"][row]
+      noisy_joint_velocity = clean_arrays["joint_velocity"][row] + velocity_noise
+      qvel[joint_dof] = noisy_joint_velocity
+      scale_results = []
+      reason = "accepted"
+      for scale in cfg.validation_scales:
+        scaled_qpos = qpos.copy()
+        scaled_qpos[joint_qpos] = clean_joint + scale * (noisy_joint - clean_joint)
+        scaled_qvel = qvel.copy()
+        scaled_qvel[joint_dof] = (
+          clean_arrays["joint_velocity"][row] + scale * velocity_noise
+        )
+        result = _validate_noisy_state(
+          model, data, scaled_qpos, scaled_qvel, joint_qpos, ground_id, cfg
+        )
+        scale_results.append(result)
+        if result[0] != "accepted":
+          reason = f"scale_{scale:g}_{result[0]}"
+          break
+      reasons[reason] += 1
+      row_reasons[reason] += 1
+      if reason != "accepted":
+        continue
+      support_fraction = min(result[1] for result in scale_results)
+      translation = max(result[2] for result in scale_results)
+      rotation = max(result[3] for result in scale_results)
+      max_force = max(result[4] for result in scale_results)
+      max_self = max(result[5] for result in scale_results)
+      max_ground = max(result[6] for result in scale_results)
+      accepted["clip_id"].append(str(clean_arrays["clip_id"][row]))
+      accepted["frame"].append(int(clean_arrays["frame"][row]))
+      accepted["variant"].append(accepted_for_frame)
+      accepted["root_position"].append(qpos[:3].copy())
+      accepted["root_quaternion_xyzw"].append(qpos[3:7][[1, 2, 3, 0]].copy())
+      accepted["joint_position"].append(noisy_joint.copy())
+      accepted["root_linear_velocity"].append(qvel[:3].copy())
+      accepted["root_angular_velocity"].append(qvel[3:6].copy())
+      accepted["joint_velocity"].append(noisy_joint_velocity.copy())
+      accepted["joint_position_noise"].append(noisy_joint - clean_joint)
+      accepted["joint_velocity_noise"].append(velocity_noise)
+      accepted["support_fraction"].append(support_fraction)
+      accepted["validation_translation_m"].append(translation)
+      accepted["validation_rotation_rad"].append(rotation)
+      accepted["max_contact_force_n"].append(max_force)
+      accepted["max_self_penetration_m"].append(max_self)
+      accepted["max_ground_penetration_m"].append(max_ground)
+      accepted_for_frame += 1
+    if accepted_for_frame == 0:
+      missing_rows.append(
+        {
+          "clip_id": str(clean_arrays["clip_id"][row]),
+          "frame": int(clean_arrays["frame"][row]),
+          "reasons": dict(sorted(row_reasons.items())),
+        }
+      )
+
+  if not accepted["frame"]:
+    raise RuntimeError("Noisy physical initialization audit rejected every candidate.")
+  cfg.output_file.parent.mkdir(parents=True, exist_ok=True)
+  np.savez_compressed(
+    cfg.output_file,
+    schema_version=np.asarray(G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION),
+    source_clean_file=np.asarray(str(clean_file)),
+    clip_id=np.asarray(accepted["clip_id"], dtype=np.str_),
+    frame=np.asarray(accepted["frame"], dtype=np.int32),
+    variant=np.asarray(accepted["variant"], dtype=np.int16),
+    root_position=np.asarray(accepted["root_position"], dtype=np.float32),
+    root_quaternion_xyzw=np.asarray(accepted["root_quaternion_xyzw"], dtype=np.float32),
+    joint_position=np.asarray(accepted["joint_position"], dtype=np.float32),
+    root_linear_velocity=np.asarray(accepted["root_linear_velocity"], dtype=np.float32),
+    root_angular_velocity=np.asarray(
+      accepted["root_angular_velocity"], dtype=np.float32
+    ),
+    joint_velocity=np.asarray(accepted["joint_velocity"], dtype=np.float32),
+    joint_position_noise=np.asarray(accepted["joint_position_noise"], dtype=np.float32),
+    joint_velocity_noise=np.asarray(accepted["joint_velocity_noise"], dtype=np.float32),
+    support_fraction=np.asarray(accepted["support_fraction"], dtype=np.float32),
+    validation_translation_m=np.asarray(
+      accepted["validation_translation_m"], dtype=np.float32
+    ),
+    validation_rotation_rad=np.asarray(
+      accepted["validation_rotation_rad"], dtype=np.float32
+    ),
+    max_contact_force_n=np.asarray(accepted["max_contact_force_n"], dtype=np.float32),
+    max_self_penetration_m=np.asarray(
+      accepted["max_self_penetration_m"], dtype=np.float32
+    ),
+    max_ground_penetration_m=np.asarray(
+      accepted["max_ground_penetration_m"], dtype=np.float32
+    ),
+  )
+  report = {
+    "schema_version": G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION,
+    "source_clean_file": str(clean_file),
+    "output_file": str(cfg.output_file.resolve()),
+    "source_frame_count": count,
+    "accepted_variant_count": len(accepted["frame"]),
+    "frames_with_variants": count - len(missing_rows),
+    "frame_coverage": (count - len(missing_rows)) / count,
+    "requested_variants_per_frame": cfg.variants_per_frame,
+    "reasons": dict(sorted(reasons.items())),
+    "frames_without_variants": missing_rows,
+    "thresholds": _jsonable_cfg(cfg),
+  }
+  cfg.report_file.parent.mkdir(parents=True, exist_ok=True)
+  cfg.report_file.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+  return report
+
+
+def _validate_noisy_state(
+  model: mujoco.MjModel,
+  data: mujoco.MjData,
+  qpos: NDArray[np.float64],
+  qvel: NDArray[np.float64],
+  joint_qpos: NDArray[np.int32],
+  ground_id: int,
+  cfg: G1NoisyPhysicalInitCfg,
+) -> tuple[str, float, float, float, float, float, float]:
+  """Check the saved noisy initial state and its immediate physical evolution."""
+  model.geom_margin[ground_id] = 0.0
+  try:
+    data.qpos[:] = qpos
+    data.qvel[:] = qvel
+    for actuator_id in range(model.nu):
+      joint_id = int(model.actuator_trnid[actuator_id, 0])
+      data.ctrl[actuator_id] = qpos[int(model.jnt_qposadr[joint_id])]
+    mujoco.mj_forward(model, data)
+    ground, self_penetration = _penetrations(model, data, ground_id)
+    if self_penetration > cfg.max_self_penetration_m:
+      return "initial_self_penetration", 0.0, 0.0, 0.0, 0.0, self_penetration, ground
+    if ground > cfg.max_ground_penetration_m:
+      return "initial_ground_penetration", 0.0, 0.0, 0.0, 0.0, self_penetration, ground
+    if _ground_contact_map(model, data, ground_id):
+      return "initial_ground_contact", 0.0, 0.0, 0.0, 0.0, self_penetration, ground
+    if not cfg.validate_drop_dynamics:
+      return "accepted", 0.0, 0.0, 0.0, 0.0, self_penetration, ground
+    start_position = qpos[:3].copy()
+    start_quaternion = qpos[3:7].copy()
+    steps = max(1, round(cfg.validation_duration_s / cfg.timestep_s))
+    support_count = 0
+    max_force = 0.0
+    max_self = self_penetration
+    max_ground = ground
+    for _ in range(steps):
+      mujoco.mj_step(model, data)
+      if not np.all(np.isfinite(data.qpos)) or not np.all(np.isfinite(data.qvel)):
+        return "nonfinite_validation", 0.0, 0.0, 0.0, 0.0, max_self, max_ground
+      ground, self_penetration = _penetrations(model, data, ground_id)
+      max_ground = max(max_ground, ground)
+      max_self = max(max_self, self_penetration)
+      max_force = max(max_force, _max_contact_force(model, data))
+      support_count += int(_has_ground_support(model, data, ground_id))
+    support_fraction = support_count / steps
+    translation = float(np.linalg.norm(data.qpos[:3] - start_position))
+    rotation = _quaternion_distance(start_quaternion, data.qpos[3:7])
+    if max_self > cfg.max_self_penetration_m:
+      reason = "validation_self_penetration"
+    elif max_ground > cfg.max_ground_penetration_m:
+      reason = "validation_ground_penetration"
+    elif max_force > cfg.max_contact_force_n:
+      reason = "validation_contact_force"
+    elif translation > cfg.max_validation_translation_m:
+      reason = "validation_translation"
+    elif rotation > cfg.max_validation_rotation_rad:
+      reason = "validation_rotation"
+    else:
+      reason = "accepted"
+    return (
+      reason,
+      support_fraction,
+      translation,
+      rotation,
+      max_force,
+      max_self,
+      max_ground,
+    )
+  finally:
+    model.geom_margin[ground_id] = cfg.max_contact_gap_m
+
+
+def _make_model(
+  cfg: G1PhysicalInitCfg | G1NoisyPhysicalInitCfg,
+) -> tuple[mujoco.MjModel, int]:
   robot_cfg = get_g1_robot_cfg()
   robot_cfg.collisions = (G1_VELOCITY_COLLISION,)
   robot = Entity(robot_cfg)
@@ -628,7 +963,9 @@ def _rejected(
   )
 
 
-def _jsonable_cfg(cfg: G1PhysicalInitCfg) -> dict[str, Any]:
+def _jsonable_cfg(
+  cfg: G1PhysicalInitCfg | G1NoisyPhysicalInitCfg,
+) -> dict[str, Any]:
   return {
     name: str(value) if isinstance(value, Path) else value
     for name, value in vars(cfg).items()

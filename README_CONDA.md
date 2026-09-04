@@ -86,16 +86,22 @@ python -m mjlab.scripts.list_envs | grep Mjlab-Velocity-Flat-Unitree-G1-Recovery
 test -f artifacts/g1_recovery/manifest.json
 test -f artifacts/g1_recovery/smp/best.pt
 test -f artifacts/g1_recovery/physical_init.npz
+test -f artifacts/g1_recovery/noisy_physical_init.npz
 ```
 
-三条命令都没有输出并返回成功，就可以直接训练。
+四条命令都没有输出并返回成功，就可以直接训练。
 
-只有在 `physical_init.npz` 缺失，或者重新生成了
-`artifacts/g1_recovery/clips/*.npz` 后，才需要重建物理初始化库：
+`physical_init.npz` 缺失或动作 clips 变化时运行两条命令；只有
+`noisy_physical_init.npz` 缺失时可以只运行第二条：
 
 ```bash
 python -m mjlab.tasks.velocity.scripts.build_g1_physical_init
+python -m mjlab.tasks.velocity.scripts.build_g1_noisy_physical_init
 ```
+
+第二条命令从已验证的纯净帧生成位置 ``±0.1 rad``、速度
+``±0.1 rad/s`` 的连续噪声方向。候选整体抬高 3 cm，从无地面接触状态自由落下；
+带初始自碰撞或仍与地面相交的方向会被拒绝。
 
 ## 6. 开始 G1 恢复训练
 
@@ -192,6 +198,6 @@ python -m pip install --no-deps -e .
 
 ### 更换环境后是否要重新生成动作数据
 
-不需要。`artifacts/g1_recovery` 中的 NPZ、SMP checkpoint 和物理初始化库与
-Python 虚拟环境无关。只要仓库路径和文件内容没有改变，新 Conda 环境可以
-直接读取它们。
+不需要。`artifacts/g1_recovery` 中的 NPZ、SMP checkpoint、纯净物理库和噪声
+物理库与 Python 虚拟环境无关。只要仓库路径和文件内容没有改变，新 Conda
+环境可以直接读取它们。

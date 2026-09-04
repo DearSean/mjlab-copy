@@ -414,3 +414,15 @@ def recovery_progress_metric(env: ManagerBasedRlEnv, event_name: str) -> torch.T
 
 def recovery_assistance_metric(env: ManagerBasedRlEnv, event_name: str) -> torch.Tensor:
   return get_g1_recovery_state(env, event_name).applied_force
+
+
+def recovery_noisy_reset_metric(
+  env: ManagerBasedRlEnv, event_name: str
+) -> torch.Tensor:
+  return get_g1_recovery_state(env, event_name).reset_noisy.float()
+
+
+def recovery_noise_scale_metric(
+  env: ManagerBasedRlEnv, event_name: str
+) -> torch.Tensor:
+  return get_g1_recovery_state(env, event_name).reset_noise_scale

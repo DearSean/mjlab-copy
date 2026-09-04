@@ -72,6 +72,15 @@ Added
   This supplies a return-to-manifold signal for out-of-distribution recovery
   motion without adding training-only context to actor or critic observations;
   the guidance fades out across the terminal standing handoff.
+- Added collision-checked noisy G1 reset directions around the simulator-validated
+  clean bank. Training samples a continuous perturbation up to 0.1 rad and
+  0.1 rad/s, lifts noisy resets 3 cm for a contact-free start, and retains the
+  clean parent's curriculum difficulty. Each of the 13 posture levels now has
+  a clean and noisy sublevel; noisy history bridges the 50/50 frontier mixture,
+  and only noisy sublevels require a 60-update dwell in addition to 90% success.
+  SMP scoring for these lifted resets now waits for stable whole-body ground
+  contact and ten genuine post-landing frames instead of scoring a backfilled
+  static history.
 - Added a native MuJoCo viewer for compiled G1 recovery NPZ clips, including
   half-open target-frame selection, looping, and slow-motion playback for
   inspecting persistent curriculum failures. It can now play only the

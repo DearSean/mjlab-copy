@@ -11,6 +11,7 @@ from mjlab.managers.metrics_manager import MetricsTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
+from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.recovery_prior.smp_model import FrozenG1SmpPriorCfg
 from mjlab.tasks.velocity.recovery_prior.smp_reward import G1SmpReward, g1_smp_metric
@@ -36,6 +37,8 @@ from .recovery_rewards import (
   recovery_hold_reward,
   recovery_mode_metric,
   recovery_mode_success_metric,
+  recovery_noise_scale_metric,
+  recovery_noisy_reset_metric,
   recovery_progress_bin_metric,
   recovery_progress_bin_success_metric,
   recovery_progress_metric,
@@ -116,6 +119,8 @@ _POSTURE_SUCCESS_WINDOWS = (
   5000,
 )
 _ASSIST_SUCCESS_WINDOWS = (6000, 7000, 8000, 9000, 10000, 12000, 14000, 16000)
+_PPO_STEPS_PER_ITERATION = 24
+_NOISY_POSTURE_MINIMUM_ITERATIONS = 60
 _RECOVERY_PROGRESS_BINS = (
   ("070_085", 0.70, 0.85),
   ("055_070", 0.55, 0.70),
@@ -161,6 +166,10 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
       "dataset_dir": str(Path("artifacts/g1_recovery")),
       "physical_init_file": str(Path("artifacts/g1_recovery/physical_init.npz")),
       "require_physical_init": not play,
+      "noisy_physical_init_file": str(
+        Path("artifacts/g1_recovery/noisy_physical_init.npz")
+      ),
+      "require_noisy_physical_init": not play,
       "force_ranges": _ASSIST_FORCE_RANGES,
       "assist_success_windows": _ASSIST_SUCCESS_WINDOWS,
       "posture_mode_probabilities": _POSTURE_MODE_PROBABILITIES,
@@ -171,6 +180,11 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
       # The cooldown prevents one frozen policy from crossing several levels.
       "curriculum_reference_num_envs": 1024,
       "curriculum_minimum_level_steps": 24,
+      # common_step_counter counts control steps. The FPO runner collects 24
+      # steps per update, so 60 noisy-level iterations are 1440 control steps.
+      "curriculum_noisy_minimum_level_steps": (
+        _NOISY_POSTURE_MINIMUM_ITERATIONS * _PPO_STEPS_PER_ITERATION
+      ),
       "reference_frontier_probability": 0.5,
       "adaptive_bin_duration_s": 0.2,
       "adaptive_ema_rate": 0.01,
@@ -187,7 +201,7 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
       "hard_bin_report_interval": 10000,
       "reference_max_progress": 0.85,
       "fallen_max_progress": 0.25,
-      "initial_posture_level": len(_POSTURE_MODE_PROBABILITIES) - 1 if play else 0,
+      "initial_posture_level": 2 * len(_POSTURE_MODE_PROBABILITIES) - 1 if play else 0,
       "initial_assist_level": len(_ASSIST_FORCE_RANGES) - 1 if play else 0,
     },
   )
@@ -312,6 +326,17 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
     params={"event_name": _RECOVERY_EVENT_NAME, "timeout_name": "time_out"},
   )
   if not play:
+    landing_sensor_name = "recovery_ground_contact"
+    cfg.scene.sensors = (cfg.scene.sensors or ()) + (
+      ContactSensorCfg(
+        name=landing_sensor_name,
+        primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+        secondary=ContactMatch(mode="body", pattern="terrain"),
+        fields=("found",),
+        reduce="none",
+        num_slots=1,
+      ),
+    )
     cfg.rewards["smp"] = RewardTermCfg(
       func=G1SmpReward,
       weight=1.0,
@@ -321,6 +346,8 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
         "checkpoint_schema_version": smp.checkpoint_schema_version,
         "normalizer_file": str(smp.normalizer_file),
         "event_name": _RECOVERY_EVENT_NAME,
+        "landing_sensor_name": landing_sensor_name,
+        "landing_contact_hold_steps": 3,
         "esm_timesteps": smp.esm_timesteps,
         "esm_error_means": smp.esm_error_means,
         "smp_scale": smp.smp_scale,
@@ -352,6 +379,16 @@ def unitree_g1_flat_recovery_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg
   cfg.metrics["recovery_assistance_n"] = MetricsTermCfg(
     func=recovery_assistance_metric,
     params={"event_name": _RECOVERY_EVENT_NAME},
+  )
+  cfg.metrics["recovery_noisy_reset"] = MetricsTermCfg(
+    func=recovery_noisy_reset_metric,
+    params={"event_name": _RECOVERY_EVENT_NAME},
+    reduce="last",
+  )
+  cfg.metrics["recovery_noise_scale"] = MetricsTermCfg(
+    func=recovery_noise_scale_metric,
+    params={"event_name": _RECOVERY_EVENT_NAME},
+    reduce="last",
   )
   for mode in ("reference", "fallen", "stand"):
     cfg.metrics[f"recovery_mode_{mode}"] = MetricsTermCfg(

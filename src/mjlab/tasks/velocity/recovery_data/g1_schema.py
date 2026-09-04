@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 G1_RECOVERY_SCHEMA_VERSION = "g1-recovery-v1"
 G1_RECOVERY_FEATURE_SCHEMA_VERSION = "g1-recovery-features-v1"
 G1_PHYSICAL_INIT_SCHEMA_VERSION = "g1-recovery-physical-init-v1"
+G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION = "g1-recovery-noisy-physical-init-v1"
 G1_RECOVERY_TARGET_FPS = 50.0
 G1_JOINT_NAMES = (
   "left_hip_pitch_joint",

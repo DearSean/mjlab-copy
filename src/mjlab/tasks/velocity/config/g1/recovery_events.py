@@ -52,10 +52,17 @@ class G1RecoveryReset:
     )
     curriculum_reference_num_envs = int(params["curriculum_reference_num_envs"])
     self._minimum_level_steps = int(params["curriculum_minimum_level_steps"])
+    self._noisy_minimum_level_steps = int(
+      params["curriculum_noisy_minimum_level_steps"]
+    )
     if curriculum_reference_num_envs <= 0:
       raise ValueError("curriculum_reference_num_envs must be positive.")
     if self._minimum_level_steps < 0:
       raise ValueError("curriculum_minimum_level_steps must be non-negative.")
+    if self._noisy_minimum_level_steps <= self._minimum_level_steps:
+      raise ValueError(
+        "curriculum_noisy_minimum_level_steps must exceed the clean cooldown."
+      )
     self._curriculum_window_scale = max(
       1.0, env.num_envs / curriculum_reference_num_envs
     )
@@ -92,7 +99,7 @@ class G1RecoveryReset:
       for earlier, later in zip(success_windows, success_windows[1:], strict=False)
     ):
       raise ValueError("success windows must grow across both curriculum stages.")
-    if not 0 <= self.posture_level < len(self._posture_mode_probabilities):
+    if not 0 <= self.posture_level < 2 * len(self._posture_mode_probabilities):
       raise ValueError("initial_posture_level is outside the posture curriculum.")
     if not 0 <= self.assist_level < len(self._force_ranges):
       raise ValueError("initial_assist_level is outside force_ranges.")
@@ -181,6 +188,8 @@ class G1RecoveryReset:
       self._adaptive_bin_duration_s,
       physical_init_file=Path(params["physical_init_file"]),
       require_physical_init=bool(params["require_physical_init"]),
+      noisy_physical_init_file=Path(params["noisy_physical_init_file"]),
+      require_noisy_physical_init=bool(params["require_noisy_physical_init"]),
     )
     self.sampled_force = torch.zeros(env.num_envs, device=env.device)
     self.applied_force = torch.zeros_like(self.sampled_force)
@@ -192,6 +201,8 @@ class G1RecoveryReset:
     self.reset_temporal_bin = torch.full_like(self.mode, -1)
     self.reset_posture_level = torch.full_like(self.mode, -1)
     self.reset_assist_level = torch.full_like(self.mode, -1)
+    self.reset_noisy = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+    self.reset_noise_scale = torch.zeros(env.num_envs, device=env.device)
     self.curriculum_probe = torch.zeros(
       env.num_envs, dtype=torch.bool, device=env.device
     )
@@ -231,6 +242,8 @@ class G1RecoveryReset:
     dataset_dir: str,
     physical_init_file: str,
     require_physical_init: bool,
+    noisy_physical_init_file: str,
+    require_noisy_physical_init: bool,
     force_ranges: tuple[tuple[float, float], ...],
     assist_success_windows: tuple[int, ...],
     posture_mode_probabilities: tuple[tuple[float, float, float], ...],
@@ -239,6 +252,7 @@ class G1RecoveryReset:
     posture_success_windows: tuple[int, ...],
     curriculum_reference_num_envs: int,
     curriculum_minimum_level_steps: int,
+    curriculum_noisy_minimum_level_steps: int,
     reference_frontier_probability: float,
     adaptive_bin_duration_s: float,
     adaptive_ema_rate: float,
@@ -260,6 +274,8 @@ class G1RecoveryReset:
       dataset_dir,
       physical_init_file,
       require_physical_init,
+      noisy_physical_init_file,
+      require_noisy_physical_init,
       force_ranges,
       assist_success_windows,
       posture_mode_probabilities,
@@ -268,6 +284,7 @@ class G1RecoveryReset:
       posture_success_windows,
       curriculum_reference_num_envs,
       curriculum_minimum_level_steps,
+      curriculum_noisy_minimum_level_steps,
       reference_frontier_probability,
       adaptive_bin_duration_s,
       adaptive_ema_rate,
@@ -296,6 +313,7 @@ class G1RecoveryReset:
     )
     clip_id = torch.zeros(len(env_ids), dtype=torch.long, device=self._env.device)
     frame = torch.zeros_like(clip_id)
+    noisy_row = torch.full_like(clip_id, -1)
     reference_rows = (
       (self.mode[env_ids] == REFERENCE_MODE).nonzero(as_tuple=False).squeeze(-1)
     )
@@ -306,9 +324,12 @@ class G1RecoveryReset:
         (reference_rows[~reference_probe], True),
       ):
         if len(rows) > 0:
-          reference_clip, reference_frame = self._sample_reference(len(rows), adaptive)
+          reference_clip, reference_frame, reference_noisy = self._sample_reference(
+            len(rows), adaptive
+          )
           clip_id[rows] = reference_clip
           frame[rows] = reference_frame
+          noisy_row[rows] = reference_noisy
     fallen_rows = (
       (self.mode[env_ids] == FALLEN_MODE).nonzero(as_tuple=False).squeeze(-1)
     )
@@ -319,9 +340,12 @@ class G1RecoveryReset:
         (fallen_rows[~fallen_probe], True),
       ):
         if len(rows) > 0:
-          fallen_clip, fallen_frame = self._sample_fallen(len(rows), adaptive)
+          fallen_clip, fallen_frame, fallen_noisy = self._sample_fallen(
+            len(rows), adaptive
+          )
           clip_id[rows] = fallen_clip
           frame[rows] = fallen_frame
+          noisy_row[rows] = fallen_noisy
     reference_mask = self.mode[env_ids] == REFERENCE_MODE
     fallen_mask = self.mode[env_ids] == FALLEN_MODE
     stand_mask = self.mode[env_ids] == STAND_MODE
@@ -347,6 +371,46 @@ class G1RecoveryReset:
     joint_vel[sampled] = self.reference.reset_joint_velocity[
       clip_id[sampled], frame[sampled]
     ]
+    noisy_mask = noisy_row >= 0
+    if noisy_mask.any():
+      rows = noisy_mask.nonzero(as_tuple=False).squeeze(-1)
+      variants = noisy_row[rows]
+      noise_scale = torch.rand(
+        len(rows), 1, device=self._env.device, dtype=root_state.dtype
+      )
+      parent_clip = clip_id[rows]
+      parent_frame = frame[rows]
+      root_state[rows, :3] = (
+        self.reference.noisy_root_position[variants]
+        + self._env.scene.env_origins[env_ids[rows]]
+      )
+      noisy_quaternion = self.reference.noisy_quaternion[variants]
+      root_state[rows, 3:7] = noisy_quaternion[:, (3, 0, 1, 2)]
+      clean_linear_velocity = self.reference.reset_linear_velocity[
+        parent_clip, parent_frame
+      ]
+      clean_angular_velocity = self.reference.reset_angular_velocity[
+        parent_clip, parent_frame
+      ]
+      clean_joint_position = self.reference.reset_joint_position[
+        parent_clip, parent_frame
+      ]
+      clean_joint_velocity = self.reference.reset_joint_velocity[
+        parent_clip, parent_frame
+      ]
+      root_state[rows, 7:10] = clean_linear_velocity + noise_scale * (
+        self.reference.noisy_linear_velocity[variants] - clean_linear_velocity
+      )
+      root_state[rows, 10:13] = clean_angular_velocity + noise_scale * (
+        self.reference.noisy_angular_velocity[variants] - clean_angular_velocity
+      )
+      joint_pos[rows] = clean_joint_position + noise_scale * (
+        self.reference.noisy_joint_position[variants] - clean_joint_position
+      )
+      joint_vel[rows] = clean_joint_velocity + noise_scale * (
+        self.reference.noisy_joint_velocity[variants] - clean_joint_velocity
+      )
+      self.reset_noise_scale[env_ids[rows]] = noise_scale[:, 0]
     if stand_mask.any():
       joint_pos[stand_mask] += torch.empty_like(joint_pos[stand_mask]).uniform_(
         -0.05, 0.05
@@ -356,7 +420,8 @@ class G1RecoveryReset:
       )
       root_state[stand_mask, 7:13].uniform_(-0.05, 0.05)
 
-    quaternion = self.reference.reset_quaternion[clip_id, frame]
+    quaternion = self.reference.reset_quaternion[clip_id, frame].clone()
+    quaternion[noisy_mask] = self.reference.noisy_quaternion[noisy_row[noisy_mask]]
     uprightness = (
       1.0 - 2.0 * (quaternion[:, 0].square() + quaternion[:, 1].square())
     ).clamp(0.0, 1.0)
@@ -375,6 +440,8 @@ class G1RecoveryReset:
     self.reset_temporal_bin[env_ids[sampled]] = self.reference.temporal_bin(
       clip_id[sampled], frame[sampled]
     )
+    self.reset_noisy[env_ids] = noisy_mask
+    self.reset_noise_scale[env_ids[~noisy_mask]] = 0.0
     self.hold_count[env_ids] = 0
     self.succeeded[env_ids] = False
     self.just_succeeded[env_ids] = False
@@ -395,12 +462,13 @@ class G1RecoveryReset:
 
   def _sample_reference(
     self, count: int, adaptive: bool
-  ) -> tuple[torch.Tensor, torch.Tensor]:
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Use noisy history and clean/noisy states at the active frontier."""
     difficulty = self.adaptive_bin_difficulty if adaptive else None
     probability_ratio = self._adaptive_max_probability_ratio if adaptive else None
     frontier_maximum = self.reference_frontier_max_progress
-    if frontier_maximum is None:
-      return self.reference.sample_progress(
+    if not self.reference.has_noisy_states:
+      clip, frame = self.reference.sample_progress(
         count,
         self.reference_min_progress,
         self._reference_max_progress,
@@ -408,30 +476,128 @@ class G1RecoveryReset:
         uniform_probability=self._adaptive_uniform_probability,
         maximum_probability_ratio=probability_ratio,
       )
-    return self.reference.sample_frontier_balanced(
+      return clip, frame, torch.full_like(clip, -1)
+    if self.posture_base_level == 0:
+      if not self.posture_is_noisy:
+        clip, frame = self.reference.sample_progress(
+          count,
+          self.reference_min_progress,
+          self._reference_max_progress,
+          bin_difficulty=difficulty,
+          uniform_probability=self._adaptive_uniform_probability,
+          maximum_probability_ratio=probability_ratio,
+        )
+        return clip, frame, torch.full_like(clip, -1)
+      # There is no older history at the first difficulty. Mix its clean and
+      # noisy versions to avoid an abrupt 100% clean -> 100% noisy transition.
+      noisy = torch.rand(count, device=self._env.device) < 0.5
+      return self._sample_reference_parts(
+        noisy,
+        self.reference_min_progress,
+        self._reference_max_progress,
+        difficulty,
+        probability_ratio,
+      )
+    if frontier_maximum is None:
+      # No new reference band opened at this level. Reference samples are all
+      # rehearsal and therefore use the robust noisy bank.
+      return self.reference.sample_noisy_progress(
+        count,
+        self.reference_min_progress,
+        self._reference_max_progress,
+        bin_difficulty=difficulty,
+        uniform_probability=self._adaptive_uniform_probability,
+        maximum_probability_ratio=probability_ratio,
+      )
+    frontier = (
+      torch.rand(count, device=self._env.device) < self._reference_frontier_probability
+    )
+    clip = torch.empty(count, dtype=torch.long, device=self._env.device)
+    frame = torch.empty_like(clip)
+    variant = torch.full_like(clip, -1)
+    if frontier.any():
+      frontier_noisy = torch.full_like(
+        frontier[frontier], self.posture_is_noisy, dtype=torch.bool
+      )
+      values = self._sample_reference_parts(
+        frontier_noisy,
+        self.reference_min_progress,
+        frontier_maximum,
+        difficulty,
+        probability_ratio,
+      )
+      clip[frontier], frame[frontier], variant[frontier] = values
+    history = ~frontier
+    if history.any():
+      values = self.reference.sample_noisy_progress(
+        int(history.sum().item()),
+        frontier_maximum,
+        self._reference_max_progress,
+        difficulty,
+        self._adaptive_uniform_probability,
+        probability_ratio,
+      )
+      clip[history], frame[history], variant[history] = values
+    return clip, frame, variant
+
+  def _sample_reference_parts(
+    self,
+    noisy: torch.Tensor,
+    minimum: float,
+    maximum: float,
+    difficulty: torch.Tensor | None,
+    probability_ratio: float | None,
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    count = len(noisy)
+    clip = torch.empty(count, dtype=torch.long, device=self._env.device)
+    frame = torch.empty_like(clip)
+    variant = torch.full_like(clip, -1)
+    if noisy.any():
+      values = self.reference.sample_noisy_progress(
+        int(noisy.sum().item()),
+        minimum,
+        maximum,
+        difficulty,
+        self._adaptive_uniform_probability,
+        probability_ratio,
+      )
+      clip[noisy], frame[noisy], variant[noisy] = values
+    clean = ~noisy
+    if clean.any():
+      values = self.reference.sample_progress(
+        int(clean.sum().item()),
+        minimum,
+        maximum,
+        difficulty,
+        self._adaptive_uniform_probability,
+        probability_ratio,
+      )
+      clip[clean], frame[clean] = values
+    return clip, frame, variant
+
+  def _sample_fallen(
+    self, count: int, adaptive: bool
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    difficulty = self.adaptive_bin_difficulty if adaptive else None
+    probability_ratio = self._adaptive_max_probability_ratio if adaptive else None
+    if self.posture_is_noisy and self.reference.has_noisy_states:
+      return self.reference.sample_noisy_progress(
+        count,
+        self.fallen_min_progress,
+        self._fallen_max_progress,
+        difficulty,
+        self._adaptive_uniform_probability,
+        probability_ratio,
+      )
+    clip, frame = self.reference.sample_progress(
       count,
-      self.reference_min_progress,
-      frontier_maximum,
-      self._reference_max_progress,
-      self._reference_frontier_probability,
+      self.fallen_min_progress,
+      self._fallen_max_progress,
       bin_difficulty=difficulty,
       uniform_probability=self._adaptive_uniform_probability,
       maximum_probability_ratio=probability_ratio,
     )
-
-  def _sample_fallen(
-    self, count: int, adaptive: bool
-  ) -> tuple[torch.Tensor, torch.Tensor]:
-    return self.reference.sample_progress(
-      count,
-      self.fallen_min_progress,
-      self._fallen_max_progress,
-      bin_difficulty=self.adaptive_bin_difficulty if adaptive else None,
-      uniform_probability=self._adaptive_uniform_probability,
-      maximum_probability_ratio=(
-        self._adaptive_max_probability_ratio if adaptive else None
-      ),
-    )
+    return clip, frame, torch.full_like(clip, -1)
 
   @property
   def force_range(self) -> tuple[float, float]:
@@ -442,25 +608,35 @@ class G1RecoveryReset:
   def mode_probabilities(self) -> torch.Tensor:
     """Return the explicit reset mixture for the posture curriculum."""
     return torch.tensor(
-      self._posture_mode_probabilities[self.posture_level], device=self._env.device
+      self._posture_mode_probabilities[self.posture_base_level],
+      device=self._env.device,
     )
+
+  @property
+  def posture_base_level(self) -> int:
+    """Return the original difficulty represented by a clean/noisy pair."""
+    return self.posture_level // 2
+
+  @property
+  def posture_is_noisy(self) -> bool:
+    return self.posture_level % 2 == 1
 
   @property
   def reference_min_progress(self) -> float:
     """Lower the autonomous reset band only after demonstrated success."""
-    return self._posture_reference_min_progress[self.posture_level]
+    return self._posture_reference_min_progress[self.posture_base_level]
 
   @property
   def fallen_min_progress(self) -> float:
     """Open the physically hardest fallen states in successive bands."""
-    return self._posture_fallen_min_progress[self.posture_level]
+    return self._posture_fallen_min_progress[self.posture_base_level]
 
   @property
   def reference_frontier_max_progress(self) -> float | None:
     """Upper edge of the progress interval newly opened at this level."""
-    if self.posture_level == 0:
+    if self.posture_base_level == 0:
       return None
-    previous = self._posture_reference_min_progress[self.posture_level - 1]
+    previous = self._posture_reference_min_progress[self.posture_base_level - 1]
     current = self.reference_min_progress
     return previous if previous > current else None
 
@@ -471,7 +647,7 @@ class G1RecoveryReset:
 
   @property
   def posture_complete(self) -> bool:
-    return self.posture_level == len(self._posture_mode_probabilities) - 1
+    return self.posture_level == 2 * len(self._posture_mode_probabilities) - 1
 
   @property
   def assist_complete(self) -> bool:
@@ -482,12 +658,13 @@ class G1RecoveryReset:
     """Return a monotonic combined level for existing training dashboards."""
     if not self.posture_complete:
       return self.posture_level
-    return len(self._posture_mode_probabilities) - 1 + self.assist_level
+    return 2 * len(self._posture_mode_probabilities) - 1 + self.assist_level
 
   @property
   def required_window(self) -> int:
     if not self.posture_complete:
-      base_window = self._posture_success_windows[self.posture_level]
+      index = min(self.posture_base_level, len(self._posture_success_windows) - 1)
+      base_window = self._posture_success_windows[index]
     elif self.assist_complete:
       base_window = self._assist_success_windows[-1]
     else:
@@ -497,7 +674,8 @@ class G1RecoveryReset:
   @property
   def base_required_window(self) -> int:
     if not self.posture_complete:
-      return self._posture_success_windows[self.posture_level]
+      index = min(self.posture_base_level, len(self._posture_success_windows) - 1)
+      return self._posture_success_windows[index]
     if self.assist_complete:
       return self._assist_success_windows[-1]
     return self._assist_success_windows[self.assist_level]
@@ -607,8 +785,6 @@ class G1RecoveryReset:
     if int(self.attempts.item()) < self.required_window:
       return False
     level_age_steps = int(self._env.common_step_counter) - self._level_enter_step
-    if level_age_steps < self._minimum_level_steps:
-      return False
     self.last_window_attempts.copy_(self.attempts)
     self.last_success_rate.copy_(self.successes.float() / self.attempts.clamp_min(1))
     self.last_training_success_rate.copy_(
@@ -616,7 +792,8 @@ class G1RecoveryReset:
     )
     self.last_excluded_stale_attempts.copy_(self.excluded_stale_attempts)
     advanced = False
-    if float(self.last_success_rate.item()) >= success_threshold:
+    old_enough = level_age_steps >= self.active_minimum_level_steps
+    if old_enough and float(self.last_success_rate.item()) >= success_threshold:
       if not self.posture_complete:
         self.posture_level += 1
         advanced = True
@@ -632,6 +809,14 @@ class G1RecoveryReset:
     self.excluded_stale_attempts.zero_()
     return advanced
 
+  @property
+  def active_minimum_level_steps(self) -> int:
+    """Hold noisy posture certification for 60 PPO rollout iterations."""
+    certifying_final_noisy = self.posture_complete and self.assist_level == 0
+    if (not self.posture_complete and self.posture_is_noisy) or certifying_final_noisy:
+      return self._noisy_minimum_level_steps
+    return self._minimum_level_steps
+
   def curriculum_state(self) -> dict[str, torch.Tensor]:
     force_min, force_max = self.force_range
     probabilities = self.mode_probabilities
@@ -644,6 +829,10 @@ class G1RecoveryReset:
       "level": torch.tensor(self.level, device=self._env.device),
       "phase": torch.tensor(int(self.posture_complete), device=self._env.device),
       "posture_level": torch.tensor(self.posture_level, device=self._env.device),
+      "posture_base_level": torch.tensor(
+        self.posture_base_level, device=self._env.device
+      ),
+      "posture_is_noisy": torch.tensor(self.posture_is_noisy, device=self._env.device),
       "assist_level": torch.tensor(self.assist_level, device=self._env.device),
       "force_min_n": torch.tensor(force_min, device=self._env.device),
       "force_max_n": torch.tensor(force_max, device=self._env.device),
@@ -660,7 +849,7 @@ class G1RecoveryReset:
         device=self._env.device,
       ),
       "minimum_level_steps": torch.tensor(
-        self._minimum_level_steps, device=self._env.device
+        self.active_minimum_level_steps, device=self._env.device
       ),
       "current_success_rate": current_rate,
       "last_window_attempts": self.last_window_attempts,

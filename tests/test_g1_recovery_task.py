@@ -45,6 +45,7 @@ from mjlab.tasks.velocity.config.g1.rl_cfg import (
   unitree_g1_recovery_fpo_runner_cfg,
 )
 from mjlab.tasks.velocity.recovery_data.g1_schema import (
+  G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION,
   G1_PHYSICAL_INIT_SCHEMA_VERSION,
 )
 from mjlab.tasks.velocity.recovery_prior.smp_reward import (
@@ -55,6 +56,7 @@ from mjlab.tasks.velocity.recovery_prior.smp_reward import (
   ood_score_gate,
   progress_handoff_weight,
   recovery_guidance_gate,
+  update_landing_contact_hold,
 )
 
 
@@ -211,12 +213,31 @@ def test_reference_library_uses_separate_physical_reset_bank(tmp_path: Path) -> 
     joint_position=np.full((1, 29), 0.1, dtype=np.float32),
     joint_velocity=np.zeros((1, 29), dtype=np.float32),
   )
+  np.savez(
+    tmp_path / "noisy_physical_init.npz",
+    schema_version=np.asarray(G1_NOISY_PHYSICAL_INIT_SCHEMA_VERSION),
+    clip_id=np.asarray(("001_test", "001_test")),
+    frame=np.asarray((2, 2), dtype=np.int32),
+    variant=np.asarray((0, 1), dtype=np.int16),
+    root_position=np.asarray(
+      ((0.01, -0.02, 0.31), (0.01, -0.02, 0.31)), dtype=np.float32
+    ),
+    root_quaternion_xyzw=np.tile(
+      np.asarray((0.0, 0.0, 0.0, 1.0), dtype=np.float32), (2, 1)
+    ),
+    root_linear_velocity=np.zeros((2, 3), dtype=np.float32),
+    root_angular_velocity=np.zeros((2, 3), dtype=np.float32),
+    joint_position=np.asarray((np.full(29, 0.15), np.full(29, 0.05)), dtype=np.float32),
+    joint_velocity=np.asarray((np.full(29, 0.1), np.full(29, -0.1)), dtype=np.float32),
+  )
 
   library = G1ReferenceLibrary(
     tmp_path,
     "cpu",
     physical_init_file=tmp_path / "physical_init.npz",
     require_physical_init=True,
+    noisy_physical_init_file=tmp_path / "noisy_physical_init.npz",
+    require_noisy_physical_init=True,
   )
   clip_id, frame = library.sample_progress(32, 0.3, 0.5)
   assert not clip_id.any()
@@ -226,6 +247,11 @@ def test_reference_library_uses_separate_physical_reset_bank(tmp_path: Path) -> 
     library.reset_root_position[0, 2], torch.tensor((0.01, -0.02, 0.31))
   )
   torch.testing.assert_close(library.reset_joint_position[0, 2], torch.full((29,), 0.1))
+  noisy_clip, noisy_frame, noisy_row = library.sample_noisy_progress(32, 0.3, 0.5)
+  assert not noisy_clip.any()
+  assert torch.all(noisy_frame == 2)
+  assert torch.all((noisy_row == 0) | (noisy_row == 1))
+  assert torch.all(torch.abs(library.noisy_joint_velocity[noisy_row]) == 0.1)
 
 
 def test_g1_assistance_curriculum_uses_growing_success_windows():
@@ -268,8 +294,12 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
   assert "maximum_smp_weight" not in curriculum.params
   assert "g1_recovery_assist" not in play_cfg.curriculum
   play_params = play_cfg.events["g1_recovery_reset"].params
-  assert play_params["initial_posture_level"] == 12
+  assert play_params["initial_posture_level"] == 25
   assert play_params["initial_assist_level"] == 8
+  assert event_params["noisy_physical_init_file"].endswith("noisy_physical_init.npz")
+  assert event_params["require_noisy_physical_init"]
+  assert not play_params["require_noisy_physical_init"]
+  assert event_params["curriculum_noisy_minimum_level_steps"] == 60 * 24
   assert event_params["posture_mode_probabilities"][:9] == ((1.0, 0.0, 0.0),) * 9
   assert event_params["posture_mode_probabilities"][9] == (0.85, 0.15, 0.0)
   assert event_params["posture_mode_probabilities"][-1] == (0.45, 0.45, 0.10)
@@ -306,6 +336,10 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
   assert not play_cfg.events["g1_recovery_reset"].params["require_physical_init"]
   assert cfg.scene.num_envs == 1024
   assert play_cfg.scene.num_envs == 16
+  sensor_names = {sensor.name for sensor in cfg.scene.sensors or ()}
+  play_sensor_names = {sensor.name for sensor in play_cfg.scene.sensors or ()}
+  assert "recovery_ground_contact" in sensor_names
+  assert "recovery_ground_contact" not in play_sensor_names
 
   smp = cfg.rewards["smp"]
   assert smp.func is G1SmpReward
@@ -313,6 +347,8 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
   assert smp.params["esm_timesteps"] == (22, 15, 8)
   assert smp.params["reward_weight"] == 10.0
   assert smp.params["terminal_reward_weight"] == 2.5
+  assert smp.params["landing_sensor_name"] == "recovery_ground_contact"
+  assert smp.params["landing_contact_hold_steps"] == 3
   assert smp.params["handoff_progress"] == (0.65, 0.85)
   assert smp.params["energy_descent_weight"] == 2.0
   assert smp.params["energy_descent_max_rate"] == 2.0
@@ -342,6 +378,8 @@ def test_g1_assistance_curriculum_uses_growing_success_windows():
   assert not cfg.terminations["recovery_success"].time_out
   assert "recovery_assistance" not in cfg.rewards
   assert "recovery_assistance_n" in cfg.metrics
+  assert cfg.metrics["recovery_noisy_reset"].reduce == "last"
+  assert cfg.metrics["recovery_noise_scale"].reduce == "last"
   for mode in ("reference", "fallen", "stand"):
     assert cfg.metrics[f"recovery_mode_{mode}"].reduce == "last"
     assert cfg.metrics[f"recovery_success_{mode}"].reduce == "last"
@@ -377,6 +415,7 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   state._assist_success_windows = (6, 8)
   state._curriculum_window_scale = 1.0
   state._minimum_level_steps = 0
+  state._noisy_minimum_level_steps = 0
   state._level_enter_step = 0
   state.posture_level = 0
   state.assist_level = 0
@@ -418,7 +457,9 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
   assert state.posture_level == 1
   assert state.assist_level == 0
   assert state.level == 1
-  assert state.required_window == 4
+  assert state.posture_base_level == 0
+  assert state.posture_is_noisy
+  assert state.required_window == 2
   assert state.attempts.item() == 0
 
   # Outcomes from episodes reset at level 0 must not certify level 1.
@@ -437,23 +478,22 @@ def test_g1_two_stage_curriculum_uses_total_nonstand_success():
 
   state.succeeded[:] = True
   state.record_outcomes(torch.tensor((0, 1, 3, 4)))
-  assert not state.update_curriculum(success_threshold=0.9)
-  assert state.attempts.item() == 3
-  state.record_outcomes(torch.tensor((2,)))
   assert state.update_curriculum(success_threshold=0.9)
   assert state.level == 2
-  assert state.posture_complete
+  assert state.posture_base_level == 1
+  assert not state.posture_is_noisy
+  assert not state.posture_complete
   assert state.assist_level == 0
-  assert state.required_window == 6
+  assert state.required_window == 4
 
   state.reset_posture_level.fill_(2)
   state.record_outcomes(torch.tensor((0, 1, 2, 3)))
-  state.record_outcomes(torch.tensor((0, 1)))
   assert state.update_curriculum(success_threshold=0.9)
-  assert state.posture_level == 2
-  assert state.assist_level == 1
+  assert state.posture_level == 3
+  assert state.posture_is_noisy
+  assert state.assist_level == 0
   assert state.level == 3
-  assert state.required_window == 8
+  assert state.required_window == 4
 
 
 def test_g1_curriculum_scales_evidence_and_enforces_rollout_cooldown():
@@ -467,6 +507,7 @@ def test_g1_curriculum_scales_evidence_and_enforces_rollout_cooldown():
   state._assist_success_windows = (1000,)
   state._curriculum_window_scale = 4.0
   state._minimum_level_steps = 24
+  state._noisy_minimum_level_steps = 1440
   state._level_enter_step = 0
   state.posture_level = 0
   state.assist_level = 0
@@ -484,12 +525,35 @@ def test_g1_curriculum_scales_evidence_and_enforces_rollout_cooldown():
   assert state.required_window == 2000
   assert not state.update_curriculum(success_threshold=0.9)
   assert state.posture_level == 0
-  assert state.attempts.item() == 2000
+  # Evidence windows keep rotating during the time cooldown, so the eventual
+  # gate uses a recent policy rather than all early failures since level entry.
+  assert state.attempts.item() == 0
 
   state._env.common_step_counter = 24
+  state.attempts.fill_(2000)
+  state.successes.fill_(2000)
+  state.training_attempts.fill_(2000)
+  state.training_successes.fill_(2000)
   assert state.update_curriculum(success_threshold=0.9)
   assert state.posture_level == 1
   assert state._level_enter_step == 24
+  assert state.posture_is_noisy
+
+  state._env.common_step_counter = 24 + 1439
+  state.attempts.fill_(2000)
+  state.successes.fill_(2000)
+  state.training_attempts.fill_(2000)
+  state.training_successes.fill_(2000)
+  assert not state.update_curriculum(success_threshold=0.9)
+  assert state.posture_level == 1
+  assert state.attempts.item() == 0
+  state._env.common_step_counter = 24 + 1440
+  state.attempts.fill_(2000)
+  state.successes.fill_(2000)
+  state.training_attempts.fill_(2000)
+  state.training_successes.fill_(2000)
+  assert state.update_curriculum(success_threshold=0.9)
+  assert state.posture_level == 2
 
 
 def test_smp_reward_is_calibrated_without_assistance_level_scaling():
@@ -497,6 +561,19 @@ def test_smp_reward_is_calibrated_without_assistance_level_scaling():
   calibration = torch.tensor((2.0, 3.0, 4.0))
   reward = normalized_esm_reward(errors, calibration, scale=1.0)
   torch.testing.assert_close(reward, torch.exp(torch.tensor((-1.0, -2.0))))
+
+
+def test_smp_landing_contact_requires_three_consecutive_steps():
+  awaiting = torch.tensor((True, True, False))
+  held = torch.zeros(3, dtype=torch.long)
+  for contact in (
+    torch.tensor((True, True, True)),
+    torch.tensor((False, True, True)),
+    torch.tensor((True, True, True)),
+  ):
+    held, landed = update_landing_contact_hold(awaiting, held, contact, 3)
+  torch.testing.assert_close(held, torch.tensor((1, 3, 0)))
+  torch.testing.assert_close(landed, torch.tensor((False, True, False)))
 
 
 def test_smp_energy_descent_is_signed_dt_invariant_and_bounded():
@@ -727,18 +804,18 @@ def test_reset_distribution_shifts_from_easy_reference_to_stratified():
   assert state.reference_frontier_max_progress is None
   assert state.force_range == (160.0, 200.0)
 
-  state.posture_level = 3
+  state.posture_level = 6
   torch.testing.assert_close(state.mode_probabilities, torch.tensor((1.0, 0.0, 0.0)))
   assert np.isclose(state.reference_min_progress, 0.25)
   assert np.isclose(state.reference_frontier_max_progress, 0.40)
   assert state.assist_level == 0
 
-  state.posture_level = 4
+  state.posture_level = 8
   torch.testing.assert_close(state.mode_probabilities, torch.tensor((0.75, 0.25, 0.0)))
   assert np.isclose(state.reference_min_progress, 0.10)
   assert np.isclose(state.reference_frontier_max_progress, 0.25)
 
-  state.posture_level = 6
+  state.posture_level = 13
   torch.testing.assert_close(state.mode_probabilities, torch.tensor((0.45, 0.45, 0.10)))
   assert np.isclose(state.reference_min_progress, 0.10)
   assert state.reference_frontier_max_progress is None
@@ -747,6 +824,48 @@ def test_reset_distribution_shifts_from_easy_reference_to_stratified():
   state.assist_level = 1
   assert state.force_range == (120.0, 160.0)
   torch.testing.assert_close(state.mode_probabilities, torch.tensor((0.45, 0.45, 0.10)))
+
+
+def test_clean_noisy_sublevels_use_noisy_history_and_active_frontier():
+  class Reference:
+    has_noisy_states = True
+
+    def sample_progress(self, count, minimum, maximum, *args, **kwargs):
+      del minimum, maximum, args, kwargs
+      return torch.zeros(count, dtype=torch.long), torch.full(
+        (count,), 2, dtype=torch.long
+      )
+
+    def sample_noisy_progress(self, count, minimum, maximum, *args, **kwargs):
+      del maximum, args, kwargs
+      frame = 8 if minimum >= 0.7 else 4
+      return (
+        torch.zeros(count, dtype=torch.long),
+        torch.full((count,), frame, dtype=torch.long),
+        torch.arange(count, dtype=torch.long),
+      )
+
+  state = G1RecoveryReset.__new__(G1RecoveryReset)
+  state._env = cast(Any, SimpleNamespace(device="cpu"))
+  state.reference = Reference()
+  state._posture_reference_min_progress = (0.7, 0.4)
+  state._reference_max_progress = 0.85
+  state._reference_frontier_probability = 0.5
+  state._adaptive_uniform_probability = 1.0
+  state._adaptive_max_probability_ratio = 1.0
+
+  state.posture_level = 2  # Base difficulty 1, clean frontier.
+  _, frame, variant = state._sample_reference(4096, adaptive=False)
+  clean_frontier = variant < 0
+  assert abs(clean_frontier.float().mean().item() - 0.5) < 0.05
+  assert torch.all(frame[clean_frontier] == 2)
+  assert torch.all(frame[~clean_frontier] == 8)
+
+  state.posture_level = 3  # Same difficulty, noisy frontier.
+  _, frame, variant = state._sample_reference(4096, adaptive=False)
+  assert torch.all(variant >= 0)
+  assert abs((frame == 4).float().mean().item() - 0.5) < 0.05
+  assert abs((frame == 8).float().mean().item() - 0.5) < 0.05
 
 
 def test_g1_recovery_uses_conditional_flow_fpo():

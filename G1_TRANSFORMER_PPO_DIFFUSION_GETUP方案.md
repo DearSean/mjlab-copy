@@ -954,8 +954,10 @@ denoising_direction(t)
 `direction_alignment`，并按实际运动 RMS 抑制接近静止时的虚假方向奖励。
 两个返回引导只在 SMP 分数低于 `0.60` 时启用，在 `0.25` 以下达到完整强度；
 同时随恢复进度在 `0.65--0.85` 平滑退为零，避免 support 较多的数据把已经接近
-站立的机器人重新拉回低位。首个 reset 帧使用环形缓冲区回填，立即提供绝对 SMP
-分数，但能量下降和方向奖励要等到下一步才启用，防止 reset 奖励尖峰。
+站立的机器人重新拉回低位。clean reset 的首帧仍使用环形缓冲区回填，
+立即提供绝对 SMP 分数；抬高的 noisy reset 则不评分这种静态回填窗口，
+而是等待落地后收集满10个真实帧再启用 SMP。能量下降和方向奖励在
+第一个有效 SMP 分数之后才启用，防止 reset 奖励尖峰。
 
 ```text
 smp_total(t)
@@ -1670,6 +1672,36 @@ uv run --python .venv/bin/python --no-sync python -m \
 
 训练模式要求该文件存在，防止无意间退回未经物理验证的原始reset；play模式在
 文件存在时同样使用它。
+
+在纯净物理库之上另建 `noisy_physical_init.npz`。每个候选噪声方向的关节位置
+范围为 `±0.1 rad`，关节速度范围为 `±0.1 rad/s`；root 整体抬高 3 cm，使训练
+从无地面接触的短暂自由落体开始。构建器在噪声尺度
+`[0, 0.25, 0.5, 0.75, 1]` 上检查初始自碰撞和地面相交，只保存整条尺度方向
+通过的候选。训练 reset 再为所选安全方向连续采样 `λ∈[0,1]`，因此每个父帧
+能够产生无限多个局部状态，而不是固定复用少量离散变体：
+
+```text
+q_reset = q_clean + λ × delta_q_safe
+qdot_reset = qdot_clean + λ × delta_qdot_safe
+```
+
+抬高产生的 3 cm 不参与课程 progress 划分，noisy 状态始终继承纯净父帧的
+`height × uprightness` 难度标签。SMP 内部使用一个不进入 Actor/Critic 观测的
+全身—地面接触传感器；连续3个 control step 有接触后确认落地，清空落地前
+历史，再收集10个落地后真实帧才开始计算 SMP。生成命令：
+
+```bash
+uv run --python .venv/bin/python --no-sync python -m \
+  mjlab.tasks.velocity.scripts.build_g1_noisy_physical_init
+```
+
+13 个原始姿态等级展开为 26 个 clean/noisy 子等级。除第一个 noisy 等级使用
+50% 当前 clean 和 50% 当前 noisy 外，此后的 clean 等级使用 50% noisy history
+和 50% clean frontier，noisy 等级则两部分全部使用 noisy 状态。clean 子等级
+保留 24 control-step 冷却；只有 noisy 子等级要求至少停留
+`60 × 24 = 1440` control steps，并与 90% 总成功率窗口同时满足后才进阶。证据
+窗口在冷却期间持续轮换，避免刚进入 noisy 等级时的早期失败永久压低成功率。
+最终 noisy 姿态等级通过后才进入辅助力退火。
 
 物理初始化查看器支持三种来源：`motion` 播放 SMP 使用的原始轨迹，`physical`
 只播放 `physical_init.npz` 中训练 reset 实际加载的沉降姿态，`compare` 将两者
